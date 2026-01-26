@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, Video, FileText, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, Video, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -15,13 +15,21 @@ interface Slot {
     booking?: {
         id: string;
         student: { name: string };
+        project?: { title: string };
         note: string;
         minutes: string | null;
         agreements: string | null;
     };
 }
 
-export function BookingList() {
+interface BookingListProps {
+    defaultProjectId?: string;
+    defaultNote?: string;
+}
+
+export function BookingList({ defaultProjectId, defaultNote }: BookingListProps) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ignore = defaultNote;
     const [slots, setSlots] = useState<Slot[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -41,7 +49,11 @@ export function BookingList() {
         const res = await fetch('/api/mentorship/book', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ slotId, note })
+            body: JSON.stringify({
+                slotId,
+                note,
+                projectId: defaultProjectId
+            })
         });
 
         if (res.ok) {
@@ -95,8 +107,15 @@ export function BookingList() {
 
                                 {slot.isBooked && slot.booking && (
                                     <div className="bg-white/60 p-3 rounded-lg text-sm mb-4">
-                                        <p className="font-semibold text-slate-700">Estudiante: {slot.booking.student.name}</p>
-                                        <p className="text-slate-600 italic">"{slot.booking.note}"</p>
+                                        <div className="flex justify-between items-center mb-1">
+                                            <p className="font-semibold text-slate-700">Estudiante: {slot.booking.student.name}</p>
+                                            {slot.booking.project && (
+                                                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold uppercase">
+                                                    {slot.booking.project.title}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-slate-600 italic leading-relaxed">&ldquo;{slot.booking.note}&rdquo;</p>
                                     </div>
                                 )}
                             </div>

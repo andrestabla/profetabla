@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { addResourceToProjectAction } from './actions';
+import { BookingList } from '@/components/BookingList';
 
 // Tipos basados en nuestro esquema Prisma actualizado
 type Resource = {
@@ -229,9 +230,12 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
             )}
 
             {activeTab === 'MENTORSHIP' && (
-                <div className="mt-8 text-center p-12 bg-slate-50 rounded-xl border border-dashed text-slate-400">
-                    <Calendar className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                    <p>La gestión de mentorías del proyecto se cargará aquí.</p>
+                <div className="mt-8">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">Mentorías del Proyecto</h3>
+                        <p className="text-slate-500 text-sm">Reserva espacios exclusivos para resolver bloqueos de este reto.</p>
+                    </div>
+                    <BookingList defaultProjectId={project.id} />
                 </div>
             )}
         </div>

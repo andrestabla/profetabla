@@ -3,19 +3,22 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET() {
     try {
         const slots = await prisma.mentorshipSlot.findMany({
             include: {
                 teacher: true,
                 booking: {
-                    include: { student: true }
+                    include: {
+                        student: true,
+                        project: { select: { title: true } }
+                    }
                 }
             },
             orderBy: { startTime: 'asc' }
         });
         return NextResponse.json(slots);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error fetching slots' }, { status: 500 });
     }
 }

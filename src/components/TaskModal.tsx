@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Calendar, Flag, MessageSquare, CheckCircle, User as UserIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { prisma } from '@/lib/prisma'; // Note: Client component shouldn't import prisma directly, but we are using API. OK.
+import { useState } from 'react';
+import { X, MessageSquare, CheckCircle, HelpCircle } from 'lucide-react';
+import Link from 'next/link';
+// import { prisma } from '@/lib/prisma'; // Note: Client component shouldn't import prisma directly, but we are using API. OK.
 
 interface Comment {
     id: string;
@@ -27,12 +27,14 @@ interface Task {
 
 interface TaskModalProps {
     task: Task;
+    projectId?: string;
     isOpen: boolean;
     onClose: () => void;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     onUpdate: (updatedTask: any) => void;
 }
 
-export function TaskModal({ task, isOpen, onClose, onUpdate }: TaskModalProps) {
+export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskModalProps) {
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || '');
     const [priority, setPriority] = useState(task.priority);
@@ -40,17 +42,6 @@ export function TaskModal({ task, isOpen, onClose, onUpdate }: TaskModalProps) {
     const [newComment, setNewComment] = useState('');
     const [comments, setComments] = useState<Comment[]>(task.comments || []);
     const [isApproved, setIsApproved] = useState(task.isApproved);
-
-    // Sync state when task changes
-    useEffect(() => {
-        setTitle(task.title);
-        setDescription(task.description || '');
-        setPriority(task.priority);
-        setDueDate(task.dueDate ? task.dueDate.split('T')[0] : '');
-        setComments(task.comments || []);
-        setIsApproved(task.isApproved);
-        setNewComment('');
-    }, [task]);
 
     if (!isOpen) return null;
 
@@ -98,7 +89,7 @@ export function TaskModal({ task, isOpen, onClose, onUpdate }: TaskModalProps) {
         const updated = await res.json();
         setIsApproved(updated.isApproved);
         onUpdate(updated);
-    }
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -154,7 +145,7 @@ export function TaskModal({ task, isOpen, onClose, onUpdate }: TaskModalProps) {
                             </div>
 
                             <div className="space-y-4">
-                                {comments.map((comment) => (
+                                {comments.map((comment: Comment) => (
                                     <div key={comment.id} className="flex gap-3">
                                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                                             <span className="text-xs font-bold text-blue-600">
@@ -186,7 +177,7 @@ export function TaskModal({ task, isOpen, onClose, onUpdate }: TaskModalProps) {
                                     <span className="text-xs text-slate-500 block mb-1">Prioridad</span>
                                     <select
                                         value={priority}
-                                        onChange={(e) => setPriority(e.target.value as any)}
+                                        onChange={(e) => setPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')}
                                         className="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-md px-2 py-1.5 focus:outline-none"
                                     >
                                         <option value="LOW">Baja</option>
@@ -213,8 +204,8 @@ export function TaskModal({ task, isOpen, onClose, onUpdate }: TaskModalProps) {
                             <button
                                 onClick={handleApprove}
                                 className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${isApproved
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'bg-slate-100 text-slate-600 hover:bg-green-50 hover:text-green-600'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-green-50 hover:text-green-600'
                                     }`}
                             >
                                 <CheckCircle className="w-4 h-4" />
@@ -223,7 +214,23 @@ export function TaskModal({ task, isOpen, onClose, onUpdate }: TaskModalProps) {
                             {isApproved && <p className="text-xs text-green-600 text-center mt-2">Esta tarea ha sido validada.</p>}
                         </div>
 
-                        <div className="pt-20">
+                        {/* Mentorship Link (HU-07) */}
+                        {!isApproved && (
+                            <div className="pt-4">
+                                <Link
+                                    href={`/dashboard/mentorship?projectId=${projectId}&note=Bloqueo en tarea: ${encodeURIComponent(task.title)}`}
+                                    className="w-full flex items-center justify-center gap-2 py-2 border-2 border-amber-200 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-50 group transition-all"
+                                >
+                                    <HelpCircle className="w-4 h-4 text-amber-500 group-hover:scale-110" />
+                                    Solicitar Mentoría
+                                </Link>
+                                <p className="text-[10px] text-slate-400 mt-2 text-center leading-tight">
+                                    ¿Estás bloqueado? Agenda una cita con tu tutor para resolver dudas técnicas.
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="pt-10">
                             <button
                                 onClick={handleSave}
                                 className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 shadow-lg shadow-blue-500/20"

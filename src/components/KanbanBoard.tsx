@@ -177,7 +177,9 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
             {selectedTask && (
                 <TaskModal
+                    key={selectedTask.id}
                     task={selectedTask}
+                    projectId={projectId}
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     onUpdate={handleTaskUpdate}

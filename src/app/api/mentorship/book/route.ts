@@ -13,11 +13,11 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { slotId, note } = body;
+        const { slotId, note, projectId: overtProjectId } = body;
 
-        // Find Active Project context
-        let projectId = null;
-        if (session.user.role === 'STUDENT') {
+        // Find Active Project context if not provided
+        let projectId = overtProjectId;
+        if (!projectId && session.user.role === 'STUDENT') {
             const activeProject = await prisma.project.findFirst({
                 where: {
                     studentId: session.user.id,
@@ -27,7 +27,9 @@ export async function POST(request: Request) {
             projectId = activeProject?.id;
         }
 
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         const booking = await prisma.$transaction(async (tx: any) => {
+            /* eslint-enable @typescript-eslint/no-explicit-any */
             // Optimistic Update: Check isBooked and version in a single atomic operation
             const updateResult = await tx.mentorshipSlot.updateMany({
                 where: {
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json(booking);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error booking slot' }, { status: 500 });
     }
 }
