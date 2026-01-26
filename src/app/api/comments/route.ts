@@ -20,10 +20,10 @@ export async function POST(request: Request) {
             data: {
                 content,
                 taskId,
-                userId: uid,
+                authorId: uid,
             },
             include: {
-                user: true,
+                author: true,
             },
         });
 
