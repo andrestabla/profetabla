@@ -17,7 +17,7 @@ const navItems = [
 
 const adminItems = [
     { name: 'Panel Profesor', href: '/dashboard/professor', icon: LayoutDashboard },
-    { name: 'Crear Proyecto', href: '/dashboard/professor/projects/create', icon: Plus }, // New
+    { name: 'Crear Proyecto', href: '/dashboard/professor/projects/new', icon: Plus }, // New
     { name: 'Solicitudes', href: '/dashboard/professor/applications', icon: UserCheck }, // New
     { name: 'Panel Admin', href: '/dashboard/admin', icon: Settings },
 ];

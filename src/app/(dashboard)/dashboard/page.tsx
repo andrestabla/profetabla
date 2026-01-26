@@ -64,7 +64,7 @@ export default async function DashboardPage() {
                 <h1 className="text-2xl font-bold text-slate-800">Panel de Profesor</h1>
                 <p className="text-slate-500 mb-6">Gestiona tus proyectos y solicitudes desde el menú lateral.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Link href="/dashboard/professor/projects/create" className="p-6 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition-colors">
+                    <Link href="/dashboard/professor/projects/new" className="p-6 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition-colors">
                         <h3 className="font-bold text-blue-800">Crear Nuevo Proyecto</h3>
                         <p className="text-sm text-blue-600">Lanza un nuevo reto para tus estudiantes.</p>
                     </Link>
