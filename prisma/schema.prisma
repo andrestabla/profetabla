@@ -472,10 +472,18 @@ model PlatformConfig {
   // --- 5. Avanzado (Solo Expertos) ---
   customCss        String?  @db.Text 
 
-  // 6. Integraciones Legacy
-  githubToken        String?
+  // 6. Configuración de API Keys y SSO
+  // githubToken        String? // DEPRECATED
   geminiApiKey       String?
   geminiModel        String   @default("gemini-pro")
+  
+  // Google SSO
+  googleClientId     String?
+  googleClientSecret String?
+  
+  // Google Drive
+  googleDriveClientId     String?
+  googleDriveClientSecret String?
 
   // 7. Correo (SMTP)
   smtpHost           String?

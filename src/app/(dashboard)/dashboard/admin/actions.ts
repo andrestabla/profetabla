@@ -169,13 +169,16 @@ export async function updateSystemConfigAction(formData: FormData) {
     const existing = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
 
     // Helper: Priority -> Form Value > Existing Value > Default
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getVal = (key: string, defaultVal: any = null) => {
         if (formData.has(key)) {
             const val = formData.get(key);
             if (val === '' && defaultVal === null) return null; // Handle clearing optional strings
             return val as string;
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (existing && (existing as any)[key] !== undefined && (existing as any)[key] !== null) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (existing as any)[key];
         }
         return defaultVal;
@@ -186,13 +189,14 @@ export async function updateSystemConfigAction(formData: FormData) {
             const val = formData.get(key);
             return val ? parseInt(val as string) : defaultVal;
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (existing && (existing as any)[key]) return (existing as any)[key];
         return defaultVal;
     };
 
     // Construct Data Object with Defaults for Required Fields
     const data = {
-        institutionName: getVal('institutionName', 'Profe Tabla'),
+
 
         // Design
         primaryColor: getVal('primaryColor', '#2563EB'),
@@ -208,7 +212,6 @@ export async function updateSystemConfigAction(formData: FormData) {
         customCss: getVal('customCss', null),
 
         // Integrations
-        githubToken: getVal('githubToken', null),
         geminiApiKey: getVal('geminiApiKey', null),
         geminiModel: getVal('geminiModel', 'gemini-pro'),
 

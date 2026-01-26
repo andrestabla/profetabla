@@ -18,11 +18,15 @@ export async function updatePlatformConfigAction(formData: FormData) {
     const session = await requireAdmin();
 
     const data = {
-        institutionName: formData.get('institutionName') as string,
-        primaryColor: formData.get('primaryColor') as string,
         geminiApiKey: formData.get('geminiApiKey') as string,
         geminiModel: formData.get('geminiModel') as string,
-        githubToken: formData.get('githubToken') as string,
+
+        googleClientId: formData.get('googleClientId') as string,
+        googleClientSecret: formData.get('googleClientSecret') as string,
+
+        googleDriveClientId: formData.get('googleDriveClientId') as string,
+        googleDriveClientSecret: formData.get('googleDriveClientSecret') as string,
+
         smtpHost: formData.get('smtpHost') as string,
         smtpPort: parseInt(formData.get('smtpPort') as string || '587'),
         smtpUser: formData.get('smtpUser') as string,

@@ -1,6 +1,6 @@
 'use client';
 
-import { Cpu, Database, Palette, Mail } from 'lucide-react';
+import { Cpu, Mail, Cloud, Globe, Lock } from 'lucide-react';
 import { updatePlatformConfigAction } from '@/app/api/admin/actions';
 import { useState } from 'react';
 
@@ -29,23 +29,50 @@ export function ConfigForm({ config }: { config: any }) {
                 </div>
             </div>
 
-            {/* 2. Conexión REPOSITORIOS (GitHub/GitLab) */}
+            {/* 2. Asistente SSO Google */}
             <div className="space-y-4">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-                    <Database className="w-5 h-5 text-slate-900" /> Repositorios de Código
+                    <Lock className="w-5 h-5 text-red-600" /> SSO con Google (Autenticación)
                 </h3>
+                <p className="text-xs text-slate-500">
+                    Configura el acceso para que usuarios (profesores y estudiantes) puedan iniciar sesión con su cuenta institucional de Google.
+                </p>
                 <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">GitHub Personal Access Token</label>
-                    <input type="password" name="githubToken" defaultValue={config?.githubToken || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="ghp_..." />
-                    <p className="text-xs text-slate-400 mt-1">Necesario para clonar plantillas privadas o leer repos de estudiantes.</p>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Google Client ID</label>
+                    <input type="text" name="googleClientId" defaultValue={config?.googleClientId || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="...apps.googleusercontent.com" />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Google Client Secret</label>
+                    <input type="password" name="googleClientSecret" defaultValue={config?.googleClientSecret || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="..." />
                 </div>
             </div>
 
-            {/* 3. Configuración SMTP (Correo) */}
+            {/* 3. Integración Google Drive */}
             <div className="space-y-4">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-                    <Mail className="w-5 h-5 text-blue-600" /> Servidor de Correo
+                    <Cloud className="w-5 h-5 text-blue-500" /> Google Drive (Recursos)
                 </h3>
+                <p className="text-xs text-slate-500">
+                    Habilita la integración para enlazar documentos y carpetas de Drive directamente en los proyectos y OAs.
+                </p>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Drive Client ID</label>
+                    <input type="text" name="googleDriveClientId" defaultValue={config?.googleDriveClientId || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="...apps.googleusercontent.com" />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Drive Client Secret</label>
+                    <input type="password" name="googleDriveClientSecret" defaultValue={config?.googleDriveClientSecret || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="..." />
+                </div>
+            </div>
+
+            {/* 4. Asistente Correo Saliente */}
+            <div className="space-y-4">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
+                    <Mail className="w-5 h-5 text-indigo-600" /> Correo Saliente (SMTP)
+                </h3>
+                <p className="text-xs text-slate-500">
+                    Configura el servidor para el envío de notificaciones automáticas, invitaciones y nuevas contraseñas.
+                </p>
                 <div className="grid grid-cols-2 gap-4">
                     <input placeholder="Host (smtp.gmail.com)" name="smtpHost" defaultValue={config?.smtpHost || ''} className="px-3 py-2 border rounded-lg" />
                     <input placeholder="Puerto (587)" name="smtpPort" defaultValue={config?.smtpPort || '587'} className="px-3 py-2 border rounded-lg" />
@@ -54,27 +81,15 @@ export function ConfigForm({ config }: { config: any }) {
                 <input type="password" placeholder="Contraseña SMTP" name="smtpPassword" className="w-full px-3 py-2 border rounded-lg" />
             </div>
 
-            {/* 4. Look & Feel */}
-            <div className="space-y-4">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-                    <Palette className="w-5 h-5 text-emerald-600" /> Personalización
-                </h3>
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Institución</label>
-                    <input name="institutionName" defaultValue={config?.institutionName || 'Profe Tabla'} className="w-full px-3 py-2 border rounded-lg" />
-                </div>
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Color Primario</label>
-                    <div className="flex gap-2">
-                        <input type="color" name="primaryColor" defaultValue={config?.primaryColor || '#2563EB'} className="h-10 w-20" />
-                        <input type="text" name="primaryColorText" defaultValue={config?.primaryColor || '#2563EB'} className="flex-1 px-3 py-2 border rounded-lg" />
-                    </div>
-                </div>
-            </div>
-
             <div className="md:col-span-2 pt-4 border-t">
-                <button type="submit" disabled={isSaving} className="bg-slate-900 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-slate-800 w-full md:w-auto disabled:opacity-50">
-                    {isSaving ? 'Guardando...' : 'Guardar Configuración del Sistema'}
+                <button type="submit" disabled={isSaving} className="bg-slate-900 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-slate-800 w-full md:w-auto disabled:opacity-50 flex items-center justify-center gap-2 mx-auto">
+                    {isSaving ? (
+                        <>
+                            <Globe className="w-4 h-4 animate-spin" /> Guardando...
+                        </>
+                    ) : (
+                        'Guardar Configuración del Sistema'
+                    )}
                 </button>
             </div>
         </form>
