@@ -72,6 +72,7 @@ model User {
   assignedTasks   Task[]           @relation("TaskAssignees") 
   submissions     Submission[]
   resourceInteractions ResourceInteraction[]
+  createdLearningObjects LearningObject[]  
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -111,6 +112,8 @@ model Project {
   tags        Tag[]
   assignments Assignment[]
   
+  learningObjects LearningObject[] @relation("ProjectLearningObjects")
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -312,4 +315,53 @@ model ActivityLog {
   action      String   // e.g., "CREATE_TASK", "MOVE_TASK", "UPLOAD_FILE"
   description String
   createdAt   DateTime @default(now())
+}
+
+// ---------------------------------------------------------
+// 9. LEARNING OBJECTS (OAs)
+// ---------------------------------------------------------
+model LearningObject {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  
+  // METADATOS CLAVE
+  subject     String   
+  competency  String?  
+  keywords    String[] 
+  
+  // EL "PAQUETE SCORM"
+  items       ResourceItem[] 
+
+  // VINCULACIÓN
+  projects    Project[] @relation("ProjectLearningObjects")
+
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ResourceItem {
+  id          String   @id @default(uuid())
+  title       String
+  
+  type        ItemType @default(LINK) 
+  url         String   @db.Text       
+  
+  order       Int      @default(0)
+
+  learningObjectId String
+  learningObject   LearningObject @relation(fields: [learningObjectId], references: [id], onDelete: Cascade)
+}
+
+enum ItemType {
+  PDF
+  VIDEO
+  EMBED
+  DRIVE
+  S3
+  LINK
+  DOC
 }
