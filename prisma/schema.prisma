@@ -132,6 +132,10 @@ model Project {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([studentId])
+  @@index([status])
 }
 
 // ---------------------------------------------------------
@@ -152,7 +156,8 @@ model ProjectApplication {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([projectId, studentId]) 
+  @@unique([projectId, studentId])
+  @@index([status])
 }
 
 // ---------------------------------------------------------
@@ -175,6 +180,9 @@ model Resource {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([categoryId])
 }
 
 model ResourceCategory {
@@ -240,6 +248,10 @@ model MentorshipBooking {
   
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
+  @@index([studentId])
+  @@index([projectId])
+  @@index([status])
 }
 
 // ---------------------------------------------------------
@@ -269,6 +281,9 @@ model Task {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([status])
 }
 
 model Comment {
@@ -338,8 +353,11 @@ model ActivityLog {
   level       String   @default("INFO")
   action      String
   description String?
-  metadata    String?  @db.Text
+  metadata    Json?
   createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
 }
 
 // ---------------------------------------------------------
@@ -366,7 +384,8 @@ model LearningObject {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
+  @@index([authorId])
   comments    Comment[]
 }
 
@@ -472,6 +491,8 @@ model WorkExperience {
   description String?  @db.Text
   
   createdAt   DateTime @default(now())
+
+  @@index([userId])
 }
 
 // NUEVO: ESTUDIOS / FORMACIÓN
@@ -487,6 +508,8 @@ model Education {
   endDate     DateTime?
   
   createdAt   DateTime @default(now())
+
+  @@index([userId])
 }
 
 // NUEVO: IDIOMAS
@@ -497,4 +520,6 @@ model Language {
   
   name      String   // Ej: Inglés, Francés
   level     String   // Ej: B2, Nativo, Básico
+
+  @@index([userId])
 }

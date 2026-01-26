@@ -128,7 +128,7 @@ export async function sendMessageAction(userId: string, message: string) {
         data: {
             action: 'SEND_MESSAGE',
             description: `Sent message to ${userId}`,
-            metadata: message,
+            metadata: { message },
             level: 'INFO'
         }
     });
@@ -232,7 +232,7 @@ export async function updateSystemConfigAction(formData: FormData) {
             action: 'UPDATE_CONFIG',
             description: 'Updated system configuration',
             level: 'INFO',
-            metadata: `Updated fields: ${Array.from(formData.keys()).join(', ')}`
+            metadata: { updatedFields: Array.from(formData.keys()) }
         }
     });
 
