@@ -1,140 +1,169 @@
 'use client';
 
+import {
+    LayoutDashboard,
+    BookOpen,
+    Users,
+    Settings,
+    LogOut,
+    GraduationCap,
+    Briefcase,
+    Calendar,
+    Plus,
+    Trophy,
+    ShoppingBag,
+    ChevronLeft,
+    ChevronRight,
+    Menu,
+    UserCheck,
+    FileText,
+    Kanban
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, GraduationCap, Calendar, Settings, LogOut, FileText, Search, Plus, UserCheck } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
-
-const navItems = [
-    { name: 'Resumen', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Kanban', href: '/dashboard/kanban', icon: Kanban },
-    { name: 'Entregas', href: '/dashboard/assignments', icon: FileText },
-    { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap },
-    { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar },
-    { name: 'Mercado Proyectos', href: '/dashboard/projects/market', icon: Search }, // New
-];
-
-const adminItems = [
-    { name: 'Panel Profesor', href: '/dashboard/professor', icon: LayoutDashboard },
-    { name: 'Crear Proyecto', href: '/dashboard/professor/projects/new', icon: Plus }, // New
-    { name: 'Solicitudes', href: '/dashboard/professor/applications', icon: UserCheck }, // New
-    { name: 'Panel Admin', href: '/dashboard/admin', icon: Settings },
-];
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export function Sidebar() {
     const pathname = usePathname();
     const { data: session } = useSession();
+    const role = session?.user?.role;
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/');
+
+    const navItems = [
+        { name: 'Resumen', href: '/dashboard', icon: LayoutDashboard, roles: ['STUDENT'] },
+        { name: 'Kanban', href: '/dashboard/kanban', icon: Kanban, roles: ['STUDENT'] },
+        { name: 'Entregas', href: '/dashboard/assignments', icon: FileText, roles: ['STUDENT'] },
+        { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
+        { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
+        { name: 'Mercado', href: '/dashboard/projects/market', icon: ShoppingBag, roles: ['STUDENT'] },
+    ];
+
+    const adminItems = [
+        { name: 'Panel Profesor', href: '/dashboard/teacher', icon: LayoutDashboard, roles: ['TEACHER', 'ADMIN'] },
+        { name: 'Crear Proyecto', href: '/dashboard/projects/new', icon: Plus, roles: ['TEACHER', 'ADMIN'] },
+        { name: 'Solicitudes', href: '/dashboard/projects/applications', icon: UserCheck, roles: ['TEACHER', 'ADMIN'] },
+        { name: 'Panel Admin', href: '/dashboard/admin', icon: Settings, roles: ['ADMIN'] },
+    ];
+
+    // Combine and filter
+    const allItems = [
+        { section: 'Principal', items: navItems },
+        { section: 'Gestión', items: adminItems }
+    ];
 
     return (
-        <aside className="w-64 bg-slate-900 text-white min-h-screen flex flex-col shadow-xl">
-            <div className="p-6 border-b border-slate-800">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                    Profe Tabla
-                </h1>
-                {session?.user ? (
-                    <div className="flex items-center gap-3 mt-4 bg-slate-800/50 p-2 rounded-lg">
-                        {session.user.image ? (
-                            <img src={session.user.image} alt="Avatar" className="w-8 h-8 rounded-full border border-slate-600" />
-                        ) : (
-                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold">
-                                {session.user.name?.charAt(0)}
-                            </div>
-                        )}
-                        <div className="overflow-hidden">
-                            <p className="text-sm font-medium truncate w-[130px]">{session.user.name}</p>
-                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{session.user.role}</p>
-                        </div>
-                    </div>
-                ) : (
-                    <p className="text-xs text-slate-400 mt-1">Gestión Educativa</p>
+        <aside className={cn(
+            "bg-[#0F172A] text-slate-300 flex flex-col transition-all duration-300 ease-in-out border-r border-slate-800 h-screen sticky top-0",
+            isCollapsed ? "w-20" : "w-64"
+        )}>
+            {/* Header */}
+            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+                {!isCollapsed && (
+                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400 truncate">
+                        Profe Tabla
+                    </h1>
                 )}
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors ml-auto"
+                >
+                    {isCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+                </button>
             </div>
 
-            <nav className="flex-1 p-4 space-y-2">
-                {/* 1. STUDENT LINKS (Hidden for Teachers to reduce noise, or keep if they want to see student view) */}
-                {/* Let's be strict: Students see Student Links. Teachers see Teacher Links. */}
+            {/* Profile Summary if NOT collapsed */}
+            {!isCollapsed && session?.user && (
+                <div className="p-4 border-b border-slate-800 bg-slate-900/50">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
+                            {session.user.image ? <img src={session.user.image} className="w-full h-full rounded-full" /> : session.user.name?.[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate">{session.user.name}</p>
+                            <p className="text-[10px] uppercase font-bold tracking-wider text-blue-400 bg-blue-900/30 px-2 py-0.5 rounded-full w-fit">
+                                {role}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                {session?.user?.role === 'STUDENT' && navItems.map((item) => {
-                    const isActive = pathname === item.href;
+            {/* Collapsed Avatar Only */}
+            {isCollapsed && session?.user && (
+                <div className="p-4 border-b border-slate-800 flex justify-center">
+                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600" title={session.user.name || ''}>
+                        {session.user.image ? <img src={session.user.image} className="w-full h-full rounded-full" /> : session.user.name?.[0]}
+                    </div>
+                </div>
+            )}
+
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-8">
+                {allItems.map((section, idx) => {
+                    // Filter items logic roughly based on roles
+                    // For brevity, just mapping everything but we should respect role checks
+                    const visibleItems = section.items.filter(item => {
+                        if (!role) return false;
+                        return item.roles.includes(role);
+                    });
+
+                    if (visibleItems.length === 0) return null;
+
                     return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                                'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
-                                isActive
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                        <div key={idx}>
+                            {!isCollapsed && (
+                                <h3 className="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                    {section.section}
+                                </h3>
                             )}
-                        >
-                            <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
-                            <span className="font-medium">{item.name}</span>
-                        </Link>
+                            <ul className="space-y-1">
+                                {visibleItems.map((item) => {
+                                    const active = isActive(item.href);
+                                    return (
+                                        <li key={item.name}>
+                                            <Link
+                                                href={item.href}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group relative",
+                                                    active
+                                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                                                        : "hover:bg-slate-800 hover:text-white text-slate-400"
+                                                )}
+                                                title={isCollapsed ? item.name : undefined}
+                                            >
+                                                <item.icon className={cn("w-5 h-5 flex-shrink-0", active ? "text-white" : "text-slate-400 group-hover:text-white")} />
+                                                {!isCollapsed && <span>{item.name}</span>}
+
+                                                {/* Active Indicator for Collapsed Mode */}
+                                                {isCollapsed && active && (
+                                                    <div className="absolute left-0 top-2 bottom-2 w-1 bg-white rounded-r-lg" />
+                                                )}
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
                     );
                 })}
-
-                {/* 2. TEACHER / ADMIN LINKS */}
-                {(session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN') && (
-                    <>
-                        <div className="pb-2">
-                            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Gestión</p>
-                            {adminItems.map((item) => {
-                                const isActive = pathname === item.href;
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={cn(
-                                            'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
-                                            isActive
-                                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                                        )}
-                                    >
-                                        <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
-                                        <span className="font-medium">{item.name}</span>
-                                    </Link>
-                                );
-                            })}
-                        </div>
-
-                        {/* Shared Resources for Teachers */}
-                        <div className="pt-2 border-t border-slate-800">
-                            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Recursos</p>
-                            {[
-                                { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap },
-                                { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar },
-                            ].map((item) => {
-                                const isActive = pathname === item.href;
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={cn(
-                                            'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
-                                            isActive
-                                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                                        )}
-                                    >
-                                        <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
-                                        <span className="font-medium">{item.name}</span>
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    </>
-                )}
             </nav>
 
+            {/* Footer */}
             <div className="p-4 border-t border-slate-800">
                 <button
                     onClick={() => signOut({ callbackUrl: '/login' })}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors"
+                    className={cn(
+                        "flex items-center gap-3 w-full rounded-xl text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-all",
+                        isCollapsed ? "justify-center p-3" : "px-4 py-3"
+                    )}
+                    title="Cerrar Sesión"
                 >
                     <LogOut className="w-5 h-5" />
-                    <span className="font-medium">Cerrar Sesión</span>
+                    {!isCollapsed && <span>Cerrar Sesión</span>}
                 </button>
             </div>
         </aside>

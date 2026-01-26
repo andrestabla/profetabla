@@ -175,6 +175,14 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                 {/* Cabecera del Visor */}
                 <header className="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center text-white shrink-0">
                     <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors"
+                            title={isSidebarOpen ? "Ocultar Menú" : "Mostrar Menú"}
+                        >
+                            {isSidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+                        </button>
+
                         <span className="bg-slate-800 text-slate-300 text-xs font-bold px-2 py-1 rounded">
                             {activeItem.type}
                         </span>
