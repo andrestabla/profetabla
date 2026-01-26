@@ -22,10 +22,14 @@ export async function summonStudentAction(formData: FormData) {
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(10, 0, 0, 0);
 
+        const endTime = new Date(tomorrow);
+        endTime.setHours(11, 0, 0, 0);
+
         const newSlot = await prisma.mentorshipSlot.create({
             data: {
                 teacherId: session.user.id,
                 startTime: tomorrow,
+                endTime: endTime,
                 isBooked: false
             }
         });

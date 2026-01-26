@@ -5,6 +5,7 @@ import { TeamList } from '@/components/TeamList';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Search, Briefcase } from 'lucide-react';
+import { UrgentCitationCard } from '@/components/UrgentCitationCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,31 @@ async function getDashboardData() {
     if (user.role === 'STUDENT') {
         const project = user.projectsAsStudent[0]; // Get the first active project
 
-        if (!project) return { user, project: null };
+        // Get Citations for Notification
+        const citations = await prisma.mentorshipBooking.findMany({
+            where: {
+                studentId: user.id,
+                initiatedBy: 'TEACHER',
+                status: 'CONFIRMED',
+                slot: { startTime: { gte: new Date() } }
+            },
+            include: { slot: { include: { teacher: true } } },
+            orderBy: { slot: { startTime: 'asc' } },
+            take: 1
+        });
+
+        let citation = null;
+        if (citations.length > 0) {
+            const cit = citations[0];
+            citation = {
+                teacherName: cit.slot.teacher.name || 'Tutor',
+                date: cit.slot.startTime.toLocaleDateString(),
+                time: cit.slot.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                meetingUrl: '#'
+            };
+        }
+
+        if (!project) return { user, project: null, citation };
 
         const totalTasks = project.tasks.length;
         const completedTasks = project.tasks.filter((t) => t.status === 'DONE').length;
@@ -44,12 +69,16 @@ async function getDashboardData() {
             user,
             project,
             stats: { totalTasks, completedTasks, pendingTasks },
-            teacher: project.teacher
+            teacher: project.teacher,
+            citation
         };
     }
 
     // TEACHER/ADMIN VIEW (Simple placeholder for now, redirect logic handles specifics usually)
-    return { user, isTeacher: true };
+    // Check if teacher has projects
+    const teacherProject = await prisma.project.findFirst({ where: { teacherId: user.id } });
+
+    return { user, isTeacher: true, teacherProject };
 }
 
 export default async function DashboardPage() {
@@ -72,17 +101,26 @@ export default async function DashboardPage() {
                         <h3 className="font-bold text-orange-800">Revisar Solicitudes</h3>
                         <p className="text-sm text-orange-600">Acepta o rechaza estudiantes.</p>
                     </Link>
+                    {data.teacherProject && (
+                        <Link href={`/dashboard/professor/projects/${data.teacherProject.id}/mentorship`} className="p-6 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-colors">
+                            <h3 className="font-bold text-red-800">Gestionar Mentorías (Riesgo)</h3>
+                            <p className="text-sm text-red-600">Revisa alertas y cita estudiantes.</p>
+                        </Link>
+                    )}
                 </div>
             </div>
         );
     }
 
-    const { user, project, stats, teacher } = data;
+    const { user, project, stats, teacher, citation } = data;
 
     // EMPTY STATE: Show Marketplace CTA
     if (!project) {
         return (
             <div className="flex flex-col items-center justify-center h-[80vh] text-center p-6">
+                {/* Citation Card shown even if no project active yet, theoretically possible if assigned by admin/teacher elsewhere */}
+                {citation && <div className="w-full max-w-2xl mb-8"><UrgentCitationCard citation={citation} /></div>}
+
                 <div className="bg-slate-100 p-6 rounded-full mb-6">
                     <Briefcase className="w-12 h-12 text-slate-400" />
                 </div>
@@ -108,6 +146,9 @@ export default async function DashboardPage() {
                 <h1 className="text-3xl font-bold text-slate-800">Hola, {user.name?.split(' ')[0]} 👋</h1>
                 <p className="text-slate-500">Aquí tienes el resumen de tu proyecto actual.</p>
             </header>
+
+            {/* NOTIFICACIÓN PRIORITARIA */}
+            {citation && <UrgentCitationCard citation={citation} />}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-start">
                 {/* Columna Izquierda: Métricas Principales */}
