@@ -1,0 +1,277 @@
+ <!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profe Tabla · Plataforma Educativa (V2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+<style>
+/* VARIABLES Y RESET (Mantenemos la base anterior) */
+:root {
+  --primary: #2563eb; --primary-dark: #1e40af; --dark: #0f172a;
+  --sidebar-hover: #1e293b; --bg: #f8fafc; --card: #ffffff;
+  --text: #1e293b; --text-muted: #64748b; --border: #e2e8f0;
+  --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+.hidden { display: none !important; }
+
+/* LAYOUT GENERAL */
+#login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
+.login-card { background: var(--card); padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); text-align: center; }
+.input-group { margin-bottom: 1rem; text-align: left; }
+.login-card input, .login-card select { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter'; outline: none; }
+.btn-primary { width: 100%; padding: 0.875rem; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+#app { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
+.sidebar { background: var(--dark); color: #fff; display: flex; flex-direction: column; }
+.sidebar-header { padding: 1.5rem; border-bottom: 1px solid var(--sidebar-hover); }
+.nav-links a { display: flex; align-items: center; gap: 0.75rem; color: #cbd5e1; padding: 0.75rem 1rem; text-decoration: none; font-weight: 500; transition: 0.2s; border-radius: 8px; margin: 0.25rem 1rem; }
+.nav-links a.active { background: var(--primary); color: #fff; }
+
+.topbar { background: var(--card); padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.content { padding: 2rem; overflow-y: auto; height: calc(100vh - 70px); }
+.card { background: var(--card); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); margin-bottom: 1rem; }
+
+/* MODULO: KANBAN DRAG & DROP */
+.kanban-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; height: 100%; align-items: start; }
+.kanban-column { background: #f1f5f9; border-radius: 12px; padding: 1rem; min-height: 500px; }
+.column-header { font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; }
+.task-card { background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 0.75rem; cursor: grab; border-left: 4px solid var(--primary); font-size: 0.9rem; }
+.task-card:active { cursor: grabbing; opacity: 0.8; }
+.task-meta { display: flex; justify-content: space-between; margin-top: 0.5rem; color: var(--text-muted); font-size: 0.75rem; }
+
+/* MODULO: OTROS */
+.resource-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.badge { padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.75rem; font-weight: 500; }
+.badge-success { background: #d1fae5; color: #047857; }
+.badge-warning { background: #fef3c7; color: #b45309; }
+</style>
+</head>
+<body>
+
+<section id="login">
+  <div class="login-card">
+    <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--primary);">school</span>
+    <h2>Profe Tabla</h2>
+    <div class="input-group">
+      <select id="role"><option value="estudiante">Estudiante</option><option value="profesor">Profesor</option></select>
+    </div>
+    <div class="input-group"><input id="user" placeholder="Usuario"></div>
+    <div class="input-group"><input id="pass" type="password" placeholder="Contraseña"></div>
+    <button class="btn-primary" onclick="login()">Entrar</button>
+  </div>
+</section>
+
+<section id="app" class="hidden">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h3 id="roleTitle">Profe Tabla</h3>
+      <span id="roleSubtitle"></span>
+    </div>
+    <nav class="nav-links">
+      <a href="#/workspace" data-route="/workspace"><span class="material-symbols-outlined">home</span> Resumen</a>
+      <a href="#/workspace/kanban" data-route="/workspace/kanban"><span class="material-symbols-outlined">view_kanban</span> Tablero</a>
+      <a href="#/workspace/entregables" data-route="/workspace/entregables"><span class="material-symbols-outlined">task</span> Entregables</a>
+      <a href="#/workspace/aprendizaje" data-route="/workspace/aprendizaje"><span class="material-symbols-outlined">menu_book</span> Aprendizaje</a>
+      <a href="#/workspace/mentorias" data-route="/workspace/mentorias"><span class="material-symbols-outlined">event</span> Mentorías</a>
+    </nav>
+  </aside>
+
+  <div>
+    <header class="topbar">
+      <span id="userInfo" style="font-weight:600;"></span>
+      <button class="btn-primary" style="width:auto; padding:0.5rem 1rem;" onclick="logout()">Salir</button>
+    </header>
+    <main class="content" id="view"></main>
+  </div>
+</section>
+
+<script>
+// ==========================================
+// 1. SIMULACIÓN DE BASE DE DATOS Y API (MOCK)
+// ==========================================
+const mockDB = {
+  project: { id: 1, name: "Rediseño de Plataforma E-learning", progress: 65, status: "Activo" },
+  tasks: [
+    { id: 1, title: "Investigar competidores", status: "terminado", owner: "Laura" },
+    { id: 2, title: "Diseñar wireframes (Figma)", status: "en_progreso", owner: "Estudiante" },
+    { id: 3, title: "Programar Endpoints (Node.js)", status: "por_hacer", owner: "Carlos" }
+  ],
+  deliverables: [
+    { id: 1, title: "Avance 1: Documento de Requerimientos", due: "2026-02-15", grade: 90, status: "Calificado" },
+    { id: 2, title: "Avance 2: Prototipo Interactivo", due: "2026-03-01", grade: null, status: "Pendiente" }
+  ],
+  resources: [
+    { id: 1, title: "Guía de Arquitectura REST", type: "PDF", tag: "Backend", seen: true },
+    { id: 2, title: "Tutorial Avanzado de CSS", type: "Video", tag: "Frontend", seen: false }
+  ],
+  appointments: [
+    { id: 1, date: "2026-01-28 14:00", prof: "Dr. Ramírez", status: "Confirmada" }
+  ]
+};
+
+let session = { auth: false, role: null, user: null };
+
+// ==========================================
+// 2. LÓGICA DE APLICACIÓN Y ROUTING
+// ==========================================
+function login() {
+  const role = document.getElementById('role').value;
+  const user = document.getElementById('user').value;
+  if(user) {
+    session = { auth: true, role: role, user: user };
+    location.hash = '/workspace';
+    render();
+  }
+}
+
+function logout() {
+  session = { auth: false };
+  location.hash = '/login';
+  render();
+}
+
+function render() {
+  if(!session.auth) {
+    document.getElementById('login').classList.remove('hidden');
+    document.getElementById('app').classList.add('hidden');
+    return;
+  }
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  
+  document.getElementById('roleSubtitle').innerText = 'Rol: ' + session.role;
+  document.getElementById('userInfo').innerText = '👤 ' + session.user + ' | Proyecto: ' + mockDB.project.name;
+
+  const route = location.hash.replace('#', '') || '/workspace';
+  
+  // Activa el menú actual
+  document.querySelectorAll('.nav-links a').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.nav-links a[data-route="${route}"]`)?.classList.add('active');
+
+  const view = document.getElementById('view');
+
+  // --- VISTA 1: RESUMEN (DASHBOARD) ---
+  if(route === '/workspace') {
+    view.innerHTML = `
+      <h2>Resumen del Proyecto</h2>
+      <div style="display:flex; gap:1rem;">
+        <div class="card" style="flex:1"><h3>Progreso General</h3><h1 style="color:var(--primary)">${mockDB.project.progress}%</h1><progress value="${mockDB.project.progress}" max="100" style="width:100%"></progress></div>
+        <div class="card" style="flex:1"><h3>Próximo Entregable</h3><p>📅 ${mockDB.deliverables[1].due}</p><p>${mockDB.deliverables[1].title}</p></div>
+      </div>
+    `;
+  }
+
+  // --- VISTA 2: KANBAN (DRAG & DROP) ---
+  else if(route === '/workspace/kanban') {
+    view.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>Tablero de Tareas</h2>
+        <button class="btn-primary" style="width:auto">+ Nueva Tarea</button>
+      </div>
+      <div class="kanban-board">
+        ${renderColumn('Por Hacer', 'por_hacer')}
+        ${renderColumn('En Progreso', 'en_progreso')}
+        ${renderColumn('Terminado', 'terminado')}
+      </div>
+    `;
+  }
+
+  // --- VISTA 3: ENTREGABLES ---
+  else if(route === '/workspace/entregables') {
+    let listHTML = mockDB.deliverables.map(d => `
+      <div class="card" style="display:flex; justify-content:space-between; align-items:center">
+        <div>
+          <h4>${d.title}</h4>
+          <span style="font-size:0.8rem; color:var(--text-muted)">Vence: ${d.due}</span>
+        </div>
+        <div>
+          ${d.grade ? `<span class="badge badge-success">Nota: ${d.grade}/100</span>` : `<span class="badge badge-warning">Pendiente</span>`}
+          ${session.role === 'estudiante' && !d.grade ? `<button class="btn-primary" style="margin-left:1rem; width:auto;">Subir Archivo</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+    view.innerHTML = `<h2>Entregables</h2>${listHTML}`;
+  }
+
+  // --- VISTA 4: APRENDIZAJE ---
+  else if(route === '/workspace/aprendizaje') {
+    let resourcesHTML = mockDB.resources.map(r => `
+      <div class="card">
+        <span class="badge ${r.seen ? 'badge-success' : 'badge-warning'}">${r.tag}</span>
+        <h4>${r.title}</h4>
+        <p style="color:var(--text-muted)">Formato: ${r.type}</p>
+        <button class="btn-primary" style="background:#f1f5f9; color:var(--dark);">Abrir Recurso</button>
+      </div>
+    `).join('');
+    view.innerHTML = `<h2>Recursos Contextuales</h2><div class="resource-grid">${resourcesHTML}</div>`;
+  }
+
+  // --- VISTA 5: MENTORÍAS ---
+  else if(route === '/workspace/mentorias') {
+    view.innerHTML = `
+      <h2>Mentorías y Asesorías</h2>
+      <div class="card" style="background:#eff6ff; border-left:4px solid var(--primary)">
+        <h4>Próxima Sesión: ${mockDB.appointments[0].prof}</h4>
+        <p>🕒 ${mockDB.appointments[0].date} - <span class="badge badge-success">Confirmada</span></p>
+        <button class="btn-primary" style="width:auto; margin-top:10px;">Unirse a Google Meet</button>
+      </div>
+    `;
+  }
+}
+
+// ==========================================
+// 3. FUNCIONES DE DRAG & DROP PARA EL KANBAN
+// ==========================================
+function renderColumn(title, status) {
+  const tasks = mockDB.tasks.filter(t => t.status === status);
+  let tasksHTML = tasks.map(t => `
+    <div class="task-card" draggable="true" ondragstart="drag(event)" id="task_${t.id}">
+      <strong>${t.title}</strong>
+      <div class="task-meta"><span>${t.owner}</span><span>#${t.id}</span></div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="kanban-column" id="${status}" ondrop="drop(event)" ondragover="allowDrop(event)">
+      <div class="column-header">${title} (${tasks.length})</div>
+      ${tasksHTML}
+    </div>
+  `;
+}
+
+function allowDrop(ev) { ev.preventDefault(); }
+
+function drag(ev) {
+  ev.dataTransfer.setData("text", ev.target.id);
+}
+
+function drop(ev) {
+  ev.preventDefault();
+  const data = ev.dataTransfer.getData("text");
+  const taskCard = document.getElementById(data);
+  const targetCol = ev.target.closest('.kanban-column');
+  
+  if(targetCol) {
+    targetCol.appendChild(taskCard);
+    
+    // Simular llamada a la API: PUT /api/tasks/{id}/move
+    const taskId = parseInt(data.split('_')[1]);
+    const taskObj = mockDB.tasks.find(t => t.id === taskId);
+    taskObj.status = targetCol.id;
+    console.log(`API Call Simulada: Tarea ${taskId} movida a ${targetCol.id}`);
+  }
+}
+
+window.addEventListener('hashchange', render);
+render();
+</script>
+
+</body>
+</html>
