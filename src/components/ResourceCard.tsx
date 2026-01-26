@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ExternalLink, Heart, CheckCircle, Video, FileText, File } from 'lucide-react';
+import { ExternalLink, Heart, CheckCircle, Video, FileText, File, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 interface Resource {
     id: string;
@@ -48,16 +49,20 @@ export function ResourceCard({ resource }: { resource: Resource }) {
 
     const getIcon = () => {
         switch (resource.type) {
+            case 'COURSE': return <BookOpen className="w-5 h-5 text-indigo-600" />;
             case 'VIDEO': return <Video className="w-5 h-5 text-purple-500" />;
             case 'FILE': return <File className="w-5 h-5 text-orange-500" />;
             default: return <FileText className="w-5 h-5 text-blue-500" />;
         }
     };
 
+    const isInternal = resource.type === 'COURSE';
+
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition-shadow group relative">
             <div className="flex justify-between items-start">
-                <div className={`text-xs px-2 py-1 rounded-full font-medium ${resource.category.color} w-fit`}>
+                <div className={`text-xs px-2 py-1 rounded-full font-medium w-fit ${resource.type === 'COURSE' ? 'bg-indigo-100 text-indigo-800' : resource.category.color
+                    }`}>
                     {resource.category.name}
                 </div>
                 <button
@@ -72,9 +77,15 @@ export function ResourceCard({ resource }: { resource: Resource }) {
                 <div className="p-2 bg-slate-50 rounded-lg">
                     {getIcon()}
                 </div>
-                <a href={resource.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-slate-800 hover:text-blue-600 line-clamp-1 block flex-1 group-hover:underline">
-                    {resource.title}
-                </a>
+                {isInternal ? (
+                    <Link href={resource.url} className="font-semibold text-slate-800 hover:text-blue-600 line-clamp-1 block flex-1 group-hover:underline">
+                        {resource.title}
+                    </Link>
+                ) : (
+                    <a href={resource.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-slate-800 hover:text-blue-600 line-clamp-1 block flex-1 group-hover:underline">
+                        {resource.title}
+                    </a>
+                )}
             </div>
 
             <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10">
@@ -95,14 +106,23 @@ export function ResourceCard({ resource }: { resource: Resource }) {
                     {isViewed ? 'Visto' : 'Marcar visto'}
                 </button>
 
-                <a
-                    href={resource.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-blue-500 p-2"
-                >
-                    <ExternalLink className="w-4 h-4" />
-                </a>
+                {isInternal ? (
+                    <Link
+                        href={resource.url}
+                        className="text-slate-400 hover:text-blue-500 p-2"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                    </Link>
+                ) : (
+                    <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-400 hover:text-blue-500 p-2"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                    </a>
+                )}
             </div>
         </div>
     );
