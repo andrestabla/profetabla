@@ -46,12 +46,9 @@ export function Sidebar() {
 
     const adminItems = [
         { name: 'Panel Profesor', href: '/dashboard/professor', icon: LayoutDashboard, roles: ['TEACHER', 'ADMIN'] },
-        { name: 'Crear Proyecto', href: '/dashboard/professor/projects/new', icon: Plus, roles: ['TEACHER', 'ADMIN'] },
         { name: 'Solicitudes', href: '/dashboard/professor/applications', icon: UserCheck, roles: ['TEACHER', 'ADMIN'] },
-        // Admin Specific
-        { name: 'Usuarios', href: '/dashboard/admin/users', icon: Users, roles: ['ADMIN'] },
-        { name: 'Integraciones', href: '/dashboard/admin/integrations', icon: Database, roles: ['ADMIN'] },
-        { name: 'Logs Sistema', href: '/dashboard/admin/logs', icon: Terminal, roles: ['ADMIN'] },
+        // Admin Group
+        { name: 'Administración', href: '/dashboard/admin', icon: Settings, roles: ['ADMIN'] },
     ];
 
     // Combine and filter
