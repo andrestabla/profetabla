@@ -29,7 +29,7 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
                         </span>
                         <div>
                             <p className="text-sm text-slate-800">
-                                <span className="font-bold">{activity.user.name || 'Usuario'}</span> {activity.description}
+                                <span className="font-bold">{activity.user?.name || 'Sistema'}</span> {activity.description}
                             </p>
                             <span className="text-xs text-slate-400 block mt-1">
                                 {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true, locale: es })}
