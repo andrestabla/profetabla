@@ -14,18 +14,31 @@ export default function ProfessorDashboard() {
     useEffect(() => {
         fetch('/api/analytics/professor')
             .then(res => res.json())
-            .then(data => {
-                setData(data);
+            .then(resData => {
+                if (resData && !resData.error) {
+                    setData(resData);
+                } else {
+                    console.error('API Error:', resData?.error);
+                }
                 setLoading(false);
             })
-            .catch(() => setLoading(false));
+            .catch((err) => {
+                console.error('Fetch Error:', err);
+                setLoading(false);
+            });
     }, []);
 
     if (loading) {
         return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" /></div>;
     }
 
-    if (!data) return <div>Error loading dashboard.</div>;
+    if (!data || !data.projects) return (
+        <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
+            <h2 className="text-xl font-bold text-slate-800 mb-2">No se pudieron cargar los datos</h2>
+            <p className="text-slate-500 mb-4">Hubo un error al obtener la información del panel o no tienes permisos suficientes.</p>
+            <Link href="/dashboard" className="text-blue-600 font-bold hover:underline">Volver al inicio</Link>
+        </div>
+    );
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -60,7 +73,7 @@ export default function ProfessorDashboard() {
             </div>
 
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-fit">
-                <ActivityFeed activities={data.recentActivity} />
+                <ActivityFeed activities={data.recentActivity || []} />
             </div>
         </div >
     );
