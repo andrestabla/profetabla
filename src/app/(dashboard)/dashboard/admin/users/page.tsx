@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { UserPlus, Search, Shield, User, GraduationCap, Eye, MoreHorizontal } from 'lucide-react';
+import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
 
