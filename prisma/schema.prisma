@@ -72,6 +72,7 @@ model User {
   assignedTasks   Task[]           @relation("TaskAssignees") 
   submissions     Submission[]
   resourceInteractions ResourceInteraction[]
+  itemInteractions     ItemInteraction[]
   createdLearningObjects LearningObject[]  
   
   createdAt DateTime @default(now())
@@ -354,6 +355,8 @@ model ResourceItem {
 
   learningObjectId String
   learningObject   LearningObject @relation(fields: [learningObjectId], references: [id], onDelete: Cascade)
+  
+  interactions     ItemInteraction[]
 }
 
 enum ItemType {
@@ -364,4 +367,24 @@ enum ItemType {
   S3
   LINK
   DOC
+}
+
+// ---------------------------------------------------------
+// 10. LEARNING TRACKING (SCORM-lite)
+// ---------------------------------------------------------
+model ItemInteraction {
+  id             String       @id @default(uuid())
+  
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  
+  resourceItemId String
+  resourceItem   ResourceItem @relation(fields: [resourceItemId], references: [id])
+  
+  // DATOS DE SEGUIMIENTO
+  isCompleted    Boolean      @default(false)
+  timeSpentSecs  Int          @default(0) 
+  lastAccessed   DateTime     @default(now())
+
+  @@unique([userId, resourceItemId])
 }
