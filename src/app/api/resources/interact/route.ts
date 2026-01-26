@@ -27,13 +27,13 @@ export async function POST(request: Request) {
             },
             update: {
                 ...(action === 'FAVORITE' && { isFavorite: value }),
-                ...(action === 'VIEW' && { isViewed: value })
+                ...(action === 'VIEW' && { isCompleted: value })
             },
             create: {
                 userId,
                 resourceId,
                 isFavorite: action === 'FAVORITE' ? value : false,
-                isViewed: action === 'VIEW' ? value : false
+                isCompleted: action === 'VIEW' ? value : false
             }
         });
 
