@@ -36,7 +36,7 @@ export const authOptions: NextAuthOptions = {
                     // Try bcrypt (for future real users)
                     try {
                         isValid = await bcrypt.compare(credentials.password, user.password);
-                    } catch (e) {
+                    } catch {
                         isValid = false;
                     }
                 }
@@ -66,7 +66,7 @@ export const authOptions: NextAuthOptions = {
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
-                // @ts-ignore
+                // @ts-expect-error - Custom role in user
                 token.role = user.role;
             }
             return token;
@@ -76,7 +76,8 @@ export const authOptions: NextAuthOptions = {
         signIn: '/login',
     },
     session: {
-        strategy: 'jwt'
+        strategy: 'jwt',
+        maxAge: 3600, // 1 hour of inactivity timeout
     },
     secret: process.env.NEXTAUTH_SECRET || 'super-secret-secret'
 };
