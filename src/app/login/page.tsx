@@ -91,7 +91,7 @@ export default function LoginPage() {
                 <div className="mt-6 pt-6 border-t border-slate-100">
                     <p className="text-center text-xs text-slate-400">
                         Usuarios Demo:<br />
-                        andrestablaricco@gmail.com (Admin)<br />
+                        andrestablarico@gmail.com (Admin)<br />
                         profesor@demo.com (Profe)<br />
                         estudiante@demo.com (Estudiante)
                     </p>
