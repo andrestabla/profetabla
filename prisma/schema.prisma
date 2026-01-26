@@ -161,6 +161,7 @@ model Resource {
 model ResourceCategory {
   id        String     @id @default(uuid())
   name      String     @unique
+  color     String     @default("blue")
   resources Resource[]
 }
 
