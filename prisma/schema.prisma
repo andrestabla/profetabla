@@ -78,6 +78,20 @@ model User {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // --- NUEVOS CAMPOS DE PERFIL (Opcionales) ---
+  age           Int?
+  bio           String?  @db.Text // Descripción de perfil
+  linkedinUrl   String?
+  portfolioUrl  String?
+  
+  // Intereses como array de Strings (PostgreSQL nativo)
+  interests     String[] 
+  
+  // Relaciones "Uno a Muchos"
+  workExperiences WorkExperience[]
+  education       Education[]
+  languages       Language[]
 }
 
 // ---------------------------------------------------------
@@ -425,4 +439,44 @@ model PlatformConfig {
   smtpFrom           String   @default("noreply@profetabla.com")
 
   updatedAt          DateTime @updatedAt
+}
+
+// NUEVO: EXPERIENCIA LABORAL
+model WorkExperience {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  position    String   // Ej: Desarrollador Junior
+  company     String   // Ej: Google
+  startDate   DateTime
+  endDate     DateTime? // Null = "Actualmente"
+  description String?  @db.Text
+  
+  createdAt   DateTime @default(now())
+}
+
+// NUEVO: ESTUDIOS / FORMACIÓN
+model Education {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  institution String   // Ej: Universidad Nacional
+  degree      String   // Ej: Ingeniería de Sistemas
+  fieldOfStudy String? // Ej: Software
+  startDate   DateTime
+  endDate     DateTime?
+  
+  createdAt   DateTime @default(now())
+}
+
+// NUEVO: IDIOMAS
+model Language {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name      String   // Ej: Inglés, Francés
+  level     String   // Ej: B2, Nativo, Básico
 }
