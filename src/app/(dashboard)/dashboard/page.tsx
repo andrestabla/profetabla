@@ -26,8 +26,10 @@ async function getDashboardData() {
 
     // Calculate Tasks for HU-01
     const totalTasks = project.tasks.length;
-    const completedTasks = project.tasks.filter(t => t.status === 'DONE').length;
-    const pendingTasks = project.tasks.filter(t => t.status === 'TODO').length;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const completedTasks = project.tasks.filter((t: any) => t.status === 'DONE').length;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pendingTasks = project.tasks.filter((t: any) => t.status === 'TODO').length;
 
     // Mock Teacher for HU-02 (Assume first teacher in DB for now as there is no direct Project->Teacher relation yet in seeded data effectively)
     // We'll fetch the first teacher to display as "Assigned Tutor"
@@ -56,6 +58,7 @@ export default async function DashboardPage() {
     }
 
     const { student, project, stats, teacher } = data;
+    const { totalTasks = 0, completedTasks = 0, pendingTasks = 0 } = stats || {};
 
     return (
         <div>
@@ -79,7 +82,7 @@ export default async function DashboardPage() {
                         </div>
 
                         <div className="mt-4">
-                            <ProgressBar total={stats.totalTasks} completed={stats.completedTasks} />
+                            <ProgressBar total={totalTasks} completed={completedTasks} />
                         </div>
                     </div>
 
@@ -87,12 +90,12 @@ export default async function DashboardPage() {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-amber-50 p-6 rounded-xl border border-amber-100">
                             <h3 className="text-amber-800 font-medium mb-1">Pendientes</h3>
-                            <p className="text-4xl font-bold text-amber-600">{stats.pendingTasks}</p>
+                            <p className="text-4xl font-bold text-amber-600">{pendingTasks}</p>
                             <p className="text-xs text-amber-700/60 mt-2">Tareas por hacer</p>
                         </div>
                         <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-100">
                             <h3 className="text-emerald-800 font-medium mb-1">Completadas</h3>
-                            <p className="text-4xl font-bold text-emerald-600">{stats.completedTasks}</p>
+                            <p className="text-4xl font-bold text-emerald-600">{completedTasks}</p>
                             <p className="text-xs text-emerald-700/60 mt-2">Tareas finalizadas</p>
                         </div>
                     </div>

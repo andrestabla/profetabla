@@ -10,13 +10,18 @@ export async function PATCH(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { status, title } = body;
+        const { status, title, description, priority, dueDate, isApproved, approvalNotes } = body;
 
         const task = await prisma.task.update({
             where: { id },
             data: {
                 ...(status && { status }),
                 ...(title && { title }),
+                ...(description !== undefined && { description }),
+                ...(priority && { priority }),
+                ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+                ...(isApproved !== undefined && { isApproved }),
+                ...(approvalNotes !== undefined && { approvalNotes }),
             },
         });
 

@@ -7,7 +7,19 @@ export async function GET() {
     try {
         // TODO: Filter by current user/project session. For MVP grabbing first project.
         const project = await prisma.project.findFirst({
-            include: { tasks: true }
+            include: {
+                tasks: {
+                    include: {
+                        tags: true,
+                        assignees: true,
+                        comments: {
+                            include: { user: true },
+                            orderBy: { createdAt: 'desc' }
+                        }
+                    },
+                    orderBy: { createdAt: 'asc' }
+                }
+            }
         });
 
         if (!project) {
@@ -23,7 +35,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { title, projectId } = body;
+        const { title, projectId, priority, dueDate, description } = body;
 
         // Fallback if no projectId provided (MVP hack)
         let pid = projectId;
@@ -35,6 +47,9 @@ export async function POST(request: Request) {
         const task = await prisma.task.create({
             data: {
                 title,
+                description,
+                priority: priority || 'MEDIUM',
+                dueDate: dueDate ? new Date(dueDate) : null,
                 projectId: pid,
                 status: 'TODO'
             }
