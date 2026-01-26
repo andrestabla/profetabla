@@ -1,25 +1,26 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
-        const { assignmentId, fileUrl, fileName, fileType, fileSize, studentId } = body;
-
-        // MVP Hack: If no studentId, grab the first student
-        let sid = studentId;
-        if (!sid) {
-            const student = await prisma.user.findFirst({ where: { role: 'STUDENT' } });
-            sid = student?.id;
+        const session = await getServerSession(authOptions);
+        // We technically allow teachers to submit on behalf? No, usually students.
+        if (!session || !session.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+
+        const body = await request.json();
+        const { assignmentId, fileUrl, fileName, fileType, fileSize } = body;
 
         const submission = await prisma.submission.create({
             data: {
                 assignmentId,
-                studentId: sid,
+                studentId: session.user.id,
                 fileUrl,
                 fileName,
                 fileType,
@@ -27,9 +28,7 @@ export async function POST(request: Request) {
             }
         });
 
-        if (sid) {
-            await logActivity(sid, 'UPLOAD_SUBMISSION', `Subió la entrega: "${fileName}"`);
-        }
+        await logActivity(session.user.id, 'UPLOAD_SUBMISSION', `Subió la entrega: "${fileName}"`);
 
         return NextResponse.json(submission);
     } catch (error) {

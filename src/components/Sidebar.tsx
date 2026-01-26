@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Kanban, GraduationCap, Calendar, Settings, LogOut, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSession, signOut } from 'next-auth/react';
 
 const navItems = [
     { name: 'Resumen', href: '/dashboard', icon: LayoutDashboard },
@@ -20,6 +21,7 @@ const adminItems = [
 
 export function Sidebar() {
     const pathname = usePathname();
+    const { data: session } = useSession();
 
     return (
         <aside className="w-64 bg-slate-900 text-white min-h-screen flex flex-col shadow-xl">
@@ -27,7 +29,23 @@ export function Sidebar() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
                     Profe Tabla
                 </h1>
-                <p className="text-xs text-slate-400 mt-1">Gestión Educativa</p>
+                {session?.user ? (
+                    <div className="flex items-center gap-3 mt-4 bg-slate-800/50 p-2 rounded-lg">
+                        {session.user.image ? (
+                            <img src={session.user.image} alt="Avatar" className="w-8 h-8 rounded-full border border-slate-600" />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold">
+                                {session.user.name?.charAt(0)}
+                            </div>
+                        )}
+                        <div className="overflow-hidden">
+                            <p className="text-sm font-medium truncate w-[130px]">{session.user.name}</p>
+                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{session.user.role}</p>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-xs text-slate-400 mt-1">Gestión Educativa</p>
+                )}
             </div>
 
             <nav className="flex-1 p-4 space-y-2">
@@ -74,7 +92,10 @@ export function Sidebar() {
             </nav>
 
             <div className="p-4 border-t border-slate-800">
-                <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors">
+                <button
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors"
+                >
                     <LogOut className="w-5 h-5" />
                     <span className="font-medium">Cerrar Sesión</span>
                 </button>
