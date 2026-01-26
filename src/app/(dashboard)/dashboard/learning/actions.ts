@@ -15,24 +15,33 @@ export async function createLearningObjectAction(formData: FormData) {
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const subject = formData.get('subject') as string;
+    const competency = formData.get('competency') as string;
+    const keywordsRaw = formData.get('keywords') as string;
 
-    // Create the OA
+    // Parse Items JSON
+    const itemsJson = formData.get('itemsJson') as string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items = itemsJson ? JSON.parse(itemsJson) : [];
+
+    // Process Keywords (comma separated)
+    const keywords = keywordsRaw ? keywordsRaw.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
+
+    // Create the OA and Items in a Transaction
     await prisma.learningObject.create({
         data: {
             title,
             description,
             subject,
+            competency,
+            keywords,
             authorId: session.user.id,
-            // Add default items for the example as requested
             items: {
-                create: [
-                    {
-                        title: 'Introducción al Tema (Ejemplo)',
-                        type: 'PDF',
-                        url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', // Dummy PDF
-                        order: 0
-                    }
-                ]
+                create: items.map((item: any, index: number) => ({
+                    title: item.title,
+                    type: item.type,
+                    url: item.url,
+                    order: index // Maintain order from the frontend list
+                }))
             }
         }
     });
