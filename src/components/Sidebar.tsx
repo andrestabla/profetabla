@@ -17,7 +17,9 @@ import {
     Menu,
     UserCheck,
     FileText,
-    Kanban
+    Kanban,
+    Terminal,
+    Database
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -46,7 +48,10 @@ export function Sidebar() {
         { name: 'Panel Profesor', href: '/dashboard/teacher', icon: LayoutDashboard, roles: ['TEACHER', 'ADMIN'] },
         { name: 'Crear Proyecto', href: '/dashboard/projects/new', icon: Plus, roles: ['TEACHER', 'ADMIN'] },
         { name: 'Solicitudes', href: '/dashboard/projects/applications', icon: UserCheck, roles: ['TEACHER', 'ADMIN'] },
-        { name: 'Panel Admin', href: '/dashboard/admin', icon: Settings, roles: ['ADMIN'] },
+        // Admin Specific
+        { name: 'Usuarios', href: '/dashboard/admin/users', icon: Users, roles: ['ADMIN'] },
+        { name: 'Integraciones', href: '/dashboard/admin/integrations', icon: Database, roles: ['ADMIN'] },
+        { name: 'Logs Sistema', href: '/dashboard/admin/logs', icon: Terminal, roles: ['ADMIN'] },
     ];
 
     // Combine and filter
