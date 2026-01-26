@@ -25,7 +25,6 @@ type LearningObject = {
 };
 
 import { deleteLearningObjectAction } from '../../actions';
-import { AlertTriangle, Trash2 } from 'lucide-react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function StudentViewerClient({ learningObject, comments, currentUserId, currentUserRole }: { learningObject: LearningObject, comments: any[], currentUserId?: string, currentUserRole?: string }) {
