@@ -216,7 +216,8 @@ model MentorshipBooking {
   project   Project?      @relation("ProjectMentorships", fields: [projectId], references: [id])
 
   note      String?
-  status    BookingStatus @default(PENDING)
+  status    BookingStatus @default(PENDING) // CONFIRMED if initiatedBy TEACHER
+  initiatedBy Role      @default(STUDENT)
   
   minutes     String?     
   agreements  String?     
