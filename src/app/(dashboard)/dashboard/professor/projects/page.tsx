@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Briefcase, Plus, Users, Calendar, ArrowRight, Eye } from 'lucide-react';
+import { Briefcase, Plus, Users, ArrowRight, Eye } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,7 @@ export default async function ProfessorProjectsPage() {
     }
 
     const projects = await prisma.project.findMany({
-        where: { teacherId: session.user.id },
+        where: session.user.role === 'ADMIN' ? {} : { teacherId: session.user.id },
         include: {
             student: true,
             _count: {
@@ -40,13 +40,14 @@ export default async function ProfessorProjectsPage() {
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((project) => (
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {projects.map((project: any) => (
                     <div key={project.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col">
                         <div className="p-6 flex-1">
                             <div className="flex justify-between items-start mb-4">
                                 <span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${project.status === 'OPEN' ? 'bg-green-100 text-green-700' :
-                                        project.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-slate-100 text-slate-700'
+                                    project.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-slate-100 text-slate-700'
                                     }`}>
                                     {project.status === 'OPEN' ? 'Abierto' : project.status === 'IN_PROGRESS' ? 'En Curso' : 'Completado'}
                                 </span>

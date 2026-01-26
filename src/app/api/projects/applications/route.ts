@@ -8,13 +8,13 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || session.user.role !== 'TEACHER') {
+        if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const applications = await prisma.projectApplication.findMany({
             where: {
-                project: { teacherId: session.user.id },
+                project: session.user.role === 'ADMIN' ? {} : { teacherId: session.user.id },
                 status: 'PENDING'
             },
             include: {
@@ -25,6 +25,7 @@ export async function GET() {
 
         return NextResponse.json(applications);
     } catch (error) {
+        console.error(error);
         return NextResponse.json({ error: 'Error fetching applications' }, { status: 500 });
     }
 }
@@ -32,7 +33,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || session.user.role !== 'TEACHER') {
+        if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
+        console.error(error);
         return NextResponse.json({ error: 'Error processing application' }, { status: 500 });
     }
 }

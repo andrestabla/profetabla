@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShieldCheck, Activity, Users, Settings, Database, RefreshCw, ChevronRight, UserPlus, AlertTriangle, Server } from 'lucide-react';
+import { ShieldCheck, Activity, Users, Database, ChevronRight, UserPlus, AlertTriangle, Server, Briefcase } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface AdminDashboardProps {
@@ -52,15 +52,15 @@ export function AdminDashboard({ stats, recentLogs, recentUsers }: AdminDashboar
                     <Database className="absolute bottom-0 right-0 w-32 h-32 text-white/5 -mb-8 -mr-8" />
                 </div>
 
-                <div className="bg-indigo-600 border border-indigo-500 p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden">
+                <div className="bg-emerald-600 border border-emerald-500 p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden">
                     <div className="relative z-10">
-                        <p className="text-indigo-200 font-bold text-sm uppercase tracking-widest mb-2">Nuevos Proyectos (Semana)</p>
+                        <p className="text-emerald-100 font-bold text-sm uppercase tracking-widest mb-2">Proyectos Globales</p>
                         <h3 className="text-6xl font-bold mb-8">{stats.newProjectsThisWeek}</h3>
-                        <Link href="/dashboard/admin/integrations" className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 w-fit">
-                            <Settings className="w-4 h-4" /> Configuración Global
+                        <Link href="/dashboard/professor/projects" className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 w-fit">
+                            <Briefcase className="w-4 h-4" /> Ver Catálogo Proyectos
                         </Link>
                     </div>
-                    <RefreshCw className="absolute bottom-0 right-0 w-32 h-32 text-white/5 -mb-8 -mr-8" />
+                    <Briefcase className="absolute bottom-0 right-0 w-32 h-32 text-white/5 -mb-8 -mr-8" />
                 </div>
             </div>
 
