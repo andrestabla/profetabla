@@ -310,12 +310,15 @@ model Submission {
   updatedAt    DateTime @updatedAt
 }
 
+
 model ActivityLog {
   id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  action      String   // e.g., "CREATE_TASK", "MOVE_TASK", "UPLOAD_FILE"
-  description String
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  level       String   @default("INFO")
+  action      String
+  description String?
+  metadata    String?  @db.Text
   createdAt   DateTime @default(now())
 }
 
@@ -388,4 +391,30 @@ model ItemInteraction {
   lastAccessed   DateTime     @default(now())
 
   @@unique([userId, resourceItemId])
+}
+
+// ---------------------------------------------------------
+// 11. SYSTEM CONFIGURATION
+// ---------------------------------------------------------
+model PlatformConfig {
+  id                 String   @id @default("global-config")
+  
+  // 1. Branding (Look & Feel)
+  institutionName    String   @default("Profe Tabla")
+  primaryColor       String   @default("#2563EB")
+  logoUrl            String?
+
+  // 2. Integraciones
+  githubToken        String?
+  geminiApiKey       String?
+  geminiModel        String   @default("gemini-pro")
+
+  // 3. Correo (SMTP)
+  smtpHost           String?
+  smtpPort           Int      @default(587)
+  smtpUser           String?
+  smtpPassword       String?
+  smtpFrom           String   @default("noreply@profetabla.com")
+
+  updatedAt          DateTime @updatedAt
 }
