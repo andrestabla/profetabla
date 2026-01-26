@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, GraduationCap, Calendar, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Kanban, GraduationCap, Calendar, Settings, LogOut, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
     { name: 'Resumen', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Kanban', href: '/dashboard/kanban', icon: Kanban },
+    { name: 'Entregas', href: '/dashboard/assignments', icon: FileText },
     { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap },
     { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar },
 ];
