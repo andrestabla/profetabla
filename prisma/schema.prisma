@@ -47,6 +47,7 @@ model User {
   comments        Comment[]        // HU-10
   assignedTasks   Task[]           @relation("TaskAssignees") // HU-09
   submissions     Submission[]
+  resourceInteractions ResourceInteraction[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -64,6 +65,50 @@ model Project {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ResourceCategory {
+  id        String   @id @default(uuid())
+  name      String
+  color     String   @default("blue")
+  
+  resources Resource[]
+  
+  createdAt DateTime @default(now())
+}
+
+model Resource {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  url         String
+  type        String   @default("ARTICLE") // VIDEO, ARTICLE, FILE
+  
+  categoryId  String
+  category    ResourceCategory @relation(fields: [categoryId], references: [id])
+  
+  tasks       Task[]   @relation("TaskResources") // HU-20
+
+  interactions ResourceInteraction[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ResourceInteraction {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id])
+  
+  isViewed   Boolean  @default(false)
+  isFavorite Boolean  @default(false)
+  
+  viewedAt   DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@unique([userId, resourceId])
 }
 
 model Assignment {
@@ -119,6 +164,7 @@ model Task {
   tags        Tag[]      // HU-09
 
   assignees   User[]     @relation("TaskAssignees") // HU-09
+  resources   Resource[] @relation("TaskResources") // HU-20
   
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
