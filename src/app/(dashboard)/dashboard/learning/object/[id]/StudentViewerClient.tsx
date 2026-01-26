@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Video, FileText, Globe, CheckCircle2, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon } from 'lucide-react';
+import { BookOpen, Video, FileText, Globe, CheckCircle2, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Menu, AlertTriangle, Trash2 } from 'lucide-react';
 
 import { CommentsSection } from '../../components/CommentsSection';
 
