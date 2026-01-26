@@ -4,6 +4,42 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+
+export async function createLearningObjectAction(formData: FormData) {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        throw new Error('Unauthorized');
+    }
+
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const subject = formData.get('subject') as string;
+
+    // Create the OA
+    await prisma.learningObject.create({
+        data: {
+            title,
+            description,
+            subject,
+            authorId: session.user.id,
+            // Add default items for the example as requested
+            items: {
+                create: [
+                    {
+                        title: 'Introducción al Tema (Ejemplo)',
+                        type: 'PDF',
+                        url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', // Dummy PDF
+                        order: 0
+                    }
+                ]
+            }
+        }
+    });
+
+    revalidatePath('/dashboard/learning');
+    redirect(`/dashboard/learning`);
+}
 
 export async function markItemAsCompletedAction(itemId: string, timeSpent: number) {
     const session = await getServerSession(authOptions);
