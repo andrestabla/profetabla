@@ -161,82 +161,82 @@ export async function resetPasswordAction(userId: string) {
 }
 
 // --- UPDATE SYSTEM CONFIG ---
+// --- UPDATE SYSTEM CONFIG ---
 export async function updateSystemConfigAction(formData: FormData) {
     await requireAdmin();
 
-    const institutionName = formData.get('institutionName') as string;
-    const primaryColor = formData.get('primaryColor') as string;
-    const secondaryColor = formData.get('secondaryColor') as string;
-    const accentColor = formData.get('accentColor') as string;
-    const fontFamily = formData.get('fontFamily') as string;
-    const borderRadius = formData.get('borderRadius') as string;
-    
-    // Login
-    const loginLayout = formData.get('loginLayout') as string;
-    const loginMessage = formData.get('loginMessage') as string;
-    const customCss = formData.get('customCss') as string;
+    // 1. Fetch existing config to merge
+    const existing = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
 
-    // Integrations
-    const githubToken = formData.get('githubToken') as string;
-    const geminiApiKey = formData.get('geminiApiKey') as string;
-    const geminiModel = formData.get('geminiModel') as string;
-    
-    // SMTP
-    const smtpHost = formData.get('smtpHost') as string;
-    const smtpPort = formData.get('smtpPort') ? parseInt(formData.get('smtpPort') as string) : 587;
-    const smtpUser = formData.get('smtpUser') as string;
-    const smtpPassword = formData.get('smtpPassword') as string;
+    // Helper: Priority -> Form Value > Existing Value > Default
+    const getVal = (key: string, defaultVal: any = null) => {
+        if (formData.has(key)) {
+            const val = formData.get(key);
+            if (val === '' && defaultVal === null) return null; // Handle clearing optional strings
+            return val as string;
+        }
+        if (existing && (existing as any)[key] !== undefined && (existing as any)[key] !== null) {
+            return (existing as any)[key];
+        }
+        return defaultVal;
+    };
 
+    const getInt = (key: string, defaultVal: number) => {
+        if (formData.has(key)) {
+            const val = formData.get(key);
+            return val ? parseInt(val as string) : defaultVal;
+        }
+        if (existing && (existing as any)[key]) return (existing as any)[key];
+        return defaultVal;
+    };
+
+    // Construct Data Object with Defaults for Required Fields
+    const data = {
+        institutionName: getVal('institutionName', 'Profe Tabla'),
+
+        // Design
+        primaryColor: getVal('primaryColor', '#2563EB'),
+        secondaryColor: getVal('secondaryColor', '#475569'),
+        accentColor: getVal('accentColor', '#F59E0B'),
+        fontFamily: getVal('fontFamily', 'Inter'),
+        borderRadius: getVal('borderRadius', '0.5rem'),
+
+        // Login
+        loginLayout: getVal('loginLayout', 'SPLIT'),
+        loginMessage: getVal('loginMessage', null),
+        loginBgUrl: getVal('loginBgUrl', null), // Ensure this field exists in schema/form
+        customCss: getVal('customCss', null),
+
+        // Integrations
+        githubToken: getVal('githubToken', null),
+        geminiApiKey: getVal('geminiApiKey', null),
+        geminiModel: getVal('geminiModel', 'gemini-pro'),
+
+        // SMTP
+        smtpHost: getVal('smtpHost', null),
+        smtpPort: getInt('smtpPort', 587),
+        smtpUser: getVal('smtpUser', null),
+        smtpPassword: getVal('smtpPassword', null),
+        smtpFrom: getVal('smtpFrom', 'noreply@profetabla.com'),
+    };
+
+    // Upsert works because we now guarantee required fields have defaults
     await prisma.platformConfig.upsert({
         where: { id: 'global-config' },
-        create: {
-            institutionName,
-            primaryColor,
-            secondaryColor,
-            accentColor,
-            fontFamily,
-            borderRadius,
-            loginLayout,
-            loginMessage,
-            customCss,
-            githubToken,
-            geminiApiKey,
-            geminiModel,
-            smtpHost,
-            smtpPort,
-            smtpUser,
-            smtpPassword
-        },
-        update: {
-            institutionName,
-            primaryColor,
-            secondaryColor,
-            accentColor,
-            fontFamily,
-            borderRadius,
-            loginLayout,
-            loginMessage,
-            customCss,
-            githubToken,
-            geminiApiKey,
-            geminiModel,
-            smtpHost,
-            smtpPort,
-            smtpUser,
-            smtpPassword
-        }
+        create: data,
+        update: data
     });
 
     await prisma.activityLog.create({
         data: {
             action: 'UPDATE_CONFIG',
-            description: 'Updated system configuration (Design & Integrations)',
-            level: 'CRITICAL', // High impact change
-            metadata: `Primary: ${primaryColor}, Font: ${fontFamily}`
+            description: 'Updated system configuration',
+            level: 'INFO',
+            metadata: `Updated fields: ${Array.from(formData.keys()).join(', ')}`
         }
     });
 
     revalidatePath('/dashboard/admin/integrations');
     revalidatePath('/dashboard/admin/design');
-    revalidatePath('/', 'layout'); // Force layout Re-render for styles
+    revalidatePath('/', 'layout');
 }
