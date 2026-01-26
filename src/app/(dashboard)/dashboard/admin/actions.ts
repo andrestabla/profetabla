@@ -159,3 +159,84 @@ export async function resetPasswordAction(userId: string) {
 
     return { tempPassword }; // Return to client to show to admin
 }
+
+// --- UPDATE SYSTEM CONFIG ---
+export async function updateSystemConfigAction(formData: FormData) {
+    await requireAdmin();
+
+    const institutionName = formData.get('institutionName') as string;
+    const primaryColor = formData.get('primaryColor') as string;
+    const secondaryColor = formData.get('secondaryColor') as string;
+    const accentColor = formData.get('accentColor') as string;
+    const fontFamily = formData.get('fontFamily') as string;
+    const borderRadius = formData.get('borderRadius') as string;
+    
+    // Login
+    const loginLayout = formData.get('loginLayout') as string;
+    const loginMessage = formData.get('loginMessage') as string;
+    const customCss = formData.get('customCss') as string;
+
+    // Integrations
+    const githubToken = formData.get('githubToken') as string;
+    const geminiApiKey = formData.get('geminiApiKey') as string;
+    const geminiModel = formData.get('geminiModel') as string;
+    
+    // SMTP
+    const smtpHost = formData.get('smtpHost') as string;
+    const smtpPort = formData.get('smtpPort') ? parseInt(formData.get('smtpPort') as string) : 587;
+    const smtpUser = formData.get('smtpUser') as string;
+    const smtpPassword = formData.get('smtpPassword') as string;
+
+    await prisma.platformConfig.upsert({
+        where: { id: 'global-config' },
+        create: {
+            institutionName,
+            primaryColor,
+            secondaryColor,
+            accentColor,
+            fontFamily,
+            borderRadius,
+            loginLayout,
+            loginMessage,
+            customCss,
+            githubToken,
+            geminiApiKey,
+            geminiModel,
+            smtpHost,
+            smtpPort,
+            smtpUser,
+            smtpPassword
+        },
+        update: {
+            institutionName,
+            primaryColor,
+            secondaryColor,
+            accentColor,
+            fontFamily,
+            borderRadius,
+            loginLayout,
+            loginMessage,
+            customCss,
+            githubToken,
+            geminiApiKey,
+            geminiModel,
+            smtpHost,
+            smtpPort,
+            smtpUser,
+            smtpPassword
+        }
+    });
+
+    await prisma.activityLog.create({
+        data: {
+            action: 'UPDATE_CONFIG',
+            description: 'Updated system configuration (Design & Integrations)',
+            level: 'CRITICAL', // High impact change
+            metadata: `Primary: ${primaryColor}, Font: ${fontFamily}`
+        }
+    });
+
+    revalidatePath('/dashboard/admin/integrations');
+    revalidatePath('/dashboard/admin/design');
+    revalidatePath('/', 'layout'); // Force layout Re-render for styles
+}
