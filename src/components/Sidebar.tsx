@@ -12,7 +12,7 @@ const navItems = [
     { name: 'Entregas', href: '/dashboard/assignments', icon: FileText },
     { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap },
     { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar },
-    { name: 'Mercado Proyectos', href: '/dashboard/student/marketplace', icon: Search }, // New
+    { name: 'Mercado Proyectos', href: '/dashboard/projects/market', icon: Search }, // New
 ];
 
 const adminItems = [
