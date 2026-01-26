@@ -31,11 +31,13 @@ model User {
   email     String   @unique
   password  String   
   name      String?
+  avatarUrl String?  // HU-02
   role      Role     @default(STUDENT)
   
   projects        Project[]        @relation("StudentProjects")
   mentorshipSlots MentorshipSlot[] 
-  bookings        MentorshipBooking[] 
+  bookings        MentorshipBooking[]
+  activityLogs    ActivityLog[]    // HU-04
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -91,3 +93,15 @@ model MentorshipBooking {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 }
+
+// HU-04
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  action      String   // e.g., "UPLOAD_FILE", "COMPLETE_TASK"
+  description String?
+  
+  createdAt   DateTime @default(now())
+}
+
