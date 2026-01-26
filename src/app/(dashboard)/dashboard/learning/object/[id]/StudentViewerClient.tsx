@@ -34,6 +34,7 @@ export default function StudentViewerClient({ learningObject, comments, currentU
     const activeItem = sortedItems[currentIndex];
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     const handleDelete = async () => {
         setIsDeleting(true);
