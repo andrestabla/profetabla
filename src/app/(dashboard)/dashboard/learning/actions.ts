@@ -79,3 +79,80 @@ export async function markItemAsCompletedAction(itemId: string, timeSpent: numbe
     // Revalidar para que el check aparezca en la UI
     revalidatePath('/dashboard/learning/object/[id]', 'page');
 }
+
+export async function updateLearningObjectAction(formData: FormData) {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        throw new Error('Unauthorized');
+    }
+
+    const id = formData.get('id') as string;
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const subject = formData.get('subject') as string;
+    const competency = formData.get('competency') as string;
+    const keywordsRaw = formData.get('keywords') as string;
+    const keywords = keywordsRaw ? keywordsRaw.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
+
+    // Check ownership
+    const oa = await prisma.learningObject.findUnique({ where: { id } });
+    if (!oa) throw new Error('Not found');
+    if (session.user.role !== 'ADMIN' && oa.authorId !== session.user.id) throw new Error('Unauthorized');
+
+    // For items, simplistic approach: Delete all and recreate (easiest for MVP editing)
+    // A better approach would be to diff, but that's complex without ID tracking in frontend
+    const itemsJson = formData.get('itemsJson') as string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items = itemsJson ? JSON.parse(itemsJson) : [];
+
+    await prisma.$transaction(async (tx) => {
+        await tx.learningObject.update({
+            where: { id },
+            data: {
+                title,
+                description,
+                subject,
+                competency,
+                keywords
+            }
+        });
+
+        // Delete existing items
+        await tx.resourceItem.deleteMany({ where: { learningObjectId: id } });
+
+        // Recreate items
+        if (items.length > 0) {
+            await tx.resourceItem.createMany({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                data: items.map((item: any, index: number) => ({
+                    title: item.title,
+                    type: item.type,
+                    url: item.url,
+                    order: index,
+                    learningObjectId: id
+                }))
+            });
+        }
+    });
+
+    revalidatePath(`/dashboard/learning/object/${id}`);
+    revalidatePath('/dashboard/learning');
+    redirect(`/dashboard/learning/object/${id}`);
+}
+
+export async function addCommentToOAAction(oaId: string, content: string) {
+    const session = await getServerSession(authOptions);
+    if (!session) throw new Error('Unauthorized');
+
+    if (!content.trim()) return;
+
+    await prisma.comment.create({
+        data: {
+            content,
+            learningObjectId: oaId,
+            authorId: session.user.id
+        }
+    });
+
+    revalidatePath(`/dashboard/learning/object/${oaId}`);
+}

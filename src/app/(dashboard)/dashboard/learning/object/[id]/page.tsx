@@ -14,11 +14,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         where: { id },
         include: {
             items: {
+                orderBy: { order: 'asc' },
                 include: {
                     interactions: {
                         where: { userId: session?.user?.id }
                     }
                 }
+            },
+            comments: {
+                include: { author: true },
+                orderBy: { createdAt: 'desc' }
             }
         }
     });
@@ -34,5 +39,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return <StudentViewerClient learningObject={learningObjectWithInteractions as any} />;
+    return <StudentViewerClient
+        learningObject={learningObjectWithInteractions as any}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        comments={learningObject.comments as any}
+        currentUserId={session?.user?.id}
+        currentUserRole={session?.user?.role}
+    />;
 }

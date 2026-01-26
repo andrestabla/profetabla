@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { BookOpen, Video, FileText, Globe, CheckCircle2, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon } from 'lucide-react';
 
+import { CommentsSection } from '../../components/CommentsSection';
+
 // Tipos adaptados al esquema Prisma
 type ItemType = 'PDF' | 'VIDEO' | 'EMBED' | 'DRIVE' | 'S3' | 'LINK' | 'DOC';
 
@@ -22,7 +24,8 @@ type LearningObject = {
     items: ResourceItem[];
 };
 
-export default function StudentViewerClient({ learningObject }: { learningObject: LearningObject }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function StudentViewerClient({ learningObject, comments, currentUserId, currentUserRole }: { learningObject: LearningObject, comments: any[], currentUserId?: string, currentUserRole?: string }) {
     // Ordenar los items y definir el estado inicial
     const sortedItems = [...learningObject.items].sort((a, b) => a.order - b.order);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -48,6 +51,9 @@ export default function StudentViewerClient({ learningObject }: { learningObject
         )
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const session = { user: { id: currentUserId, role: currentUserRole } }; // Mock for simpler check, pass real props if cleaner
+
     return (
         <div className="h-[calc(100vh-80px)] bg-slate-100 flex overflow-hidden rounded-xl border border-slate-200">
 
@@ -60,7 +66,14 @@ export default function StudentViewerClient({ learningObject }: { learningObject
                     <h1 className="text-lg font-bold text-slate-800 leading-tight mb-2">
                         {learningObject.title}
                     </h1>
-                    <p className="text-xs text-slate-500 font-medium">Competencia: {learningObject.competency || 'General'}</p>
+                    <p className="text-xs text-slate-500 font-medium mb-4">Competencia: {learningObject.competency || 'General'}</p>
+
+                    {/* EDIT BUTTON (Only for Admin/Author) */}
+                    {(currentUserRole === 'ADMIN' || currentUserRole === 'TEACHER') && (
+                        <a href={`/dashboard/learning/${learningObject.id}/edit`} className="w-full text-center block text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 rounded-lg transition-colors">
+                            Editar Objeto
+                        </a>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -77,10 +90,10 @@ export default function StudentViewerClient({ learningObject }: { learningObject
                                 key={item.id}
                                 onClick={() => setCurrentIndex(index)}
                                 className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-medium text-sm text-left ${isActive
-                                        ? 'bg-blue-600 text-white shadow-md'
-                                        : isCompleted
-                                            ? 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                                            : 'text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : isCompleted
+                                        ? 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                        : 'text-slate-600 hover:bg-slate-50'
                                     }`}
                             >
                                 {isCompleted ? (
@@ -96,28 +109,41 @@ export default function StudentViewerClient({ learningObject }: { learningObject
             </aside>
 
             {/* ÁREA PRINCIPAL: El Player / Visor */}
-            <main className="flex-1 flex flex-col bg-slate-900 w-full">
-
+            <main className="flex-1 flex flex-col w-full relative">
                 {/* Cabecera del Visor */}
-                <header className="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center text-white">
+                <header className="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center text-white shrink-0">
                     <div className="flex items-center gap-3">
                         <span className="bg-slate-800 text-slate-300 text-xs font-bold px-2 py-1 rounded">
                             {activeItem.type}
                         </span>
                         <h2 className="text-lg font-bold truncate max-w-[200px] md:max-w-md">{activeItem.title}</h2>
                     </div>
-                    <span className="text-sm font-medium text-slate-400 hidden md:inline">
-                        Paso {currentIndex + 1} de {sortedItems.length}
-                    </span>
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm font-medium text-slate-400 hidden md:inline">
+                            Paso {currentIndex + 1} de {sortedItems.length}
+                        </span>
+                        {/* Mobile Toggle: Not implemented for brevity, but needed for Comments toggle on mobile */}
+                    </div>
                 </header>
 
-                {/* CONTENEDOR DE RENDERIZADO DINÁMICO */}
-                <div className="flex-1 relative bg-black flex items-center justify-center p-4">
-                    <ResourceRenderer item={activeItem} />
+                <div className="flex flex-1 overflow-hidden">
+                    {/* CONTENEDOR DE RENDERIZADO DINÁMICO */}
+                    <div className="flex-1 relative bg-black flex items-center justify-center p-4 overflow-y-auto">
+                        <ResourceRenderer item={activeItem} />
+                    </div>
+
+                    {/* COMMENTS SIDEBAR (Right side, collapsible?) - Let's keep it fixed width for now or overlays */}
+                    <div className="w-80 border-l border-slate-200 bg-white hidden lg:flex flex-col h-full">
+                        <CommentsSection
+                            learningObjectId={learningObject.id}
+                            comments={comments}
+                            currentUserId={currentUserId}
+                        />
+                    </div>
                 </div>
 
                 {/* Controles de Navegación Inferior */}
-                <footer className="bg-slate-900 border-t border-slate-800 p-4 flex justify-between items-center">
+                <footer className="bg-slate-900 border-t border-slate-800 p-4 flex justify-between items-center shrink-0">
                     <button
                         onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                         disabled={currentIndex === 0}
@@ -125,10 +151,6 @@ export default function StudentViewerClient({ learningObject }: { learningObject
                     >
                         <ChevronLeft className="w-5 h-5" /> Anterior
                     </button>
-
-                    <span className="text-sm font-medium text-slate-400 md:hidden">
-                        {currentIndex + 1} / {sortedItems.length}
-                    </span>
 
                     <button
                         onClick={() => setCurrentIndex(prev => Math.min(sortedItems.length - 1, prev + 1))}
