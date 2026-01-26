@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Briefcase, BookOpen, Target, Send, User } from 'lucide-react';
+import { Search, Briefcase, BookOpen, Target, Send, User, Loader2 } from 'lucide-react';
 import { applyToProjectAction } from './actions';
 
 // Tipado basado en nuestro nuevo esquema Prisma
@@ -12,6 +12,11 @@ type Project = {
     industry: string | null;
     objectives: string | null;
     deliverables: string | null;
+    methodology: string | null;
+    schedule: string | null;
+    budget: string | null;
+    evaluation: string | null;
+    kpis: string | null;
     teacher: { name: string | null; avatarUrl: string | null };
 };
 
@@ -88,6 +93,32 @@ export default function ProjectMarketClient({ availableProjects }: { availablePr
                                 <h4 className="font-bold text-slate-700 mb-2 flex items-center gap-2"><BookOpen className="w-4 h-4 text-blue-500" /> Entregables Esperados</h4>
                                 <p className="text-sm text-slate-600 whitespace-pre-line">{selectedProject.deliverables || 'No especificados.'}</p>
                             </div>
+
+                            {/* Mostrar metadatos adicionales si existen */}
+                            {(selectedProject.methodology || selectedProject.schedule) && (
+                                <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                                    <h4 className="font-bold text-purple-700 mb-2 flex items-center gap-2">Planificación y Fases</h4>
+                                    {selectedProject.methodology && <p className="text-sm text-slate-600 whitespace-pre-line mb-3">{selectedProject.methodology}</p>}
+                                    {selectedProject.schedule && <p className="text-sm text-slate-600 font-medium">Cronograma: {selectedProject.schedule}</p>}
+                                </div>
+                            )}
+
+                            {(selectedProject.budget || selectedProject.evaluation) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {selectedProject.budget && (
+                                        <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100">
+                                            <h4 className="font-bold text-emerald-700 mb-1 text-xs uppercase tracking-wider">Presupuesto</h4>
+                                            <p className="text-sm text-slate-700">{selectedProject.budget}</p>
+                                        </div>
+                                    )}
+                                    {selectedProject.evaluation && (
+                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                            <h4 className="font-bold text-blue-700 mb-1 text-xs uppercase tracking-wider">Evaluación</h4>
+                                            <p className="text-sm text-slate-700">{selectedProject.evaluation}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <form action={applyToProjectAction} onSubmit={() => setIsApplying(true)}>
@@ -123,5 +154,3 @@ export default function ProjectMarketClient({ availableProjects }: { availablePr
         </div>
     );
 }
-// Icono Loader2 faltaba en imports user-provided code, agregando manual
-import { Loader2 } from 'lucide-react';

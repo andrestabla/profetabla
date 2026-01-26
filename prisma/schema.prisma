@@ -108,6 +108,14 @@ model Project {
   objectives    String?  @db.Text
   deliverables  String?  @db.Text
   
+  // NEW Metadata from User Request
+  methodology   String?  @db.Text // Fases y actividades
+  resourcesDescription String? @db.Text // Recursos
+  schedule      String?  @db.Text // Cronograma
+  budget        String?  @db.Text // Presupuesto
+  evaluation    String?  @db.Text // Evaluación
+  kpis          String?  @db.Text // Indicadores (KPI)
+  
   status        ProjectStatus @default(OPEN)
 
   // Actors
