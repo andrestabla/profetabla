@@ -98,6 +98,32 @@ export function Sidebar() {
                                 );
                             })}
                         </div>
+
+                        {/* Shared Resources for Teachers */}
+                        <div className="pt-2 border-t border-slate-800">
+                            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Recursos</p>
+                            {[
+                                { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap },
+                                { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar },
+                            ].map((item) => {
+                                const isActive = pathname === item.href;
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={cn(
+                                            'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
+                                            isActive
+                                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                        )}
+                                    >
+                                        <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
+                                        <span className="font-medium">{item.name}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
                     </>
                 )}
             </nav>
