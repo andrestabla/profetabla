@@ -221,6 +221,7 @@ model MentorshipSlot {
   isBooked  Boolean  @default(false)
   meetingUrl String?
 
+  version   Int      @default(0)
   booking   MentorshipBooking?
   
   createdAt DateTime @default(now())

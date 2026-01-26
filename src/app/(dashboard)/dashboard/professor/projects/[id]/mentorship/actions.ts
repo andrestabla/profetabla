@@ -36,22 +36,35 @@ export async function summonStudentAction(formData: FormData) {
         slotId = newSlot.id;
     }
 
-    // Creamos la reserva con "superpoderes" de profesor
-    await prisma.mentorshipBooking.create({
-        data: {
-            slotId,
-            studentId,
-            projectId, // Vinculado al proyecto
-            note: `CITACIÓN OBLIGATORIA: ${reason}`,
-            initiatedBy: 'TEACHER', // Clave para la analítica
-            status: 'CONFIRMED',    // Nace confirmada porque el profesor es la autoridad
-        }
-    });
+    // Use transaction for consistency
+    await prisma.$transaction(async (tx: any) => {
+        // Atomic update check for existing slot or use the new one created
+        const updateResult = await tx.mentorshipSlot.updateMany({
+            where: {
+                id: slotId,
+                isBooked: false
+            },
+            data: {
+                isBooked: true,
+                version: { increment: 1 }
+            }
+        });
 
-    // Actualizamos el Slot para que nadie más pueda tomarlo
-    await prisma.mentorshipSlot.update({
-        where: { id: slotId },
-        data: { isBooked: true }
+        if (updateResult.count === 0) {
+            throw new Error('El espacio ya ha sido reservado o es inválido.');
+        }
+
+        // Create the booking
+        await tx.mentorshipBooking.create({
+            data: {
+                slotId,
+                studentId,
+                projectId,
+                note: `CITACIÓN OBLIGATORIA: ${reason}`,
+                initiatedBy: 'TEACHER',
+                status: 'CONFIRMED',
+            }
+        });
     });
 
     revalidatePath(`/dashboard/professor/projects/${projectId}`);

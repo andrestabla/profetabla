@@ -27,20 +27,31 @@ export async function POST(request: Request) {
             projectId = activeProject?.id;
         }
 
-        const booking = await prisma.$transaction(async (tx) => {
+        const booking = await prisma.$transaction(async (tx: any) => {
+            // Optimistic Update: Check isBooked and version in a single atomic operation
+            const updateResult = await tx.mentorshipSlot.updateMany({
+                where: {
+                    id: slotId,
+                    isBooked: false
+                },
+                data: {
+                    isBooked: true,
+                    version: { increment: 1 }
+                }
+            });
+
+            if (updateResult.count === 0) {
+                throw new Error('SLOT_ALREADY_BOOKED');
+            }
+
             const newBooking = await tx.mentorshipBooking.create({
                 data: {
                     slotId,
                     studentId: session.user.id,
-                    projectId, // Link booking to the project!
+                    projectId,
                     note,
                     status: 'CONFIRMED'
                 }
-            });
-
-            await tx.mentorshipSlot.update({
-                where: { id: slotId },
-                data: { isBooked: true }
             });
 
             return newBooking;
