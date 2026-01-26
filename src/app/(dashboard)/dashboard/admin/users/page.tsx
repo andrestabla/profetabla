@@ -64,7 +64,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {users.map((user) => (
+                        {users.map((user: any) => (
                             <tr key={user.id} className="hover:bg-slate-50 transition-colors group">
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">

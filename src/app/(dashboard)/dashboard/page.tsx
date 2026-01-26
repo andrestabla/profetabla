@@ -62,8 +62,8 @@ async function getDashboardData() {
         if (!project) return { user, project: null, citation };
 
         const totalTasks = project.tasks.length;
-        const completedTasks = project.tasks.filter((t) => t.status === 'DONE').length;
-        const pendingTasks = project.tasks.filter((t) => t.status === 'TODO').length;
+        const completedTasks = project.tasks.filter((t: any) => t.status === 'DONE').length;
+        const pendingTasks = project.tasks.filter((t: any) => t.status === 'TODO').length;
 
         return {
             user,
