@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, Settings, Terminal, Database } from 'lucide-react';
+import { Users, Settings, Terminal, Database, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function AdminNav() {
@@ -11,6 +11,7 @@ export function AdminNav() {
     const tabs = [
         { name: 'Gestión de Usuarios', href: '/dashboard/admin/users', icon: Users },
         { name: 'Integraciones y APIs', href: '/dashboard/admin/integrations', icon: Database },
+        { name: 'Diseño y Branding', href: '/dashboard/admin/design', icon: Palette },
         { name: 'Logs del Sistema', href: '/dashboard/admin/logs', icon: Terminal },
     ];
 

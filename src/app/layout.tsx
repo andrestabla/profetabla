@@ -19,13 +19,40 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://profetabla.com'),
 };
 
-export default function RootLayout({
+export const dynamic = 'force-dynamic'; // Ensure config is fetched fresh
+
+import { prisma } from "@/lib/prisma";
+import { hexToRgb } from "@/lib/design-utils";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 1. Fetch Config
+  const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
+
+  // 2. Prepare Variables
+  const primaryRgb = hexToRgb(config?.primaryColor || "#2563EB");
+  const font = config?.fontFamily || 'Inter';
+  const radius = config?.borderRadius || '0.5rem';
+
+  // 3. Construct Style
+  const dynamicStyles = `
+    :root {
+      --primary: ${primaryRgb};
+      --radius: ${radius};
+      --font-main: '${font}', sans-serif;
+    }
+    ${config?.customCss || ''}
+  `;
+
   return (
-    <html lang="en">
+    <html lang="es">
+      <head>
+        <link href={`https://fonts.googleapis.com/css2?family=${font.replace(' ', '+')}:wght@400;500;700&display=swap`} rel="stylesheet" />
+        <style dangerouslySetInnerHTML={{ __html: dynamicStyles }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

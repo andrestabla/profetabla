@@ -423,15 +423,33 @@ model PlatformConfig {
   
   // 1. Branding (Look & Feel)
   institutionName    String   @default("Profe Tabla")
-  primaryColor       String   @default("#2563EB")
   logoUrl            String?
+  faviconUrl         String?
 
-  // 2. Integraciones
+  // --- 2. Sistema de Diseño (Design System) ---
+  themePreset      String   @default("DEFAULT") 
+  primaryColor     String   @default("#2563EB") 
+  secondaryColor   String   @default("#475569") 
+  accentColor      String   @default("#F59E0B") 
+  
+  // --- 3. Tipografía y Forma ---
+  fontFamily       String   @default("Inter")   
+  borderRadius     String   @default("0.5rem")  
+  
+  // --- 4. Personalización del Login ---
+  loginLayout      String   @default("SPLIT")   
+  loginBgUrl       String?  
+  loginMessage     String?  
+
+  // --- 5. Avanzado (Solo Expertos) ---
+  customCss        String?  @db.Text 
+
+  // 6. Integraciones Legacy
   githubToken        String?
   geminiApiKey       String?
   geminiModel        String   @default("gemini-pro")
 
-  // 3. Correo (SMTP)
+  // 7. Correo (SMTP)
   smtpHost           String?
   smtpPort           Int      @default(587)
   smtpUser           String?

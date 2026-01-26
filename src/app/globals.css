@@ -3,12 +3,27 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Valores por defecto para variables dinámicas */
+  --primary: 37 99 235;
+  --radius: 0.5rem;
+  --font-main: 'Inter';
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  
+  /* Mapeo Dinámico */
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: #ffffff;
+  
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  
+  /* Typography overrides */
+  --font-sans: var(--font-main), var(--font-geist-sans), sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
