@@ -56,9 +56,20 @@ export default function CreateProjectPage() {
                     <label className="block text-sm font-bold text-slate-700 mb-2">Descripción General</label>
                     <textarea
                         name="description"
-                        rows={4}
+                        rows={3}
                         required
                         placeholder="Describe el propósito y alcance del proyecto..."
+                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Justificación Pedagógica</label>
+                    <textarea
+                        name="justification"
+                        rows={3}
+                        required
+                        placeholder="¿Por qué es importante este proyecto para el estudiante?..."
                         className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                     />
                 </div>

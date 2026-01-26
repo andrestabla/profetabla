@@ -16,15 +16,20 @@ type Resource = {
 type Project = {
     id: string;
     title: string;
+    description: string | null;
+    industry: string | null;
+    justification: string | null;
+    objectives: string | null;
     student: { name: string | null; avatarUrl: string | null } | null;
 };
 
 export default function ProjectWorkspaceClient({ project, resources }: { project: Project, resources: Resource[] }) {
     const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP'>('RESOURCES');
     const [isUploading, setIsUploading] = useState(false);
+    const [showContext, setShowContext] = useState(false);
 
     // Iconos por tipo de recurso
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const ResourceIcon = ({ type }: { type: string }) => {
         switch (type) {
             case 'VIDEO': return <Video className="w-5 h-5 text-red-500" />;
@@ -36,28 +41,56 @@ export default function ProjectWorkspaceClient({ project, resources }: { project
     return (
         <div className="max-w-6xl mx-auto p-6">
             {/* Cabecera del Proyecto */}
-            <header className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider mb-2 inline-block">
-                        En Progreso
-                    </span>
-                    <h1 className="text-2xl font-bold text-slate-800">{project.title}</h1>
-                    <p className="text-slate-500 font-medium flex items-center gap-2 mt-1">
-                        Estudiante asignado: <span className="text-slate-700 font-bold">{project.student?.name || 'Sin Asignar'}</span>
-                    </p>
+            <header className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <div>
+                        <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2 inline-block">
+                            {project.industry || 'Proyecto Institucional'}
+                        </span>
+                        <h1 className="text-2xl font-bold text-slate-800">{project.title}</h1>
+                        <p className="text-slate-500 font-medium flex items-center gap-2 mt-1">
+                            Estudiante: <span className="text-slate-700 font-bold">{project.student?.name || 'Sin Asignar'}</span>
+                        </p>
+                    </div>
+
+                    {/* Navegación de Pestañas */}
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                        <button onClick={() => setActiveTab('KANBAN')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'KANBAN' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <Kanban className="w-4 h-4" /> Kanban
+                        </button>
+                        <button onClick={() => setActiveTab('RESOURCES')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'RESOURCES' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <BookOpen className="w-4 h-4" /> Recursos
+                        </button>
+                        <button onClick={() => setActiveTab('MENTORSHIP')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'MENTORSHIP' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <Calendar className="w-4 h-4" /> Mentorías
+                        </button>
+                    </div>
                 </div>
 
-                {/* Navegación de Pestañas */}
-                <div className="flex bg-slate-100 p-1 rounded-xl">
-                    <button onClick={() => setActiveTab('KANBAN')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'KANBAN' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                        <Kanban className="w-4 h-4" /> Kanban
+                <div className="pt-4 border-t border-slate-100">
+                    <button
+                        onClick={() => setShowContext(!showContext)}
+                        className="text-xs font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors"
+                    >
+                        {showContext ? 'Ocultar Contexto del Proyecto ↑' : 'Ver Contexto del Proyecto (Justificación y Objetivos) ↓'}
                     </button>
-                    <button onClick={() => setActiveTab('RESOURCES')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'RESOURCES' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                        <BookOpen className="w-4 h-4" /> Recursos
-                    </button>
-                    <button onClick={() => setActiveTab('MENTORSHIP')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'MENTORSHIP' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                        <Calendar className="w-4 h-4" /> Mentorías
-                    </button>
+
+                    {showContext && (
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2 duration-300">
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Justificación</h4>
+                                <p className="text-sm text-slate-600 italic bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    &ldquo;{project.justification || 'No definida'}&rdquo;
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Objetivos de Aprendizaje</h4>
+                                <div className="text-sm text-slate-600 whitespace-pre-wrap bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    {project.objectives || 'Sin objetivos definidos'}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </header>
 

@@ -15,6 +15,7 @@ export async function createProjectAction(formData: FormData) {
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const industry = formData.get('industry') as string;
+    const justification = formData.get('justification') as string;
     const objectives = formData.get('objectives') as string;
     const deliverables = formData.get('deliverables') as string;
 
@@ -23,6 +24,7 @@ export async function createProjectAction(formData: FormData) {
             title,
             description,
             industry,
+            justification,
             objectives,
             deliverables,
             teacherId: session.user.id,
