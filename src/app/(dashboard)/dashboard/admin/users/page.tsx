@@ -28,6 +28,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
 
     return (
         <div className="p-6">
+            <AdminNav />
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-800">Gestión de Usuarios</h1>
