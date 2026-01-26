@@ -91,10 +91,12 @@ export function KanbanBoard() {
         const newTask = {
             id: tempId,
             title,
+            description: null,
             status,
             priority: 'MEDIUM',
             dueDate: null,
             isApproved: false,
+            approvalNotes: null,
             comments: [],
             tags: []
         } as Task;
