@@ -41,7 +41,10 @@ export function Sidebar() {
         { name: 'Entregas', href: '/dashboard/assignments', icon: FileText, roles: ['STUDENT'] },
         { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
-        { name: 'Mercado', href: '/dashboard/projects/market', icon: ShoppingBag, roles: ['STUDENT'] },
+        { name: 'Entregas', href: '/dashboard/assignments', icon: FileText, roles: ['STUDENT'] },
+        { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
+        { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
+        { name: 'Proyectos', href: '/dashboard/projects/market', icon: ShoppingBag, roles: ['STUDENT'] },
     ];
 
     const adminItems = [
@@ -155,7 +158,18 @@ export function Sidebar() {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-slate-800">
+            <div className="p-4 border-t border-slate-800 space-y-2">
+                <Link
+                    href="/dashboard/profile"
+                    className={cn(
+                        "flex items-center gap-3 w-full rounded-xl text-sm font-medium text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition-all",
+                        isCollapsed ? "justify-center p-3" : "px-4 py-3"
+                    )}
+                    title="Mi Perfil"
+                >
+                    <Users className="w-5 h-5" />
+                    {!isCollapsed && <span>Mi Perfil</span>}
+                </Link>
                 <button
                     onClick={() => signOut({ callbackUrl: '/login' })}
                     className={cn(

@@ -128,7 +128,7 @@ export default async function DashboardPage() {
                 <p className="text-slate-500 max-w-md mb-8">Para comenzar tu aprendizaje, debes postularte a un proyecto disponible en el mercado.</p>
 
                 <Link
-                    href="/dashboard/student/marketplace"
+                    href="/dashboard/projects/market"
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-blue-500/20 transition-all hover:scale-105"
                 >
                     <Search className="w-5 h-5" />
