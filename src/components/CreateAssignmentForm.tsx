@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 
-export function CreateAssignmentForm() {
+export function CreateAssignmentForm({ projectId }: { projectId: string }) {
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -23,7 +23,8 @@ export function CreateAssignmentForm() {
                 body: JSON.stringify({
                     title,
                     description,
-                    dueDate
+                    dueDate,
+                    projectId
                 })
             });
 

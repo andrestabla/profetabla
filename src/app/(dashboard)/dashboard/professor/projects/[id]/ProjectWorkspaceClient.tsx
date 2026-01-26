@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles } from 'lucide-react';
+import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 import { addResourceToProjectAction } from './actions';
 import { BookingList } from '@/components/BookingList';
+import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
+import { SubmissionCard } from '@/components/SubmissionCard';
 
 // Tipos basados en nuestro esquema Prisma actualizado
 type Resource = {
@@ -26,8 +28,8 @@ type Project = {
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export default function ProjectWorkspaceClient({ project, resources, learningObjects }: { project: Project, resources: Resource[], learningObjects: any[] }) {
-    const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP'>('RESOURCES');
+export default function ProjectWorkspaceClient({ project, resources, learningObjects, assignments }: { project: Project, resources: Resource[], learningObjects: any[], assignments: any[] }) {
+    const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP' | 'ASSIGNMENTS'>('RESOURCES');
     const [isUploading, setIsUploading] = useState(false);
     const [showContext, setShowContext] = useState(false);
 
@@ -66,6 +68,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                         </button>
                         <button onClick={() => setActiveTab('MENTORSHIP')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'MENTORSHIP' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <Calendar className="w-4 h-4" /> Mentorías
+                        </button>
+                        <button onClick={() => setActiveTab('ASSIGNMENTS')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'ASSIGNMENTS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <FileCheck className="w-4 h-4" /> Entregables
                         </button>
                     </div>
                 </div>
@@ -236,6 +241,31 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                         <p className="text-slate-500 text-sm">Reserva espacios exclusivos para resolver bloqueos de este reto.</p>
                     </div>
                     <BookingList defaultProjectId={project.id} />
+                </div>
+            )}
+            {activeTab === 'ASSIGNMENTS' && (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-800">Entregables y Hitos</h3>
+                            <p className="text-slate-500 text-sm">Gestiona los envíos oficiales para la validación de tu proyecto.</p>
+                        </div>
+                        <CreateAssignmentForm projectId={project.id} />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {assignments.length === 0 ? (
+                            <div className="md:col-span-2 text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                                <p className="text-slate-500 font-medium">No se han definido entregables aún.</p>
+                            </div>
+                        ) : (
+                             
+                            assignments.map((assignment: any) => (
+                                <SubmissionCard key={assignment.id} assignment={assignment} />
+                            ))
+                        )}
+                    </div>
                 </div>
             )}
         </div>

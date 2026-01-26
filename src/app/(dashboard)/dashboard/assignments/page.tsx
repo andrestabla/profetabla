@@ -17,6 +17,7 @@ async function getAssignments() {
 
 export default async function AssignmentsPage() {
     const assignments = await getAssignments();
+    const project = await prisma.project.findFirst();
 
     // Mock checking if user is teacher (In real app, check session)
     const isTeacher = true;
@@ -28,7 +29,7 @@ export default async function AssignmentsPage() {
                     <h1 className="text-3xl font-bold text-slate-800">Entregas y Evaluaciones</h1>
                     <p className="text-slate-500">Sube tus avances y recibe feedback de tu tutor.</p>
                 </div>
-                {isTeacher && <CreateAssignmentForm />}
+                {isTeacher && project && <CreateAssignmentForm projectId={project.id} />}
             </div>
 
             {assignments.length === 0 ? (
@@ -38,8 +39,8 @@ export default async function AssignmentsPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {assignments.map((assignment) => (
-                        // @ts-ignore
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {assignments.map((assignment: any) => (
                         <SubmissionCard key={assignment.id} assignment={assignment} />
                     ))}
                 </div>

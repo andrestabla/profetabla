@@ -26,10 +26,22 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         orderBy: { createdAt: 'desc' }
     });
 
-    // Pass learning objects to the client component
+    const assignments = await prisma.assignment.findMany({
+        where: { projectId: id },
+        include: {
+            submissions: {
+                where: { studentId: project.studentId || undefined },
+                orderBy: { createdAt: 'desc' }
+            }
+        },
+        orderBy: { dueDate: 'asc' }
+    });
+
+    // Pass everything to the client component
     return <ProjectWorkspaceClient
         project={project}
         resources={resources}
         learningObjects={project.learningObjects}
+        assignments={assignments}
     />;
 }
