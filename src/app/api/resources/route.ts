@@ -26,12 +26,12 @@ export async function GET(request: Request) {
             projectId = activeProject?.id;
         }
 
-        // Fetch resources linked to this project OR global (projectId is null)
+        // Fetch Resources
         const resources = await prisma.resource.findMany({
             where: {
                 OR: [
-                    { projectId: projectId }, // Contextual resources
-                    { projectId: null }       // Global resources
+                    { projectId: projectId },
+                    { projectId: null }
                 ]
             },
             include: {
@@ -43,11 +43,46 @@ export async function GET(request: Request) {
             orderBy: { createdAt: 'desc' }
         });
 
-        const formattedResources = resources.map(r => ({
-            ...r,
-            isViewed: r.interactions[0]?.isCompleted || false, // Mapping 'isCompleted' to frontend 'isViewed' concept if needed, or update DB schema field name match
-            isFavorite: r.interactions[0]?.isFavorite || false
-        }));
+        // Fetch Learning Objects (OAs)
+        // Teachers see ALL OAs they created or global ones
+        // Students see OAs assigned to their project (future) or global ones
+        // For now, let's show all global OAs + author's OAs if teacher
+        const learningObjects = await prisma.learningObject.findMany({
+            where: {
+                // Simple logic: Show all OAs for now to verify they appear
+                // In production we would filter by Project or Author
+            },
+            include: {
+                author: true,
+                items: { take: 1 } // preview first item
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const formattedResources = [
+            ...resources.map(r => ({
+                id: r.id,
+                title: r.title,
+                description: r.description,
+                url: r.url,
+                type: r.type,
+                isViewed: r.interactions[0]?.isCompleted || false,
+                isFavorite: r.interactions[0]?.isFavorite || false,
+                category: { name: r.category.name, color: r.category.color },
+                isOA: false
+            })),
+            ...learningObjects.map(oa => ({
+                id: oa.id,
+                title: oa.title,
+                description: oa.description,
+                url: `/dashboard/learning/object/${oa.id}`, // Internal route for OAs
+                type: 'COURSE', // Special type for frontend rendering
+                isViewed: false, // Calculate based on items progress if needed
+                isFavorite: false,
+                category: { name: oa.subject, color: 'purple' }, // Use subject as category
+                isOA: true
+            }))
+        ];
 
         return NextResponse.json(formattedResources);
     } catch (error) {
