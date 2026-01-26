@@ -39,7 +39,7 @@ export async function GET() {
             return {
                 id: p.id,
                 title: p.title,
-                studentName: p.student.name,
+                studentName: p.student?.name || 'Sin Asignar',
                 progress,
                 risk
             };
