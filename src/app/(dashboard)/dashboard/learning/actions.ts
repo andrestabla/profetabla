@@ -156,3 +156,24 @@ export async function addCommentToOAAction(oaId: string, content: string) {
 
     revalidatePath(`/dashboard/learning/object/${oaId}`);
 }
+
+export async function deleteLearningObjectAction(id: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        throw new Error('Unauthorized');
+    }
+
+    const oa = await prisma.learningObject.findUnique({ where: { id } });
+    if (!oa) throw new Error('Not found');
+
+    if (session.user.role !== 'ADMIN' && oa.authorId !== session.user.id) {
+        throw new Error('Unauthorized');
+    }
+
+    await prisma.learningObject.delete({
+        where: { id }
+    });
+
+    revalidatePath('/dashboard/learning');
+    redirect('/dashboard/learning');
+}

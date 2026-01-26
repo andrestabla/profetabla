@@ -24,12 +24,28 @@ type LearningObject = {
     items: ResourceItem[];
 };
 
+import { deleteLearningObjectAction } from '../../actions';
+import { AlertTriangle, Trash2 } from 'lucide-react';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function StudentViewerClient({ learningObject, comments, currentUserId, currentUserRole }: { learningObject: LearningObject, comments: any[], currentUserId?: string, currentUserRole?: string }) {
     // Ordenar los items y definir el estado inicial
     const sortedItems = [...learningObject.items].sort((a, b) => a.order - b.order);
     const [currentIndex, setCurrentIndex] = useState(0);
     const activeItem = sortedItems[currentIndex];
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        try {
+            await deleteLearningObjectAction(learningObject.id);
+        } catch (error) {
+            alert("Error al eliminar");
+            setIsDeleting(false);
+            setShowDeleteModal(false);
+        }
+    };
 
     // Función para obtener el ícono correcto
     const getItemIcon = (type: ItemType, isActive: boolean) => {
@@ -55,7 +71,45 @@ export default function StudentViewerClient({ learningObject, comments, currentU
     const session = { user: { id: currentUserId, role: currentUserRole } }; // Mock for simpler check, pass real props if cleaner
 
     return (
-        <div className="h-[calc(100vh-80px)] bg-slate-100 flex overflow-hidden rounded-xl border border-slate-200">
+        <div className="h-[calc(100vh-80px)] bg-slate-100 flex overflow-hidden rounded-xl border border-slate-200 relative">
+
+            {/* DELETE MODAL */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                <AlertTriangle className="w-6 h-6 text-red-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">¿Eliminar Objeto de Aprendizaje?</h3>
+                            <p className="text-slate-500 mb-6 text-sm">
+                                Esta acción es <strong>irreversible</strong>. Se eliminará permanentemente:
+                                <ul className="mt-2 text-left list-disc list-inside bg-red-50 p-3 rounded-lg text-red-700 font-medium">
+                                    <li>El objeto "{learningObject.title}"</li>
+                                    <li>Los {learningObject.items.length} recursos contenidos</li>
+                                    <li>Todos los comentarios e historial de progreso de los estudiantes</li>
+                                </ul>
+                            </p>
+
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-bold hover:bg-slate-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isDeleting ? 'Eliminando...' : 'Sí, Eliminar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* BARRA LATERAL: Índice del Paquete SCORM */}
             <aside className="w-80 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
@@ -68,11 +122,20 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                     </h1>
                     <p className="text-xs text-slate-500 font-medium mb-4">Competencia: {learningObject.competency || 'General'}</p>
 
-                    {/* EDIT BUTTON (Only for Admin/Author) */}
+                    {/* EDIT & DELETE ACTIONS */}
                     {(currentUserRole === 'ADMIN' || currentUserRole === 'TEACHER') && (
-                        <a href={`/dashboard/learning/${learningObject.id}/edit`} className="w-full text-center block text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 rounded-lg transition-colors">
-                            Editar Objeto
-                        </a>
+                        <div className="flex gap-2">
+                            <a href={`/dashboard/learning/${learningObject.id}/edit`} className="flex-1 text-center block text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 rounded-lg transition-colors">
+                                Editar
+                            </a>
+                            <button
+                                onClick={() => setShowDeleteModal(true)}
+                                className="px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                                title="Eliminar Objeto"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     )}
                 </div>
 
