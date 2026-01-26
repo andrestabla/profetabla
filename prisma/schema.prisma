@@ -56,6 +56,7 @@ model User {
   name      String?
   avatarUrl String?  
   role      Role     @default(STUDENT)
+  isActive  Boolean  @default(true)
   
   // Projects
   projectsAsStudent    Project[]            @relation("StudentProjects")
