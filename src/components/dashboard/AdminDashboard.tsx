@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShieldCheck, Activity, Users, Database, ChevronRight, UserPlus, AlertTriangle, Server, Briefcase } from 'lucide-react';
+import { ShieldCheck, Activity, Users, Database, ChevronRight, UserPlus, AlertTriangle, Server, Briefcase, Plus } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface AdminDashboardProps {
@@ -56,9 +56,14 @@ export function AdminDashboard({ stats, recentLogs, recentUsers }: AdminDashboar
                     <div className="relative z-10">
                         <p className="text-emerald-100 font-bold text-sm uppercase tracking-widest mb-2">Proyectos Globales</p>
                         <h3 className="text-6xl font-bold mb-8">{stats.newProjectsThisWeek}</h3>
-                        <Link href="/dashboard/professor/projects" className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 w-fit">
-                            <Briefcase className="w-4 h-4" /> Ver Catálogo Proyectos
-                        </Link>
+                        <div className="flex flex-wrap gap-2">
+                            <Link href="/dashboard/professor/projects" className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 w-fit">
+                                <Briefcase className="w-4 h-4" /> Catálogo
+                            </Link>
+                            <Link href="/dashboard/professor/projects/new" className="bg-white border border-white text-emerald-700 px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 w-fit hover:bg-emerald-50">
+                                <Plus className="w-4 h-4" /> Nuevo
+                            </Link>
+                        </div>
                     </div>
                     <Briefcase className="absolute bottom-0 right-0 w-32 h-32 text-white/5 -mb-8 -mr-8" />
                 </div>

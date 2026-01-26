@@ -1,9 +1,10 @@
-import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 interface ProjectRisk {
     id: string;
     title: string;
     studentName: string;
+    teacherName?: string;
     progress: number;
     risk: 'LOW' | 'MEDIUM' | 'HIGH';
 }
@@ -22,7 +23,12 @@ export function ProjectRiskCard({ project }: { project: ProjectRisk }) {
             <div className="flex justify-between items-start mb-4">
                 <div>
                     <h4 className="font-bold text-slate-800">{project.title}</h4>
-                    <p className="text-sm text-slate-500">{project.studentName}</p>
+                    <p className="text-sm text-slate-500">Estudiante: {project.studentName}</p>
+                    {project.teacherName && (
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                            Tutor: {project.teacherName}
+                        </p>
+                    )}
                 </div>
                 {project.risk === 'HIGH' && (
                     <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth";
@@ -22,14 +23,15 @@ export async function GET() {
         const projects = await prisma.project.findMany({
             include: {
                 student: true,
+                teacher: true,
                 tasks: true
             }
         });
 
         // Calculate Risk
-        const projectsWithRisk = projects.map(p => {
+        const projectsWithRisk = projects.map((p: any) => {
             const totalTasks = p.tasks.length;
-            const completedTasks = p.tasks.filter(t => t.status === 'DONE').length;
+            const completedTasks = p.tasks.filter((t: any) => t.status === 'DONE').length;
             const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
             let risk = 'LOW';
@@ -40,6 +42,7 @@ export async function GET() {
                 id: p.id,
                 title: p.title,
                 studentName: p.student?.name || 'Sin Asignar',
+                teacherName: p.teacher?.name || 'Sistema',
                 progress,
                 risk
             };
@@ -56,7 +59,8 @@ export async function GET() {
             projects: projectsWithRisk,
             recentActivity: activity
         });
-    } catch (error) {
+    } catch (_error) {
+        console.error(_error);
         return NextResponse.json({ error: 'Error fetching analytics' }, { status: 500 });
     }
 }

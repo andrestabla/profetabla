@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Briefcase, BookOpen, Target, Send, User, Loader2 } from 'lucide-react';
+import { Search, Briefcase, BookOpen, Target, Send, User, Loader2, Plus } from 'lucide-react';
 import { applyToProjectAction } from './actions';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 // Tipado basado en nuestro nuevo esquema Prisma
 type Project = {
@@ -23,12 +25,24 @@ type Project = {
 export default function ProjectMarketClient({ availableProjects }: { availableProjects: Project[] }) {
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [isApplying, setIsApplying] = useState(false);
+    const { data: session } = useSession();
+    const canCreate = session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN';
 
     return (
         <div className="max-w-6xl mx-auto p-6">
-            <header className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-800">Mercado de Proyectos</h1>
-                <p className="text-slate-500">Explora los retos disponibles y postúlate al que mejor se adapte a tus objetivos.</p>
+            <header className="mb-8 flex justify-between items-start">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-800">Mercado de Proyectos</h1>
+                    <p className="text-slate-500">Explora los retos disponibles y postúlate al que mejor se adapte a tus objetivos.</p>
+                </div>
+                {canCreate && (
+                    <Link
+                        href="/dashboard/professor/projects/new"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition-all flex items-center gap-2 text-sm"
+                    >
+                        <Plus className="w-4 h-4" /> Nuevo Proyecto
+                    </Link>
+                )}
             </header>
 
             {/* Barra de Búsqueda y Filtros */}
