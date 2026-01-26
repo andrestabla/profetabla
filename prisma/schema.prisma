@@ -198,6 +198,8 @@ model MentorshipSlot {
   endTime   DateTime
   isBooked  Boolean  @default(false)
   
+  meetingUrl String? // HU-24
+  
   booking   MentorshipBooking?
   
   createdAt DateTime @default(now())
@@ -212,6 +214,10 @@ model MentorshipBooking {
   student   User          @relation(fields: [studentId], references: [id])
   note      String?
   status    BookingStatus @default(PENDING)
+  
+  minutes     String?     // HU-26
+  agreements  String?     // HU-26
+  rating      Int?        // HU-27
   
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
