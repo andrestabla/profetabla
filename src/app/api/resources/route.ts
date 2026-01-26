@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
     try {
         const session = await getServerSession(authOptions);
         if (!session || !session.user) {
@@ -44,13 +44,15 @@ export async function GET(request: Request) {
         });
 
         // Fetch Learning Objects (OAs)
-        // Teachers see ALL OAs they created or global ones
-        // Students see OAs assigned to their project (future) or global ones
-        // For now, let's show all global OAs + author's OAs if teacher
+        // Teachers see ALL OAs to curate
+        // Students see OAs assigned to their project (HU-06)
         const learningObjects = await prisma.learningObject.findMany({
             where: {
-                // Simple logic: Show all OAs for now to verify they appear
-                // In production we would filter by Project or Author
+                ...(session.user.role === 'STUDENT' ? {
+                    projects: {
+                        some: { id: projectId || 'non-existent' }
+                    }
+                } : {})
             },
             include: {
                 author: true,
@@ -60,7 +62,8 @@ export async function GET(request: Request) {
         });
 
         const formattedResources = [
-            ...resources.map(r => ({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ...resources.map((r: any) => ({
                 id: r.id,
                 title: r.title,
                 description: r.description,
@@ -71,7 +74,8 @@ export async function GET(request: Request) {
                 category: { name: r.category.name, color: r.category.color },
                 isOA: false
             })),
-            ...learningObjects.map(oa => ({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ...learningObjects.map((oa: any) => ({
                 id: oa.id,
                 title: oa.title,
                 description: oa.description,
@@ -85,7 +89,7 @@ export async function GET(request: Request) {
         ];
 
         return NextResponse.json(formattedResources);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error fetching resources' }, { status: 500 });
     }
 }

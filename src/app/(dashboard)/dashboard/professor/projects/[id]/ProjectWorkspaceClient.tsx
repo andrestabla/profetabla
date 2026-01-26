@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban } from 'lucide-react';
+import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { addResourceToProjectAction } from './actions';
 
 // Tipos basados en nuestro esquema Prisma actualizado
@@ -23,13 +24,14 @@ type Project = {
     student: { name: string | null; avatarUrl: string | null } | null;
 };
 
-export default function ProjectWorkspaceClient({ project, resources }: { project: Project, resources: Resource[] }) {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export default function ProjectWorkspaceClient({ project, resources, learningObjects }: { project: Project, resources: Resource[], learningObjects: any[] }) {
     const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP'>('RESOURCES');
     const [isUploading, setIsUploading] = useState(false);
     const [showContext, setShowContext] = useState(false);
 
     // Iconos por tipo de recurso
-     
+
     const ResourceIcon = ({ type }: { type: string }) => {
         switch (type) {
             case 'VIDEO': return <Video className="w-5 h-5 text-red-500" />;
@@ -141,30 +143,78 @@ export default function ProjectWorkspaceClient({ project, resources }: { project
                     </div>
 
                     {/* Lista de Recursos del Proyecto */}
-                    <div className="md:col-span-2 space-y-4">
-                        {resources.length === 0 ? (
-                            <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-12 rounded-xl text-center text-slate-400 font-medium">
-                                <BookOpen className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                                Aún no hay recursos para este proyecto. Añade el primer material a la izquierda.
-                            </div>
-                        ) : (
-                            resources.map(resource => (
-                                <div key={resource.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex items-center gap-4">
-                                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                        <ResourceIcon type={resource.type} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-slate-800 leading-tight">{resource.title}</h4>
-                                        <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1 font-medium">
-                                            <LinkIcon className="w-3 h-3" /> Ver recurso completo
-                                        </a>
-                                    </div>
-                                    <div className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded">
-                                        {new Date(resource.createdAt).toLocaleDateString()}
-                                    </div>
+                    <div className="md:col-span-2 space-y-8">
+                        {/* SECCIÓN: OBJETOS DE APRENDIZAJE (HU-06) */}
+                        {learningObjects.length > 0 && (
+                            <section>
+                                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-amber-500" /> Contenido Sugerido por el Docente
+                                </h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {learningObjects.map((oa) => (
+                                        <Link
+                                            key={oa.id}
+                                            href={`/dashboard/learning/object/${oa.id}`}
+                                            className="bg-gradient-to-r from-indigo-50 to-white p-4 rounded-xl border border-indigo-100 shadow-sm hover:shadow-md transition-all flex items-center gap-4 group"
+                                        >
+                                            <div className="p-3 bg-white rounded-lg border border-indigo-200 group-hover:scale-110 transition-transform">
+                                                <BookOpen className="w-5 h-5 text-indigo-600" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter">OA • {oa.subject}</span>
+                                                    <h4 className="font-bold text-slate-800 leading-tight">{oa.title}</h4>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1 line-clamp-1">{oa.description}</p>
+                                            </div>
+                                            <div className="bg-white px-3 py-1 rounded-full text-[10px] font-bold text-indigo-600 border border-indigo-100">
+                                                Comenzar →
+                                            </div>
+                                        </Link>
+                                    ))}
                                 </div>
-                            ))
+                            </section>
                         )}
+
+                        <section>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-blue-600" /> Material de Apoyo
+                                </h3>
+                                <Link
+                                    href={`/dashboard/professor/projects/${project.id}/learning`}
+                                    className="text-xs font-bold text-blue-600 hover:underline"
+                                >
+                                    Gestionar Curaduría OA
+                                </Link>
+                            </div>
+
+                            {resources.length === 0 ? (
+                                <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-12 rounded-xl text-center text-slate-400 font-medium">
+                                    <BookOpen className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                                    Aún no hay recursos adicionales.
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {resources.map(resource => (
+                                        <div key={resource.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex items-center gap-4">
+                                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                                <ResourceIcon type={resource.type} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-slate-800 leading-tight">{resource.title}</h4>
+                                                <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1 font-medium">
+                                                    <LinkIcon className="w-3 h-3" /> Ver recurso completo
+                                                </a>
+                                            </div>
+                                            <div className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                                                {new Date(resource.createdAt).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
                     </div>
 
                 </div>

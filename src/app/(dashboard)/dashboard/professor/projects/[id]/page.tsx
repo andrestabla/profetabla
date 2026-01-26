@@ -12,6 +12,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         include: {
             student: {
                 select: { name: true, avatarUrl: true }
+            },
+            learningObjects: {
+                include: { items: { take: 1 } }
             }
         }
     });
@@ -23,5 +26,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         orderBy: { createdAt: 'desc' }
     });
 
-    return <ProjectWorkspaceClient project={project} resources={resources} />;
+    // Pass learning objects to the client component
+    return <ProjectWorkspaceClient
+        project={project}
+        resources={resources}
+        learningObjects={project.learningObjects}
+    />;
 }
