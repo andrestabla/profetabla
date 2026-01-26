@@ -1,17 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
+// ---------------------------------------------------------
+// 1. ENUMS
+// ---------------------------------------------------------
 enum Role {
   STUDENT
   TEACHER
   ADMIN
+}
+
+enum ProjectStatus {
+  OPEN         // Available for applications
+  IN_PROGRESS  // Student assigned
+  COMPLETED    // Finished
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 enum TaskStatus {
@@ -32,20 +46,30 @@ enum Priority {
   HIGH
 }
 
+// ---------------------------------------------------------
+// 2. USER MODEL
+// ---------------------------------------------------------
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String   
   name      String?
-  avatarUrl String?  // HU-02
+  avatarUrl String?  
   role      Role     @default(STUDENT)
   
-  projects        Project[]        @relation("StudentProjects")
+  // Projects
+  projectsAsStudent    Project[]            @relation("StudentProjects")
+  projectsAsTeacher    Project[]            @relation("TeacherProjects")
+  projectApplications  ProjectApplication[] @relation("StudentApplications")
+  
+  // Mentorship
   mentorshipSlots MentorshipSlot[] 
   bookings        MentorshipBooking[]
-  activityLogs    ActivityLog[]    // HU-04
-  comments        Comment[]        // HU-10
-  assignedTasks   Task[]           @relation("TaskAssignees") // HU-09
+
+  // Activity & Other
+  activityLogs    ActivityLog[]    
+  comments        Comment[]        
+  assignedTasks   Task[]           @relation("TaskAssignees") 
   submissions     Submission[]
   resourceInteractions ResourceInteraction[]
   
@@ -53,13 +77,37 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+// ---------------------------------------------------------
+// 3. PROJECT MODEL (The Pedagogical Core)
+// ---------------------------------------------------------
 model Project {
   id          String   @id @default(uuid())
   title       String
   description String?
-  studentId   String
-  student     User     @relation("StudentProjects", fields: [studentId], references: [id])
+
+  // PHASE 1: Justification & Content
+  industry      String?  // e.g. "Fintech", "Health"
+  justification String?  @db.Text
+  objectives    String?  @db.Text
+  deliverables  String?  @db.Text
+  
+  status        ProjectStatus @default(OPEN)
+
+  // Actors
+  teacherId   String
+  teacher     User     @relation("TeacherProjects", fields: [teacherId], references: [id])
+  
+  studentId   String?  // Optional initially
+  student     User?    @relation("StudentProjects", fields: [studentId], references: [id])
+
+  // Applications (Matchmaking)
+  applications ProjectApplication[] 
+
+  // Ecosystem
   tasks       Task[]
+  resources   Resource[]          @relation("ProjectResources") 
+  mentorships MentorshipBooking[] @relation("ProjectMentorships")
+  
   tags        Tag[]
   assignments Assignment[]
   
@@ -67,32 +115,53 @@ model Project {
   updatedAt   DateTime @updatedAt
 }
 
-model ResourceCategory {
+// ---------------------------------------------------------
+// 4. MARKETPLACE / MATCHMAKING
+// ---------------------------------------------------------
+model ProjectApplication {
   id        String   @id @default(uuid())
-  name      String
-  color     String   @default("blue")
-  
-  resources Resource[]
-  
+
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   User     @relation("StudentApplications", fields: [studentId], references: [id])
+
+  motivation String? @db.Text 
+  status     ApplicationStatus @default(PENDING)
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, studentId]) 
 }
 
+// ---------------------------------------------------------
+// 5. RESOURCES (Project Contextualized)
+// ---------------------------------------------------------
 model Resource {
   id          String   @id @default(uuid())
   title       String
   description String?
   url         String
-  type        String   @default("ARTICLE") // VIDEO, ARTICLE, FILE
+  type        String   @default("ARTICLE") 
   
+  projectId   String?
+  project     Project? @relation("ProjectResources", fields: [projectId], references: [id], onDelete: Cascade)
+
   categoryId  String
   category    ResourceCategory @relation(fields: [categoryId], references: [id])
-  
-  tasks       Task[]   @relation("TaskResources") // HU-20
-
+  tasks       Task[]   @relation("TaskResources") 
   interactions ResourceInteraction[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ResourceCategory {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  resources Resource[]
 }
 
 model ResourceInteraction {
@@ -102,21 +171,111 @@ model ResourceInteraction {
   resourceId String
   resource   Resource @relation(fields: [resourceId], references: [id])
   
-  isViewed   Boolean  @default(false)
-  isFavorite Boolean  @default(false)
+  isCompleted Boolean @default(false)
+  isFavorite  Boolean @default(false)
   
-  viewedAt   DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   @@unique([userId, resourceId])
 }
 
+// ---------------------------------------------------------
+// 6. MENTORSHIP & SLOTS
+// ---------------------------------------------------------
+model MentorshipSlot {
+  id        String   @id @default(uuid())
+  teacherId String
+  teacher   User     @relation(fields: [teacherId], references: [id])
+  
+  startTime DateTime
+  endTime   DateTime
+  isBooked  Boolean  @default(false)
+  meetingUrl String?
+
+  booking   MentorshipBooking?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MentorshipBooking {
+  id        String        @id @default(uuid())
+  slotId    String        @unique
+  slot      MentorshipSlot @relation(fields: [slotId], references: [id])
+  
+  studentId String
+  student   User          @relation(fields: [studentId], references: [id])
+  
+  projectId String?
+  project   Project?      @relation("ProjectMentorships", fields: [projectId], references: [id])
+
+  note      String?
+  status    BookingStatus @default(PENDING)
+  
+  minutes     String?     
+  agreements  String?     
+  rating      Int?        
+  
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+// ---------------------------------------------------------
+// 7. KANBAN & TASKS
+// ---------------------------------------------------------
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  assignees   User[]   @relation("TaskAssignees")
+  
+  dueDate     DateTime?
+  
+  resources   Resource[] @relation("TaskResources")
+  comments    Comment[]
+  tags        Tag[]      @relation("TaskTags")
+  
+  // Approval System
+  isApproved    Boolean @default(false)
+  approvalNotes String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Tag {
+  id       String    @id @default(uuid())
+  name     String
+  color    String    @default("blue")
+  tasks    Task[]    @relation("TaskTags")
+  projects Project[]
+}
+
+// ---------------------------------------------------------
+// 8. SUBMISSIONS & ETC
+// ---------------------------------------------------------
 model Assignment {
   id          String   @id @default(uuid())
   title       String
   description String?
-  dueDate     DateTime
-  
+  dueDate     DateTime?
   projectId   String
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   
@@ -128,109 +287,28 @@ model Assignment {
 
 model Submission {
   id           String   @id @default(uuid())
-  fileUrl      String   // Base64 for MVP
-  fileName     String
-  fileType     String
-  fileSize     Int
-
   assignmentId String
-  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
   studentId    String
-  student      User     @relation(fields: [studentId], references: [id])
+  student      User       @relation(fields: [studentId], references: [id])
   
-  grade        Float?
+  fileUrl      String
+  fileName     String
+  fileType     String?
+  fileSize     Int?
+  
+  grade        Int?
   feedback     String?
-
-  submittedAt  DateTime @default(now())
+  
+  createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
 
-model Task {
-  id          String     @id @default(uuid())
-  title       String
-  description String?
-  status      TaskStatus @default(TODO)
-  priority    Priority   @default(MEDIUM) // HU-07
-  dueDate     DateTime?                   // HU-07
-  
-  isApproved    Boolean?   @default(false)     // HU-11
-  approvalNotes String?                        // HU-11
-
-  projectId   String
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  comments    Comment[]  // HU-10
-  tags        Tag[]      // HU-09
-
-  assignees   User[]     @relation("TaskAssignees") // HU-09
-  resources   Resource[] @relation("TaskResources") // HU-20
-  
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-model Comment {
-  id        String   @id @default(uuid())
-  content   String
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  
-  createdAt DateTime @default(now())
-}
-
-model Tag {
-  id        String   @id @default(uuid())
-  name      String
-  color     String   @default("blue") // e.g., "blue", "red", "green"
-  
-  tasks     Task[]
-  projects  Project[]
-}
-
-model MentorshipSlot {
-  id        String   @id @default(uuid())
-  teacherId String
-  teacher   User     @relation(fields: [teacherId], references: [id])
-  startTime DateTime
-  endTime   DateTime
-  isBooked  Boolean  @default(false)
-  
-  meetingUrl String? // HU-24
-  
-  booking   MentorshipBooking?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model MentorshipBooking {
-  id        String        @id @default(uuid())
-  slotId    String        @unique
-  slot      MentorshipSlot @relation(fields: [slotId], references: [id])
-  studentId String
-  student   User          @relation(fields: [studentId], references: [id])
-  note      String?
-  status    BookingStatus @default(PENDING)
-  
-  minutes     String?     // HU-26
-  agreements  String?     // HU-26
-  rating      Int?        // HU-27
-  
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-}
-
-// HU-04
 model ActivityLog {
   id          String   @id @default(uuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id])
-  action      String   // e.g., "UPLOAD_FILE", "COMPLETE_TASK"
-  description String?
-  
+  action      String   // e.g., "CREATE_TASK", "MOVE_TASK", "UPLOAD_FILE"
+  description String
   createdAt   DateTime @default(now())
 }
-

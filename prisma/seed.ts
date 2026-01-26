@@ -11,7 +11,7 @@ async function main() {
     update: {},
     create: {
       email: 'admin@profetabla.com',
-      password: 'admin', 
+      password: 'admin',
       name: 'Admin User',
       role: Role.ADMIN,
     },
@@ -46,7 +46,9 @@ async function main() {
     data: {
       title: 'Sistema de Gestión Escolar',
       description: 'Proyecto final de curso para gestionar notas.',
+      teacherId: teacher.id,
       studentId: student.id,
+      status: 'IN_PROGRESS',
       tasks: {
         create: [
           { title: 'Investigar requisitos', status: TaskStatus.DONE },

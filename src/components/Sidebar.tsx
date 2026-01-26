@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, GraduationCap, Calendar, Settings, LogOut, FileText } from 'lucide-react';
+import { LayoutDashboard, Kanban, GraduationCap, Calendar, Settings, LogOut, FileText, Search, Plus, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
 
@@ -12,10 +12,13 @@ const navItems = [
     { name: 'Entregas', href: '/dashboard/assignments', icon: FileText },
     { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap },
     { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar },
+    { name: 'Mercado Proyectos', href: '/dashboard/student/marketplace', icon: Search }, // New
 ];
 
 const adminItems = [
     { name: 'Panel Profesor', href: '/dashboard/professor', icon: LayoutDashboard },
+    { name: 'Crear Proyecto', href: '/dashboard/professor/projects/create', icon: Plus }, // New
+    { name: 'Solicitudes', href: '/dashboard/professor/applications', icon: UserCheck }, // New
     { name: 'Panel Admin', href: '/dashboard/admin', icon: Settings },
 ];
 
