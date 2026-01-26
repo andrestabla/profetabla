@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logActivity } from '@/lib/activity';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,10 @@ export async function POST(request: Request) {
                 fileSize
             }
         });
+
+        if (sid) {
+            await logActivity(sid, 'UPLOAD_SUBMISSION', `Subió la entrega: "${fileName}"`);
+        }
 
         return NextResponse.json(submission);
     } catch (error) {
