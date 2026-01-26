@@ -82,7 +82,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                             {user.activityLogs.length === 0 ? (
                                 <p className="text-center text-slate-400 py-4">Sin actividad registrada.</p>
                             ) : (
-                                user.activityLogs.map((log) => (
+                                user.activityLogs.map((log: any) => (
                                     <div key={log.id} className="relative pl-10">
                                         <div className={`absolute left-0 top-0 w-7 h-7 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-[10px] font-bold z-10
                                             ${log.level === 'CRITICAL' ? 'bg-red-500 text-white' :
@@ -98,7 +98,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                                             </p>
                                             {log.metadata && (
                                                 <div className="mt-2 p-2 bg-slate-50 rounded text-xs text-slate-600 font-mono break-all">
-                                                    {log.metadata}
+                                                    {typeof log.metadata === 'string' ? log.metadata : JSON.stringify(log.metadata)}
                                                 </div>
                                             )}
                                         </div>
