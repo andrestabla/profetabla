@@ -6,6 +6,26 @@ import { authOptions } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('projectId');
+
+    if (!projectId) {
+        return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
+    }
+
+    try {
+        const tasks = await prisma.task.findMany({
+            where: { projectId },
+            include: { comments: true, tags: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        return NextResponse.json(tasks);
+    } catch {
+        return NextResponse.json({ error: 'Error fetching tasks' }, { status: 500 });
+    }
+}
+
 export async function POST(request: Request) {
     try {
         const session = await getServerSession(authOptions);
@@ -39,7 +59,7 @@ export async function POST(request: Request) {
         await logActivity(session.user.id, 'CREATE_TASK', `Creó la tarea: "${title}"`);
 
         return NextResponse.json(task);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error creating task' }, { status: 500 });
     }
 }

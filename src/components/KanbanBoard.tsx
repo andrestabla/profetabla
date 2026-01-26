@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, KeyboardSensor, PointerSensor, useSensor, useSensors, closestCorners } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { clsx } from 'clsx';
 import { MoreVertical, Plus, Calendar, Flag, CheckCircle } from 'lucide-react';
@@ -17,8 +17,10 @@ type Task = {
     dueDate: string | null;
     isApproved: boolean;
     approvalNotes: string | null;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     comments: any[];
     tags: any[];
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 };
 
 const COLUMNS = [
@@ -27,19 +29,20 @@ const COLUMNS = [
     { id: 'DONE', title: 'Terminado', color: 'bg-green-50 border-green-100' },
 ];
 
-export function KanbanBoard() {
+export function KanbanBoard({ projectId }: { projectId: string }) {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
-        fetch('/api/tasks')
+        if (!projectId) return;
+        fetch(`/api/tasks?projectId=${projectId}`)
             .then((res) => res.json())
             .then((data) => {
                 if (Array.isArray(data)) setTasks(data);
             });
-    }, []);
+    }, [projectId]);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -87,7 +90,7 @@ export function KanbanBoard() {
         const title = prompt("Título de la tarea:");
         if (!title) return;
 
-        const tempId = Math.random().toString();
+        const tempId = crypto.randomUUID();
         const newTask = {
             id: tempId,
             title,
@@ -105,7 +108,7 @@ export function KanbanBoard() {
         const res = await fetch('/api/tasks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, priority: 'MEDIUM' })
+            body: JSON.stringify({ title, status, projectId, priority: 'MEDIUM' })
         });
         const savedTask = await res.json();
         setTasks(prev => prev.map(t => t.id === tempId ? savedTask : t));
