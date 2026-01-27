@@ -88,7 +88,19 @@ export function ConfigForm({ config }: { config: any }) {
     };
 
     return (
-        <form action={async (fd) => { setIsSaving(true); await updatePlatformConfigAction(fd); setIsSaving(false); }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <form action={async (fd) => {
+            setIsSaving(true);
+            try {
+                const result = await updatePlatformConfigAction(fd);
+                if (result?.message) {
+                    alert(result.message);
+                }
+            } catch {
+                alert("Error crítico al guardar configuración.");
+            } finally {
+                setIsSaving(false);
+            }
+        }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
             {/* 1. Integración GEMINI AI */}
             <div className="space-y-4">
@@ -255,8 +267,8 @@ export function ConfigForm({ config }: { config: any }) {
                             onClick={handleTestEmail}
                             disabled={testStatus === 'SENDING' || !testEmail}
                             className={`px-3 py-1 text-xs font-bold rounded transition-colors ${testStatus === 'SUCCESS' ? 'bg-green-600 text-white' :
-                                    testStatus === 'ERROR' ? 'bg-red-600 text-white' :
-                                        'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                testStatus === 'ERROR' ? 'bg-red-600 text-white' :
+                                    'bg-slate-200 text-slate-700 hover:bg-slate-300'
                                 }`}
                         >
                             {testStatus === 'SENDING' ? 'Enviando...' :

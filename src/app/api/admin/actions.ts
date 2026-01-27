@@ -15,53 +15,65 @@ async function requireAdmin() {
 }
 
 export async function updatePlatformConfigAction(formData: FormData) {
-    const session = await requireAdmin();
+    try {
+        const session = await requireAdmin();
 
-    const data = {
-        geminiApiKey: formData.get('geminiApiKey') as string,
-        geminiModel: formData.get('geminiModel') as string,
+        const smtpPortStr = formData.get('smtpPort') as string;
+        const smtpPort = smtpPortStr ? parseInt(smtpPortStr) : 587;
 
-        googleClientId: formData.get('googleClientId') as string,
-        googleClientSecret: formData.get('googleClientSecret') as string,
-
-        googleDriveClientId: formData.get('googleDriveClientId') as string,
-        googleDriveClientSecret: formData.get('googleDriveClientSecret') as string,
-        googleDriveFolderId: formData.get('googleDriveFolderId') as string,
-
-        smtpHost: formData.get('smtpHost') as string,
-        smtpPort: parseInt(formData.get('smtpPort') as string || '587'),
-        smtpUser: formData.get('smtpUser') as string,
-        smtpSenderName: formData.get('smtpSenderName') as string,
-        smtpFrom: formData.get('smtpFrom') as string,
-        // Note: In a real app we would handle password encryption differently
-        // smtpPassword: formData.get('smtpPassword') as string,
-    };
-
-    // Only update password if provided
-    const smtpPassword = formData.get('smtpPassword') as string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateData: any = { ...data };
-    if (smtpPassword) {
-        updateData.smtpPassword = smtpPassword;
-    }
-
-    await prisma.platformConfig.upsert({
-        where: { id: 'global-config' },
-        update: updateData,
-        create: { id: 'global-config', ...updateData }
-    });
-
-    // Log the action
-    await prisma.activityLog.create({
-        data: {
-            userId: session.user.id,
-            level: 'INFO',
-            action: 'UPDATE_CONFIG',
-            description: 'Platform configuration updated'
+        if (isNaN(smtpPort)) {
+            return { success: false, message: "El puerto SMTP debe ser un número válido." };
         }
-    });
 
-    revalidatePath('/dashboard/admin');
+        const data = {
+            geminiApiKey: formData.get('geminiApiKey') as string,
+            geminiModel: formData.get('geminiModel') as string,
+
+            googleClientId: formData.get('googleClientId') as string,
+            googleClientSecret: formData.get('googleClientSecret') as string,
+
+            googleDriveClientId: formData.get('googleDriveClientId') as string,
+            googleDriveClientSecret: formData.get('googleDriveClientSecret') as string,
+            googleDriveFolderId: formData.get('googleDriveFolderId') as string,
+
+            smtpHost: formData.get('smtpHost') as string,
+            smtpPort: smtpPort,
+            smtpUser: formData.get('smtpUser') as string,
+            smtpSenderName: formData.get('smtpSenderName') as string,
+            smtpFrom: formData.get('smtpFrom') as string,
+        };
+
+        // Only update password if provided
+        const smtpPassword = formData.get('smtpPassword') as string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updateData: any = { ...data };
+        if (smtpPassword) {
+            updateData.smtpPassword = smtpPassword;
+        }
+
+        await prisma.platformConfig.upsert({
+            where: { id: 'global-config' },
+            update: updateData,
+            create: { id: 'global-config', ...updateData }
+        });
+
+        // Log the action
+        await prisma.activityLog.create({
+            data: {
+                userId: session.user.id,
+                level: 'INFO',
+                action: 'UPDATE_CONFIG',
+                description: 'Platform configuration updated'
+            }
+        });
+
+        revalidatePath('/dashboard/admin');
+        return { success: true, message: "Configuración guardada correctamente." };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+        console.error("Update Config Error:", error);
+        return { success: false, message: error.message || "Error al guardar la configuración." };
+    }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
