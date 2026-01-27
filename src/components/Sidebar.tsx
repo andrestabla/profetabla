@@ -67,7 +67,7 @@ export function Sidebar() {
             {/* Header */}
             <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                 {!isCollapsed && (
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400 truncate">
+                    <h1 className="text-2xl font-bold text-primary truncate">
                         Profe Tabla
                     </h1>
                 )}
@@ -88,7 +88,7 @@ export function Sidebar() {
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-white truncate">{session.user.name}</p>
-                            <p className="text-[10px] uppercase font-bold tracking-wider text-blue-400 bg-blue-900/30 px-2 py-0.5 rounded-full w-fit">
+                            <p className="text-[10px] uppercase font-bold tracking-wider text-primary bg-primary/20 px-2 py-0.5 rounded-full w-fit">
                                 {role}
                             </p>
                         </div>
@@ -134,7 +134,7 @@ export function Sidebar() {
                                                 className={cn(
                                                     "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group relative",
                                                     active
-                                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                                                        ? "bg-primary text-white shadow-lg shadow-primary/20"
                                                         : "hover:bg-slate-800 hover:text-white text-slate-400"
                                                 )}
                                                 title={isCollapsed ? item.name : undefined}
@@ -161,7 +161,7 @@ export function Sidebar() {
                 <Link
                     href="/dashboard/profile"
                     className={cn(
-                        "flex items-center gap-3 w-full rounded-xl text-sm font-medium text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition-all",
+                        "flex items-center gap-3 w-full rounded-xl text-sm font-medium text-slate-400 hover:text-primary hover:bg-slate-800 transition-all",
                         isCollapsed ? "justify-center p-3" : "px-4 py-3"
                     )}
                     title="Mi Perfil"

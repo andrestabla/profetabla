@@ -165,6 +165,10 @@ export async function resetPasswordAction(userId: string) {
 export async function updateSystemConfigAction(formData: FormData) {
     await requireAdmin();
 
+    console.log("--- UPDATE SYSTEM CONFIG STARTED ---");
+    const sentData = Object.fromEntries(formData.entries());
+    console.log("RECEIVED FORM DATA:", sentData);
+
     // 1. Fetch existing config to merge
     const existing = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
 
