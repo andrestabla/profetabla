@@ -484,12 +484,14 @@ model PlatformConfig {
   // Google Drive
   googleDriveClientId     String?
   googleDriveClientSecret String?
+  googleDriveFolderId     String? // Approved folder/repo for resources
 
   // 7. Correo (SMTP)
   smtpHost           String?
   smtpPort           Int      @default(587)
   smtpUser           String?
   smtpPassword       String?
+  smtpSenderName     String?  // Optional custom sender name
   smtpFrom           String   @default("noreply@profetabla.com")
 
   updatedAt          DateTime @updatedAt
