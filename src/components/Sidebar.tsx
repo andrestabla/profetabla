@@ -27,11 +27,15 @@ import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-export function Sidebar() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function Sidebar({ config }: { config?: any }) {
     const pathname = usePathname();
     const { data: session } = useSession();
     const role = session?.user?.role;
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const logo = config?.logoUrl;
+    const title = config?.institutionName || 'Profe Tabla';
 
     const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/');
 
@@ -67,9 +71,17 @@ export function Sidebar() {
             {/* Header */}
             <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                 {!isCollapsed && (
-                    <h1 className="text-2xl font-bold text-primary truncate">
-                        Profe Tabla
-                    </h1>
+                    logo ? (
+                        <div className="flex items-center gap-2">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={logo} alt={title} className="h-8 w-auto object-contain" />
+                            {/* Optional: if logo has text, hide title. For now show both if complex or just logo. Let's assume just logo replaces text if present */}
+                        </div>
+                    ) : (
+                        <h1 className="text-2xl font-bold text-primary truncate" title={title}>
+                            {title}
+                        </h1>
+                    )
                 )}
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}

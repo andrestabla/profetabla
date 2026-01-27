@@ -1,17 +1,14 @@
+import { prisma } from '@/lib/prisma';
 import { Sidebar } from '@/components/Sidebar';
-import { prisma } from '@/lib/prisma'; // Ensure this is imported
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    // 1. Fetch Config
-    const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
-
     return (
         <div className="flex bg-slate-50 min-h-screen font-sans">
-            <Sidebar config={config} />
+            <Sidebar />
             <main className="flex-1 p-8 overflow-y-auto h-screen">
                 <div className="max-w-7xl mx-auto">
                     {children}

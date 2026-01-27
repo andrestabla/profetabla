@@ -51,6 +51,7 @@ export default async function RootLayout({
     <html lang="es">
       <head>
         <link href={`https://fonts.googleapis.com/css2?family=${font.replace(' ', '+')}:wght@400;500;700&display=swap`} rel="stylesheet" />
+        {config?.faviconUrl && <link rel="icon" href={config.faviconUrl} />}
         <style dangerouslySetInnerHTML={{ __html: dynamicStyles }} />
       </head>
       <body

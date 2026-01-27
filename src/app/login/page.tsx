@@ -1,109 +1,102 @@
-'use client';
-
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Loader2, AlertCircle, LayoutDashboard } from 'lucide-react';
+import { prisma } from '@/lib/prisma';
+import { LoginForm } from '@/components/auth/LoginForm';
 import Link from 'next/link';
+import { LayoutDashboard } from 'lucide-react';
 
-export default function LoginPage() {
-    const router = useRouter();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+export const dynamic = 'force-dynamic';
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
+export default async function LoginPage() {
+    const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
 
-        try {
-            const res = await signIn('credentials', {
-                redirect: false,
-                email,
-                password,
-            });
+    const layout = config?.loginLayout || 'SPLIT';
+    const bgUrl = config?.loginBgUrl || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2671&auto=format&fit=crop';
+    const message = config?.loginMessage || 'Bienvenido a Profe Tabla';
+    const logoUrl = config?.logoUrl;
+    const institutionName = config?.institutionName || 'Profe Tabla';
 
-            if (res?.error) {
-                setError('Credenciales inválidas');
-                setLoading(false);
-            } else {
-                router.push('/dashboard');
-            }
-        } catch {
-            setError('Ocurrió un error inesperado');
-            setLoading(false);
-        }
-    };
+    // 1. SPLIT LAYOUT
+    if (layout === 'SPLIT') {
+        return (
+            <div className="min-h-screen flex bg-white">
+                {/* Left Side - Image */}
+                <div className="hidden lg:flex lg:w-1/2 relative bg-slate-900">
+                    <div
+                        className="absolute inset-0 bg-cover bg-center opacity-60 mix-blend-overlay"
+                        style={{ backgroundImage: `url(${bgUrl})` }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
 
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-900">
-            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-                <div className="text-center mb-8">
-                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                        <LayoutDashboard className="w-6 h-6" />
+                    <div className="relative z-10 p-16 flex flex-col justify-between h-full text-white">
+                        <div className="flex items-center gap-3">
+                            {logoUrl ? (
+                                <img src={logoUrl} alt={institutionName} className="h-10 w-auto object-contain" />
+                            ) : (
+                                <div className="flex items-center gap-2 font-bold text-xl">
+                                    <LayoutDashboard className="w-6 h-6 text-primary" />
+                                    {institutionName}
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <h1 className="text-4xl font-bold mb-4">{message}</h1>
+                            <p className="text-lg opacity-80">Gestión integral de proyectos educativos, mentorías y seguimiento curricular.</p>
+                        </div>
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-800">Bienvenido a Profe Tabla</h1>
+                </div>
+
+                {/* Right Side - Form */}
+                <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
+                    <div className="w-full max-w-md space-y-8">
+                        <div className="text-center lg:text-left">
+                            <h2 className="text-2xl font-bold text-slate-800">Iniciar Sesión</h2>
+                            <p className="text-slate-500 mt-2">Accede a tu cuenta institucional</p>
+                        </div>
+
+                        <LoginForm />
+
+                        <div className="text-center text-sm text-slate-500">
+                            ¿No tienes cuenta?{' '}
+                            <Link href="/register" className="text-primary font-bold hover:underline">
+                                Regístrate
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // 2. CENTERED LAYOUT
+    return (
+        <div
+            className="min-h-screen flex items-center justify-center bg-slate-900 bg-cover bg-center relative"
+            style={{ backgroundImage: `url(${bgUrl})` }}
+        >
+            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" />
+
+            <div className="bg-white/95 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-md relative z-10 border border-white/20">
+                <div className="text-center mb-8">
+                    {logoUrl ? (
+                        <img src={logoUrl} alt={institutionName} className="h-12 mx-auto mb-4 object-contain" />
+                    ) : (
+                        <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mx-auto mb-4">
+                            <LayoutDashboard className="w-6 h-6" />
+                        </div>
+                    )}
+                    <h1 className="text-2xl font-bold text-slate-800">{message}</h1>
                     <p className="text-slate-500 text-sm mt-1">Ingresa a tu cuenta institucional</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Correo Electrónico</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                            placeholder="usuario@demo.com"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                            placeholder="••••••••"
-                        />
-                    </div>
+                <LoginForm />
 
-                    {error && (
-                        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                            <AlertCircle className="w-4 h-4" />
-                            {error}
-                        </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Iniciar Sesión
-                    </button>
-                </form>
-
-                <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-                    <p className="text-sm text-slate-500">
-                        ¿No tienes cuenta?{' '}
-                        <Link href="/register" className="text-blue-600 font-bold hover:underline">
-                            Regístrate
-                        </Link>
-                    </p>
-                    <p className="mt-4 text-[10px] text-slate-400">
-                        Usuarios Demo:<br />
-                        andrestablarico@gmail.com (Admin)<br />
-                        profesor@demo.com (Profe)<br />
-                        estudiante@demo.com (Estudiante)
-                    </p>
+                <div className="mt-6 pt-6 border-t border-slate-200 text-center text-sm text-slate-500">
+                    ¿No tienes cuenta?{' '}
+                    <Link href="/register" className="text-primary font-bold hover:underline">
+                        Regístrate
+                    </Link>
                 </div>
             </div>
         </div>
     );
 }
+
