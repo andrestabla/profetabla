@@ -18,12 +18,54 @@ export function ConfigForm({ config }: { config: any }) {
     const [testStatus, setTestStatus] = useState<'IDLE' | 'SENDING' | 'SUCCESS' | 'ERROR'>('IDLE');
     const [testMessage, setTestMessage] = useState('');
 
+    // Controlled state for SMTP fields to allow testing unsaved credentials
+    const [smtpHost, setSmtpHost] = useState(config?.smtpHost || '');
+    const [smtpPort, setSmtpPort] = useState(config?.smtpPort || '587');
+    const [smtpUser, setSmtpUser] = useState(config?.smtpUser || '');
+    const [smtpPassword, setSmtpPassword] = useState('');
+    const [smtpSenderName, setSmtpSenderName] = useState(config?.smtpSenderName || config?.institutionName || '');
+    const [smtpFrom, setSmtpFrom] = useState(config?.smtpFrom || '');
+
     const handleTestEmail = async () => {
         if (!testEmail) return;
         setTestStatus('SENDING');
         setTestMessage('');
+
+        const credentials = {
+            smtpHost,
+            smtpPort: parseInt(smtpPort),
+            smtpUser,
+            smtpPassword, // This might be empty if user didn't retype it, but helpful if they did
+            smtpSenderName,
+            smtpFrom
+        };
+
+        // If no password provided in input, and we have one in config, we don't pass it here
+        // The backend knows to fallback to DB if credentials are partial? No, partial overrides are tricky.
+        // Actually, if we pass credentials, we should pass ALL of them. 
+        // If the user hasn't typed a password, we can't send it (security).
+        // BUT, if the user sees "********", they expect it to work.
+        // Simplified Logic: If user provides password, send it. If not, backend will use DB password? 
+        // Wait, my backend logic uses `credentials` OR `db`. It doesn't merge.
+        // For testing "unsaved" changes, the user MUST type the password if they want to test WITH that password.
+        // If they leave it empty (placeholder), they might be testing existing config + new host?
+        // Let's assume for "Test Connection", if they want to test a NEW config, they must type the password.
+        // If they are testing existing config, they can leave it empty IF I merge in backend. 
+        // Current backend: uses `credentials` object entirely if present.
+        // Client side fix: If smtpPassword is empty, don't send it in credentials? 
+        // But then backend safeConfig = credentials will lack password.
+
+        // BETTER APPROACH: 
+        // If password is empty, we assume the user intends to keep the current one.
+        // BUT we can't get the current password to send it.
+        // So we should only send `credentials` if `smtpPassword` is provided OR if we warn user "Enter password to test".
+
+        // Actually, let's try to send what we have. If backend sees missing password in `credentials`, it fails.
+        // So testing "new host" without retyping "password" will fail. This is acceptable security-wise.
+        // I will add a tooltip or hint: "Ingresa la contraseña para probar la conexión".
+
         try {
-            const result = await sendTestEmailAction(testEmail);
+            const result = await sendTestEmailAction(testEmail, credentials);
             if (result.success) {
                 setTestStatus('SUCCESS');
                 setTestMessage(result.message);
@@ -135,27 +177,69 @@ export function ConfigForm({ config }: { config: any }) {
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Host SMTP</label>
-                        <input placeholder="smtp.gmail.com" name="smtpHost" defaultValue={config?.smtpHost || ''} className="w-full px-3 py-2 border rounded-lg" />
+                        <input
+                            placeholder="smtp.gmail.com"
+                            name="smtpHost"
+                            value={smtpHost}
+                            onChange={(e) => setSmtpHost(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-lg"
+                        />
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Puerto</label>
-                        <input placeholder="587" name="smtpPort" defaultValue={config?.smtpPort || '587'} className="w-full px-3 py-2 border rounded-lg" />
+                        <input
+                            placeholder="587"
+                            name="smtpPort"
+                            value={smtpPort}
+                            onChange={(e) => setSmtpPort(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-lg"
+                        />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Remitente</label>
-                        <input placeholder="Ej: Profe Tabla" name="smtpSenderName" defaultValue={config?.smtpSenderName || config?.institutionName || ''} className="w-full px-3 py-2 border rounded-lg" />
+                        <input
+                            placeholder="Ej: Profe Tabla"
+                            name="smtpSenderName"
+                            value={smtpSenderName}
+                            onChange={(e) => setSmtpSenderName(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-lg"
+                        />
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email Remitente</label>
-                        <input placeholder="noreply@..." name="smtpFrom" defaultValue={config?.smtpFrom || ''} className="w-full px-3 py-2 border rounded-lg" />
+                        <input
+                            placeholder="noreply@..."
+                            name="smtpFrom"
+                            value={smtpFrom}
+                            onChange={(e) => setSmtpFrom(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-lg"
+                        />
                     </div>
                 </div>
 
-                <input placeholder="Usuario SMTP (Email completo)" name="smtpUser" defaultValue={config?.smtpUser || ''} className="w-full px-3 py-2 border rounded-lg" />
-                <input type="password" placeholder="Contraseña SMTP (App Password)" name="smtpPassword" className="w-full px-3 py-2 border rounded-lg" />
+                <input
+                    placeholder="Usuario SMTP (Email completo)"
+                    name="smtpUser"
+                    value={smtpUser}
+                    onChange={(e) => setSmtpUser(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg"
+                />
+                <div>
+                    <input
+                        type="password"
+                        placeholder="Contraseña SMTP (App Password)"
+                        name="smtpPassword"
+                        value={smtpPassword}
+                        onChange={(e) => setSmtpPassword(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1 ml-1">
+                        * Ingrese la contraseña para probar la conexión con nuevos datos.
+                    </p>
+                </div>
 
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mt-2">
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prueba de Conexión</label>

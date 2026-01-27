@@ -64,18 +64,25 @@ export async function updatePlatformConfigAction(formData: FormData) {
     revalidatePath('/dashboard/admin');
 }
 
-export async function sendTestEmailAction(toEmail: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function sendTestEmailAction(toEmail: string, credentials?: any) {
     try {
         await requireAdmin();
 
-        // Fetch current config to use for testing
-        const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
+        let safeConfig;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const safeConfig = config as any;
+        if (credentials) {
+            safeConfig = credentials;
+            console.log("[MOCK SMTP] Using provided credentials for testing.");
+        } else {
+            // Fetch current config to use for testing
+            const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            safeConfig = config as any;
+        }
 
         if (!safeConfig?.smtpHost || !safeConfig?.smtpUser || !safeConfig?.smtpPassword) {
-            return { success: false, message: "Configuración SMTP incompleta/Falla verificación." };
+            return { success: false, message: "Configuración SMTP incompleta/Falla verificación. Guarda la configuración o asegúrate de llenar los campos." };
         }
 
         console.log(`[MOCK SMTP] Sending test email to ${toEmail}`);
@@ -85,7 +92,7 @@ export async function sendTestEmailAction(toEmail: string) {
 
         await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
 
-        return { success: true, message: "Correo de prueba enviado (Simulado en logs)" };
+        return { success: true, message: "Correo de prueba enviado (Simulado en logs). NO olvides guardar la configuración." };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("SMTP Test Error:", error);
