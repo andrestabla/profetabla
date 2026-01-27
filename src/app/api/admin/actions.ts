@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import nodemailer from 'nodemailer';
 
 // Middleware de seguridad interno
 async function requireAdmin() {
@@ -85,7 +86,6 @@ export async function sendTestEmailAction(toEmail: string, credentials?: any) {
 
         if (credentials) {
             safeConfig = credentials;
-            console.log("[MOCK SMTP] Using provided credentials for testing.");
         } else {
             // Fetch current config to use for testing
             const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
@@ -94,21 +94,47 @@ export async function sendTestEmailAction(toEmail: string, credentials?: any) {
         }
 
         if (!safeConfig?.smtpHost || !safeConfig?.smtpUser || !safeConfig?.smtpPassword) {
-            return { success: false, message: "Configuración SMTP incompleta/Falla verificación. Guarda la configuración o asegúrate de llenar los campos." };
+            return { success: false, message: "Configuración SMTP incompleta. Verifica Host, Usuario y Contraseña." };
         }
 
-        console.log(`[MOCK SMTP] Sending test email to ${toEmail}`);
-        console.log(`[MOCK SMTP] Host: ${safeConfig.smtpHost}:${safeConfig.smtpPort}`);
-        console.log(`[MOCK SMTP] User: ${safeConfig.smtpUser}`);
-        console.log(`[MOCK SMTP] From: "${safeConfig.smtpSenderName || safeConfig.institutionName}" <${safeConfig.smtpFrom}>`);
+        const transporter = nodemailer.createTransport({
+            host: safeConfig.smtpHost,
+            port: safeConfig.smtpPort,
+            secure: safeConfig.smtpPort === 465, // True for 465, false for 587
+            auth: {
+                user: safeConfig.smtpUser,
+                pass: safeConfig.smtpPassword,
+            },
+        });
 
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+        const mailOptions = {
+            from: `"${safeConfig.smtpSenderName || 'Profe Tabla'}" <${safeConfig.smtpFrom || safeConfig.smtpUser}>`,
+            to: toEmail,
+            subject: 'Prueba de Conexión SMTP - Profe Tabla',
+            text: '¡Hola! Si has recibido este correo, la configuración SMTP es correcta.',
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                    <h2 style="color: #4F46E5;">¡Prueba Exitosa! 🚀</h2>
+                    <p>La configuración SMTP de <strong>Profe Tabla</strong> está funcionando correctamente.</p>
+                    <p><strong>Detalles de conexión:</strong></p>
+                    <ul>
+                        <li>Host: ${safeConfig.smtpHost}</li>
+                        <li>Puerto: ${safeConfig.smtpPort}</li>
+                        <li>Usuario: ${safeConfig.smtpUser}</li>
+                    </ul>
+                    <p style="color: #6B7280; font-size: 12px; margin-top: 20px;">Este es un mensaje automático de prueba.</p>
+                </div>
+            `,
+        };
 
-        return { success: true, message: "Correo de prueba enviado (Simulado en logs). NO olvides guardar la configuración." };
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Message sent: %s", info.messageId);
+
+        return { success: true, message: `Correo enviado exitosamente.` };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("SMTP Test Error:", error);
-        return { success: false, message: error.message || "Error desconocido." };
+        return { success: false, message: `Error SMTP: ${error.message}` };
     }
 }
 
