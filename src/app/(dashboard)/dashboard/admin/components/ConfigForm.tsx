@@ -5,8 +5,6 @@ import { updatePlatformConfigAction, sendTestEmailAction } from '@/app/api/admin
 import { useState } from 'react';
 import { IntegrationGuide } from './IntegrationGuide';
 
-
-
 const StatusBadge = ({ isConfigured }: { isConfigured: boolean }) => (
     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${isConfigured ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
         {isConfigured ? <><CheckCircle className="w-3 h-3" /> ACTIVO</> : <><XCircle className="w-3 h-3" /> NO CONFIGURADO</>}
@@ -18,22 +16,32 @@ export function ConfigForm({ config }: { config: any }) {
     const [isSaving, setIsSaving] = useState(false);
     const [testEmail, setTestEmail] = useState('');
     const [testStatus, setTestStatus] = useState<'IDLE' | 'SENDING' | 'SUCCESS' | 'ERROR'>('IDLE');
+    const [testMessage, setTestMessage] = useState('');
 
     const handleTestEmail = async () => {
         if (!testEmail) return;
         setTestStatus('SENDING');
+        setTestMessage('');
         try {
             const result = await sendTestEmailAction(testEmail);
             if (result.success) {
                 setTestStatus('SUCCESS');
+                setTestMessage(result.message);
             } else {
                 setTestStatus('ERROR');
-                // Optional: alert(result.message);
+                setTestMessage(result.message);
             }
-            setTimeout(() => setTestStatus('IDLE'), 3000);
+            setTimeout(() => {
+                setTestStatus('IDLE');
+                setTestMessage('');
+            }, 5000);
         } catch {
             setTestStatus('ERROR');
-            setTimeout(() => setTestStatus('IDLE'), 3000);
+            setTestMessage('Error inesperado al conectar con el servidor.');
+            setTimeout(() => {
+                setTestStatus('IDLE');
+                setTestMessage('');
+            }, 5000);
         }
     };
 
@@ -163,8 +171,8 @@ export function ConfigForm({ config }: { config: any }) {
                             onClick={handleTestEmail}
                             disabled={testStatus === 'SENDING' || !testEmail}
                             className={`px-3 py-1 text-xs font-bold rounded transition-colors ${testStatus === 'SUCCESS' ? 'bg-green-600 text-white' :
-                                testStatus === 'ERROR' ? 'bg-red-600 text-white' :
-                                    'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                    testStatus === 'ERROR' ? 'bg-red-600 text-white' :
+                                        'bg-slate-200 text-slate-700 hover:bg-slate-300'
                                 }`}
                         >
                             {testStatus === 'SENDING' ? 'Enviando...' :
@@ -172,6 +180,11 @@ export function ConfigForm({ config }: { config: any }) {
                                     testStatus === 'ERROR' ? 'Error' : 'Probar'}
                         </button>
                     </div>
+                    {testMessage && (
+                        <p className={`text-[10px] mt-2 font-medium ${testStatus === 'ERROR' ? 'text-red-600' : 'text-green-600'}`}>
+                            {testMessage}
+                        </p>
+                    )}
                 </div>
             </div>
 
