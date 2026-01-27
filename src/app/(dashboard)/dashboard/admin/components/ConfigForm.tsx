@@ -5,7 +5,7 @@ import { updatePlatformConfigAction, sendTestEmailAction } from '@/app/api/admin
 import { useState } from 'react';
 import { IntegrationGuide } from './IntegrationGuide';
 
- 
+
 
 const StatusBadge = ({ isConfigured }: { isConfigured: boolean }) => (
     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${isConfigured ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -23,8 +23,13 @@ export function ConfigForm({ config }: { config: any }) {
         if (!testEmail) return;
         setTestStatus('SENDING');
         try {
-            await sendTestEmailAction(testEmail);
-            setTestStatus('SUCCESS');
+            const result = await sendTestEmailAction(testEmail);
+            if (result.success) {
+                setTestStatus('SUCCESS');
+            } else {
+                setTestStatus('ERROR');
+                // Optional: alert(result.message);
+            }
             setTimeout(() => setTestStatus('IDLE'), 3000);
         } catch {
             setTestStatus('ERROR');
