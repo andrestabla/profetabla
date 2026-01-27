@@ -3,6 +3,7 @@
 import { Cpu, Mail, Cloud, Globe, Lock } from 'lucide-react';
 import { updatePlatformConfigAction } from '@/app/api/admin/actions';
 import { useState } from 'react';
+import { IntegrationGuide } from './IntegrationGuide';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ConfigForm({ config }: { config: any }) {
@@ -16,6 +17,7 @@ export function ConfigForm({ config }: { config: any }) {
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
                     <Cpu className="w-5 h-5 text-purple-600" /> Inteligencia Artificial (Gemini)
                 </h3>
+                <IntegrationGuide type="GEMINI" />
                 <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">API Key (Google AI Studio)</label>
                     <input type="password" name="geminiApiKey" defaultValue={config?.geminiApiKey || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="sk-..." />
@@ -34,6 +36,7 @@ export function ConfigForm({ config }: { config: any }) {
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
                     <Lock className="w-5 h-5 text-red-600" /> SSO con Google (Autenticación)
                 </h3>
+                <IntegrationGuide type="GOOGLE_SSO" />
                 <p className="text-xs text-slate-500">
                     Configura el acceso para que usuarios (profesores y estudiantes) puedan iniciar sesión con su cuenta institucional de Google.
                 </p>
@@ -52,6 +55,7 @@ export function ConfigForm({ config }: { config: any }) {
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
                     <Cloud className="w-5 h-5 text-blue-500" /> Google Drive (Recursos)
                 </h3>
+                <IntegrationGuide type="GOOGLE_DRIVE" />
                 <p className="text-xs text-slate-500">
                     Habilita la integración para enlazar documentos y carpetas de Drive directamente en los proyectos y OAs.
                 </p>
@@ -70,6 +74,7 @@ export function ConfigForm({ config }: { config: any }) {
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
                     <Mail className="w-5 h-5 text-indigo-600" /> Correo Saliente (SMTP)
                 </h3>
+                <IntegrationGuide type="SMTP" />
                 <p className="text-xs text-slate-500">
                     Configura el servidor para el envío de notificaciones automáticas, invitaciones y nuevas contraseñas.
                 </p>
