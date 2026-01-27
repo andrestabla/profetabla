@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Loader2, Layout, Type, Palette as PaletteIcon, Check, RefreshCw } from 'lucide-react';
+import { Save, Loader2, Layout, Type, Palette as PaletteIcon, RefreshCw, Building } from 'lucide-react';
 import { updateSystemConfigAction } from '@/app/(dashboard)/dashboard/admin/actions'; // Reuse or creating new? Let's check existing actions.
 // Actually let's create a specific one for design to correspond to the new fields
 // But user said "updateSystemConfigAction to handle design fields".
 // I will check that file next. For now, assuming it handles it or I'll update it.
 // I'll create a dedicated Client Component.
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function DesignEditor({ config }: { config: any }) {
     const [isSaving, setIsSaving] = useState(false);
 
@@ -22,6 +23,7 @@ export function DesignEditor({ config }: { config: any }) {
         { name: 'Tech', primary: '#0ea5e9', radius: '0px', font: 'Roboto' },
     ];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const applyPreset = (p: any) => {
         setPrimaryColor(p.primary);
         setRadius(p.radius);
@@ -34,6 +36,27 @@ export function DesignEditor({ config }: { config: any }) {
             await updateSystemConfigAction(formData); // We need to ensure this action handles the new fields
             setIsSaving(false);
         }} className="space-y-8">
+
+            {/* 0. Identidad Institucional */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <Building className="w-5 h-5 text-indigo-600" /> Identidad Institucional
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Nombre de la Institución</label>
+                        <input name="institutionName" defaultValue={config?.institutionName || 'Profe Tabla'} className="w-full px-4 py-2 border rounded-lg" placeholder="Ej: Universidad Central" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">URL del Logo</label>
+                        <input name="logoUrl" defaultValue={config?.logoUrl || ''} className="w-full px-4 py-2 border rounded-lg" placeholder="https://ejemplo.com/logo.png" />
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-bold text-slate-700 mb-2">URL del Favicon</label>
+                        <input name="faviconUrl" defaultValue={config?.faviconUrl || ''} className="w-full px-4 py-2 border rounded-lg" placeholder="https://ejemplo.com/favicon.ico" />
+                    </div>
+                </div>
+            </div>
 
             {/* 1. Presets */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">

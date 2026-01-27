@@ -198,6 +198,13 @@ export async function updateSystemConfigAction(formData: FormData) {
     const data = {
 
 
+
+        // Branding
+        institutionName: getVal('institutionName', 'Profe Tabla'),
+        logoUrl: getVal('logoUrl', null),
+        faviconUrl: getVal('faviconUrl', null),
+        themePreset: getVal('themePreset', 'DEFAULT'),
+
         // Design
         primaryColor: getVal('primaryColor', '#2563EB'),
         secondaryColor: getVal('secondaryColor', '#475569'),
