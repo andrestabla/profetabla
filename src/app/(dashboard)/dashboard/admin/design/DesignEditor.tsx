@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { Save, Loader2, Layout, Type, Palette as PaletteIcon, RefreshCw, Building } from 'lucide-react';
-import { updateSystemConfigAction } from '@/app/(dashboard)/dashboard/admin/actions'; // Reuse or creating new? Let's check existing actions.
-// Actually let's create a specific one for design to correspond to the new fields
+import { updateSystemConfigAction } from '@/app/(dashboard)/dashboard/admin/actions';
+import { useRouter } from 'next/navigation';
 // But user said "updateSystemConfigAction to handle design fields".
 // I will check that file next. For now, assuming it handles it or I'll update it.
 // I'll create a dedicated Client Component.
@@ -11,6 +11,7 @@ import { updateSystemConfigAction } from '@/app/(dashboard)/dashboard/admin/acti
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function DesignEditor({ config }: { config: any }) {
     const [isSaving, setIsSaving] = useState(false);
+    const router = useRouter();
 
     // Local state for preview (optional, but good for UX)
     const [primaryColor, setPrimaryColor] = useState(config?.primaryColor || '#2563EB');
@@ -33,8 +34,16 @@ export function DesignEditor({ config }: { config: any }) {
     return (
         <form action={async (formData) => {
             setIsSaving(true);
-            await updateSystemConfigAction(formData); // We need to ensure this action handles the new fields
-            setIsSaving(false);
+            try {
+                await updateSystemConfigAction(formData);
+                alert("Diseño guardado correctamente. La página se recargará para aplicar los cambios.");
+                router.refresh();
+            } catch (error) {
+                console.error(error);
+                alert("Error al guardar el diseño.");
+            } finally {
+                setIsSaving(false);
+            }
         }} className="space-y-8">
 
             {/* 0. Identidad Institucional */}
