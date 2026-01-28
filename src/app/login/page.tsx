@@ -28,14 +28,7 @@ export default async function LoginPage() {
 
                     <div className="relative z-10 p-16 flex flex-col justify-between h-full text-white">
                         <div className="flex items-center gap-3">
-                            {logoUrl ? (
-                                <img src={logoUrl} alt={institutionName} className="h-10 w-auto object-contain" />
-                            ) : (
-                                <div className="flex items-center gap-2 font-bold text-xl">
-                                    <LayoutDashboard className="w-6 h-6 text-primary" />
-                                    {institutionName}
-                                </div>
-                            )}
+                            {/* Logo removed as per request */}
                         </div>
                         <div>
                             <h1 className="text-4xl font-bold mb-4">{message}</h1>
