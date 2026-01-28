@@ -138,7 +138,11 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
         setIsSubmitting(true);
         try {
             await createProjectAction(formData);
-        } catch (error) {
+        } catch (error: any) {
+            if (error.message === 'NEXT_REDIRECT' || error.digest?.includes('NEXT_REDIRECT')) {
+                // Redirecting is normal behavior, ignore
+                return;
+            }
             console.error(error);
             alert("Error al crear el proyecto");
         } finally {
