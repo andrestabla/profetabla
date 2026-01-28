@@ -118,10 +118,10 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                 setNativeValue('evaluation', data.evaluation || '');
                 setNativeValue('kpis', data.kpis || '');
 
-                const phasesText = data.phases.map((p, i) => `Fase ${i + 1}: ${p.title}\n- ${p.description}`).join('\n\n');
+                const phasesText = data.phases.map((p: any, i: number) => `Fase ${i + 1}: ${p.title}\n- ${p.description}`).join('\n\n');
                 setNativeValue('methodology', phasesText);
 
-                const resourcesText = data.suggestedResources.map(r => `- ${r.title} (${r.type})`).join('\n');
+                const resourcesText = data.suggestedResources.map((r: any) => `- ${r.title} (${r.type})`).join('\n');
                 setNativeValue('resourcesDescription', `Recursos Sugeridos:\n${resourcesText}`);
             }
 
