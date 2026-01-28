@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle, UserPlus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
-import { setAuthIntent } from '@/lib/auth-client';
+
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -116,7 +116,7 @@ export default function RegisterPage() {
                 <button
                     type="button"
                     onClick={() => {
-                        setAuthIntent('register');
+                        document.cookie = "auth_intent=register; path=/; max-age=300; SameSite=Lax";
                         signIn('google', { callbackUrl: '/dashboard' });
                     }}
                     className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold py-3 rounded-lg transition-all"

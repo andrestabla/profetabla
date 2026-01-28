@@ -116,6 +116,8 @@ export const authOptions: NextAuthOptions = {
                     const cookieStore = await cookies();
                     const intent = cookieStore.get('auth_intent')?.value;
 
+                    console.log(`[GoogleAuth] Email: ${user.email}, Intent Cookie: ${intent}`);
+
                     if (intent === 'login') {
                         // User is trying to login, but doesn't exist. Block.
                         console.warn(`[Auth] Blocked Google registration for ${user.email} (Intent: login)`);
