@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3 } from 'lucide-react';
+import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud } from 'lucide-react';
 import Link from 'next/link';
 import { addResourceToProjectAction } from './actions';
 import { BookingList } from '@/components/BookingList';
@@ -30,6 +30,7 @@ type Project = {
     budget: string | null;
     evaluation: string | null;
     kpis: string | null;
+    googleDriveFolderId: string | null;
     student: { name: string | null; avatarUrl: string | null } | null;
 };
 
@@ -71,6 +72,17 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                         >
                             <Edit3 className="w-4 h-4" /> Editar Metadatos
                         </Link>
+
+                        {project.googleDriveFolderId && (
+                            <a
+                                href={`https://drive.google.com/drive/folders/${project.googleDriveFolderId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 text-blue-600 font-bold bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-all text-sm"
+                            >
+                                <Cloud className="w-4 h-4" /> Drive del Proyecto
+                            </a>
+                        )}
 
                         {/* Navegación de Pestañas */}
                         <div className="flex bg-slate-100 p-1 rounded-xl">

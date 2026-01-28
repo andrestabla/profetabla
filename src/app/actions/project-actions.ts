@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { sendEmail } from '@/lib/email';
+import { createProjectFolder } from '@/lib/google-drive';
 
 export async function createProjectAction(formData: FormData) {
     const session = await getServerSession(authOptions);
@@ -30,6 +31,14 @@ export async function createProjectAction(formData: FormData) {
     // Get selected OAs
     const selectedOAs = formData.getAll('selectedOAs') as string[];
 
+    // OPTIONAL: Create Google Drive Folder if configured
+    let driveFolderId = null;
+    try {
+        driveFolderId = await createProjectFolder(title);
+    } catch (e) {
+        console.error("Failed to create Drive folder:", e);
+    }
+
     await prisma.project.create({
         data: {
             title,
@@ -46,6 +55,7 @@ export async function createProjectAction(formData: FormData) {
             kpis,
             teacherId: session.user.id,
             status: 'OPEN',
+            googleDriveFolderId: driveFolderId,
             learningObjects: {
                 connect: selectedOAs.map(id => ({ id }))
             }

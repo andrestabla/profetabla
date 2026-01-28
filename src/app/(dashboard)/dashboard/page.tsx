@@ -22,8 +22,14 @@ export default async function DashboardPage() {
     if (user.role === 'STUDENT') {
         const project = await prisma.project.findFirst({
             where: { studentId: user.id, status: 'IN_PROGRESS' },
-            include: { tasks: true, teacher: true }
+            include: { tasks: true, teacher: true },
+            // select or include correctly? 
+            // In Prisma, you can't have both include and select.
+            // But I can include everything and then get the field.
         });
+
+        // Wait, the default findFirst with include should already have googleDriveFolderId 
+        // because it's a scalar field in Project.
 
         const priorityTasks = project ? await prisma.task.findMany({
             where: {

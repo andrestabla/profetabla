@@ -9,7 +9,21 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
     const project = await prisma.project.findUnique({
         where: { id },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            industry: true,
+            justification: true,
+            objectives: true,
+            methodology: true,
+            resourcesDescription: true,
+            schedule: true,
+            budget: true,
+            evaluation: true,
+            kpis: true,
+            googleDriveFolderId: true,
+            studentId: true,
             student: {
                 select: { name: true, avatarUrl: true }
             },

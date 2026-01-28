@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ProgressBar } from '@/components/ProgressBar';
 import { TeamList } from '@/components/TeamList';
 import { UrgentCitationCard } from '@/components/UrgentCitationCard';
-import { Briefcase, Search, Kanban, ChevronRight, Clock, Target } from 'lucide-react';
+import { Briefcase, Search, Kanban, ChevronRight, Clock, Target, Cloud } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface StudentDashboardProps {
@@ -63,8 +63,8 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
                                     {project.industry || 'General'}
                                 </span>
                                 <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border ${project.type === 'CHALLENGE' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                                        project.type === 'PROBLEM' ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                                            'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                    project.type === 'PROBLEM' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                        'bg-indigo-50 text-indigo-600 border-indigo-100'
                                     }`}>
                                     {project.type === 'CHALLENGE' ? 'Reto' :
                                         project.type === 'PROBLEM' ? 'Problema' :
@@ -80,9 +80,19 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
                                 <Link href="/dashboard/kanban" className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-black transition-all">
                                     <Kanban className="w-5 h-5" /> Ir al Kanban
                                 </Link>
-                                <Link href="/dashboard/learning" className="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all">
-                                    Recursos de Aprendizaje <ChevronRight className="w-4 h-4" />
+                                <Link href="/dashboard/learning" className="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all text-sm">
+                                    Recursos <ChevronRight className="w-4 h-4" />
                                 </Link>
+                                {project.googleDriveFolderId && (
+                                    <a
+                                        href={`https://drive.google.com/drive/folders/${project.googleDriveFolderId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-blue-50 text-blue-600 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-100 transition-all text-sm border border-blue-100"
+                                    >
+                                        <Cloud className="w-5 h-5" /> Carpeta de Drive
+                                    </a>
+                                )}
                             </div>
                         </div>
                     </div>

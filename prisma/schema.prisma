@@ -142,6 +142,9 @@ model Project {
   evaluation    String?  @db.Text // Evaluación
   kpis          String?  @db.Text // Indicadores (KPI)
   
+  // Google Drive Integration
+  googleDriveFolderId String? 
+  
   status        ProjectStatus @default(OPEN)
 
   // Actors
