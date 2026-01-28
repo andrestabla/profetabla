@@ -4,13 +4,15 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { listProjectFiles } from '@/lib/google-drive';
 
 export async function addResourceToProjectAction(formData: FormData) {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'TEACHER') throw new Error('No autorizado');
 
     const projectId = formData.get('projectId') as string;
-    const title = formData.get('title') as string;
+    const driveTitle = formData.get('driveTitle') as string;
+    const title = driveTitle || (formData.get('title') as string);
     const type = formData.get('type') as string;
     const url = formData.get('url') as string;
 
@@ -28,4 +30,10 @@ export async function addResourceToProjectAction(formData: FormData) {
 
     // Recargamos la página del proyecto para mostrar el nuevo recurso sin recargar el navegador
     revalidatePath(`/dashboard/professor/projects/${projectId}`);
+}
+
+export async function getProjectDriveFilesAction(folderId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session) throw new Error('No autorizado');
+    return await listProjectFiles(folderId);
 }

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud } from 'lucide-react';
 import Link from 'next/link';
-import { addResourceToProjectAction } from './actions';
+import { addResourceToProjectAction, getProjectDriveFilesAction } from './actions';
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
 import { SubmissionCard } from '@/components/SubmissionCard';
@@ -39,6 +39,24 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP' | 'ASSIGNMENTS'>('RESOURCES');
     const [isUploading, setIsUploading] = useState(false);
     const [showContext, setShowContext] = useState(false);
+    const [resourceType, setResourceType] = useState('ARTICLE');
+    const [driveFiles, setDriveFiles] = useState<any[]>([]);
+    const [isLoadingDrive, setIsLoadingDrive] = useState(false);
+    const [selectedDriveFile, setSelectedDriveFile] = useState<{ title: string, url: string } | null>(null);
+
+    // Fetch drive files if configured
+    const handleFetchDriveFiles = async () => {
+        if (!project.googleDriveFolderId) return;
+        setIsLoadingDrive(true);
+        try {
+            const files = await getProjectDriveFilesAction(project.googleDriveFolderId);
+            setDriveFiles(files);
+        } catch (e) {
+            console.error("Error fetching drive files", e);
+        } finally {
+            setIsLoadingDrive(false);
+        }
+    };
 
     // Iconos por tipo de recurso
 
@@ -46,6 +64,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         switch (type) {
             case 'VIDEO': return <Video className="w-5 h-5 text-red-500" />;
             case 'FILE': return <FileText className="w-5 h-5 text-blue-500" />;
+            case 'DRIVE': return <Cloud className="w-5 h-5 text-blue-600" />;
             default: return <BookOpen className="w-5 h-5 text-emerald-500" />;
         }
     };
@@ -184,26 +203,77 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                             }} className="space-y-4">
                                 <input type="hidden" name="projectId" value={project.id} />
 
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Título del Recurso</label>
-                                    <input name="title" required placeholder="Ej: Guía de Arquitectura" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
-                                </div>
+                                {resourceType !== 'DRIVE' && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Título del Recurso</label>
+                                        <input name="title" required placeholder="Ej: Guía de Arquitectura" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                                    </div>
+                                )}
 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
-                                    <select name="type" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-700">
+                                    <select
+                                        name="type"
+                                        value={resourceType}
+                                        onChange={(e) => {
+                                            setResourceType(e.target.value);
+                                            if (e.target.value === 'DRIVE' && driveFiles.length === 0) {
+                                                handleFetchDriveFiles();
+                                            }
+                                        }}
+                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-700"
+                                    >
                                         <option value="ARTICLE">📖 Artículo / Blog</option>
                                         <option value="VIDEO">▶️ Video Tutorial</option>
                                         <option value="FILE">📄 Archivo / PDF</option>
+                                        <option value="DRIVE">📁 Google Drive</option>
                                     </select>
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">URL o Enlace</label>
-                                    <div className="relative">
-                                        <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                                        <input name="url" required type="url" placeholder="https://..." className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
-                                    </div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                                        {resourceType === 'DRIVE' ? 'Documento de Drive' : 'URL o Enlace'}
+                                    </label>
+                                    {resourceType === 'DRIVE' ? (
+                                        <div className="space-y-2">
+                                            {project.googleDriveFolderId ? (
+                                                <>
+                                                    <select
+                                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-700"
+                                                        onChange={(e) => {
+                                                            const file = driveFiles.find(f => f.id === e.target.value);
+                                                            if (file) {
+                                                                setSelectedDriveFile({ title: file.name, url: file.webViewLink });
+                                                            } else {
+                                                                setSelectedDriveFile(null);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <option value="">Selecciona un archivo...</option>
+                                                        {driveFiles.map(file => (
+                                                            <option key={file.id} value={file.id}>{file.name}</option>
+                                                        ))}
+                                                    </select>
+                                                    {isLoadingDrive && <p className="text-[10px] text-blue-500 animate-pulse">Cargando archivos de Drive...</p>}
+                                                    {!isLoadingDrive && driveFiles.length === 0 && (
+                                                        <p className="text-[10px] text-slate-400">No se encontraron archivos en la carpeta del proyecto.</p>
+                                                    )}
+                                                    <input type="hidden" name="url" value={selectedDriveFile?.url || ''} />
+                                                    {/* We override the title input value if a file is selected */}
+                                                    <input type="hidden" name="driveTitle" value={selectedDriveFile?.title || ''} />
+                                                </>
+                                            ) : (
+                                                <p className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100 italic">
+                                                    Este proyecto no tiene carpeta de Drive vinculada.
+                                                </p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="relative">
+                                            <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                                            <input name="url" required type="url" placeholder="https://..." className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                                        </div>
+                                    )}
                                 </div>
 
                                 <button disabled={isUploading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-50">
