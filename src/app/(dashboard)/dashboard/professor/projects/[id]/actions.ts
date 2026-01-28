@@ -53,36 +53,47 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
         select: { googleDriveFolderId: true }
     });
 
-    if (!project?.googleDriveFolderId) {
+    if (!(project as any)?.googleDriveFolderId) {
         throw new Error('El proyecto no tiene una carpeta de Drive vinculada');
     }
 
     // Convert File to Buffer/Stream
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const stream = new Readable();
-    stream.push(buffer);
-    stream.push(null);
+    const stream = Readable.from(buffer);
+
+    console.log(`Subiendo archivo "${file.name}" de tipo "${file.type}" a la carpeta "${(project as any).googleDriveFolderId}"`);
 
     const uploadedFile = await uploadFileToDrive(
-        project.googleDriveFolderId,
+        (project as any).googleDriveFolderId,
         file.name,
         file.type,
         stream
     );
 
-    if (!uploadedFile) throw new Error('Error al subir el archivo a Google Drive');
+    if (!uploadedFile) {
+        console.error("Fallo la subida a Drive: uploadFileToDrive retornó null");
+        throw new Error('Error al subir el archivo a Google Drive (Servicio no disponible)');
+    }
 
     // Automatically create the resource link
-    await prisma.resource.create({
-        data: {
-            title: file.name,
-            type: 'DRIVE',
-            url: uploadedFile.webViewLink!,
-            projectId,
-            categoryId: (await prisma.resourceCategory.findFirst())?.id || (await prisma.resourceCategory.create({ data: { name: 'General' } })).id
-        }
-    });
+    try {
+        const firstCategory = await prisma.resourceCategory.findFirst();
+        const categoryId = firstCategory?.id || (await prisma.resourceCategory.create({ data: { name: 'General' } })).id;
+
+        await prisma.resource.create({
+            data: {
+                title: file.name,
+                type: 'DRIVE',
+                url: uploadedFile.webViewLink!,
+                projectId,
+                categoryId: categoryId
+            }
+        });
+    } catch (dbError: any) {
+        console.error("Error al guardar el recurso en la base de datos:", dbError);
+        throw new Error(`Archivo subido a Drive pero falló el guardado en DB: ${dbError.message}`);
+    }
 
     revalidatePath(`/dashboard/professor/projects/${projectId}`);
     return { success: true, file: uploadedFile };

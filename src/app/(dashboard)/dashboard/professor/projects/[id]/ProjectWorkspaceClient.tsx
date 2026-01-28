@@ -203,9 +203,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                     } else {
                                         await addResourceToProjectAction(formData);
                                     }
-                                } catch (e) {
+                                } catch (e: any) {
                                     console.error(e);
-                                    alert("Error al procesar el recurso");
+                                    alert(`Error al procesar el recurso: ${e.message || 'Error desconocido'}`);
                                 } finally {
                                     setIsUploading(false);
                                 }

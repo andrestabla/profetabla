@@ -22,8 +22,8 @@ async function getDriveClient() {
 
         return google.drive({ version: 'v3', auth });
     } catch (error) {
-        console.error("Error parsing Google Drive credentials:", error);
-        throw new Error("Invalid Google Drive credentials format.");
+        console.error("Error initializing Google Drive client:", error);
+        throw error;
     }
 }
 
