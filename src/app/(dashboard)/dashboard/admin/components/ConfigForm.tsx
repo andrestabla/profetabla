@@ -218,6 +218,11 @@ export function ConfigForm({ config }: { config: any }) {
                         Pega aquí el contenido completo del archivo JSON de credenciales de la cuenta de servicio.
                     </p>
                 </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Carpeta Maestra (ID o URL)</label>
+                    <input type="text" name="googleDriveFolderId" defaultValue={config?.googleDriveFolderId || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="ID de la carpeta aprobada para repositorios" />
+                    <p className="text-[10px] text-slate-400 mt-1">Opcional: Restringe el acceso o define la raíz para nuevos proyectos.</p>
+                </div>
             </div>
 
             {/* 4. Asistente Correo Saliente */}
