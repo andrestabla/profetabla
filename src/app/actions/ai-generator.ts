@@ -44,7 +44,12 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
   const genAI = new GoogleGenerativeAI(apiKey);
 
   // Usar Flash por defecto por velocidad (evitar timeouts en Vercel)
-  const modelName = config?.geminiModel || "gemini-1.5-flash";
+  let modelName = config?.geminiModel || "gemini-1.5-flash";
+
+  // AUTO-FIX: "gemini-pro" ya no está disponible en v1beta en algunas regiones/SDKs.
+  if (modelName === 'gemini-pro') {
+    modelName = 'gemini-1.5-flash';
+  }
 
   // @ts-ignore - Ignore TS check for specific SDK version features
   const model = genAI.getGenerativeModel({ model: modelName });
