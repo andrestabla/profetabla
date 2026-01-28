@@ -7,9 +7,383 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------
-// 1. ENUMS
-// ---------------------------------------------------------
+model User {
+  id                     String                @id @default(uuid())
+  email                  String                @unique
+  password               String
+  name                   String?
+  avatarUrl              String?
+  role                   Role                  @default(STUDENT)
+  isActive               Boolean               @default(true)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  age                    Int?
+  bio                    String?
+  linkedinUrl            String?
+  portfolioUrl           String?
+  interests              String[]
+  emailVerified          DateTime?
+  activityLogs           ActivityLog[]
+  comments               Comment[]
+  education              Education[]
+  itemInteractions       ItemInteraction[]
+  languages              Language[]
+  createdLearningObjects LearningObject[]
+  bookings               MentorshipBooking[]
+  mentorshipSlots        MentorshipSlot[]
+  projectsAsStudent      Project[]             @relation("StudentProjects")
+  projectsAsTeacher      Project[]             @relation("TeacherProjects")
+  projectApplications    ProjectApplication[]  @relation("StudentApplications")
+  resourceInteractions   ResourceInteraction[]
+  submissions            Submission[]
+  workExperiences        WorkExperience[]
+  assignedTasks          Task[]                @relation("TaskAssignees")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Project {
+  id                   String               @id @default(uuid())
+  title                String
+  type                 ProjectType          @default(PROJECT)
+  description          String?
+  industry             String?
+  justification        String?
+  objectives           String?
+  deliverables         String?
+  methodology          String?
+  resourcesDescription String?
+  schedule             String?
+  budget               String?
+  evaluation           String?
+  kpis                 String?
+  status               ProjectStatus        @default(OPEN)
+  teacherId            String
+  studentId            String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  googleDriveFolderId  String?
+  assignments          Assignment[]
+  mentorships          MentorshipBooking[]  @relation("ProjectMentorships")
+  student              User?                @relation("StudentProjects", fields: [studentId], references: [id])
+  teacher              User                 @relation("TeacherProjects", fields: [teacherId], references: [id])
+  applications         ProjectApplication[]
+  resources            Resource[]           @relation("ProjectResources")
+  tasks                Task[]
+  learningObjects      LearningObject[]     @relation("ProjectLearningObjects")
+  tags                 Tag[]                @relation("ProjectToTag")
+
+  @@index([teacherId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model ProjectApplication {
+  id         String            @id @default(uuid())
+  projectId  String
+  studentId  String
+  motivation String?
+  status     ApplicationStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  student    User              @relation("StudentApplications", fields: [studentId], references: [id])
+
+  @@unique([projectId, studentId])
+  @@index([status])
+}
+
+model Resource {
+  id           String                @id @default(uuid())
+  title        String
+  description  String?
+  url          String
+  type         String                @default("ARTICLE")
+  projectId    String?
+  categoryId   String
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  category     ResourceCategory      @relation(fields: [categoryId], references: [id])
+  project      Project?              @relation("ProjectResources", fields: [projectId], references: [id], onDelete: Cascade)
+  interactions ResourceInteraction[]
+  tasks        Task[]                @relation("TaskResources")
+
+  @@index([projectId])
+  @@index([categoryId])
+}
+
+model ResourceCategory {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  color     String     @default("blue")
+  resources Resource[]
+}
+
+model ResourceInteraction {
+  id          String   @id @default(uuid())
+  userId      String
+  resourceId  String
+  isCompleted Boolean  @default(false)
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  resource    Resource @relation(fields: [resourceId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, resourceId])
+}
+
+model MentorshipSlot {
+  id         String             @id @default(uuid())
+  teacherId  String
+  startTime  DateTime
+  endTime    DateTime
+  isBooked   Boolean            @default(false)
+  meetingUrl String?
+  version    Int                @default(0)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  booking    MentorshipBooking?
+  teacher    User               @relation(fields: [teacherId], references: [id])
+}
+
+model MentorshipBooking {
+  id          String         @id @default(uuid())
+  slotId      String         @unique
+  studentId   String
+  projectId   String?
+  note        String?
+  status      BookingStatus  @default(PENDING)
+  initiatedBy Role           @default(STUDENT)
+  minutes     String?
+  agreements  String?
+  rating      Int?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  project     Project?       @relation("ProjectMentorships", fields: [projectId], references: [id])
+  slot        MentorshipSlot @relation(fields: [slotId], references: [id])
+  student     User           @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model Task {
+  id                 String     @id @default(uuid())
+  title              String
+  description        String?
+  status             TaskStatus @default(TODO)
+  priority           Priority   @default(MEDIUM)
+  projectId          String
+  dueDate            DateTime?
+  isApproved         Boolean    @default(false)
+  approvalNotes      String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  deliverable        String?
+  evaluationCriteria String?
+  comments           Comment[]
+  project            Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignees          User[]     @relation("TaskAssignees")
+  resources          Resource[] @relation("TaskResources")
+  tags               Tag[]      @relation("TaskTags")
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model Comment {
+  id               String          @id @default(uuid())
+  content          String
+  taskId           String?
+  learningObjectId String?
+  authorId         String
+  createdAt        DateTime        @default(now())
+  author           User            @relation(fields: [authorId], references: [id])
+  learningObject   LearningObject? @relation(fields: [learningObjectId], references: [id], onDelete: Cascade)
+  task             Task?           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Tag {
+  id       String    @id @default(uuid())
+  name     String
+  color    String    @default("blue")
+  projects Project[] @relation("ProjectToTag")
+  tasks    Task[]    @relation("TaskTags")
+}
+
+model Assignment {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  projectId   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+}
+
+model Submission {
+  id           String     @id @default(uuid())
+  assignmentId String
+  studentId    String
+  fileUrl      String
+  fileName     String
+  fileType     String?
+  fileSize     Int?
+  grade        Int?
+  feedback     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  student      User       @relation(fields: [studentId], references: [id])
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  level       String   @default("INFO")
+  action      String
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+}
+
+model LearningObject {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  subject     String
+  competency  String?
+  keywords    String[]
+  authorId    String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  comments    Comment[]
+  author      User           @relation(fields: [authorId], references: [id])
+  items       ResourceItem[]
+  projects    Project[]      @relation("ProjectLearningObjects")
+
+  @@index([authorId])
+}
+
+model ResourceItem {
+  id               String            @id @default(uuid())
+  title            String
+  type             ItemType          @default(LINK)
+  url              String
+  order            Int               @default(0)
+  learningObjectId String
+  interactions     ItemInteraction[]
+  learningObject   LearningObject    @relation(fields: [learningObjectId], references: [id], onDelete: Cascade)
+}
+
+model ItemInteraction {
+  id             String       @id @default(uuid())
+  userId         String
+  resourceItemId String
+  isCompleted    Boolean      @default(false)
+  timeSpentSecs  Int          @default(0)
+  lastAccessed   DateTime     @default(now())
+  resourceItem   ResourceItem @relation(fields: [resourceItemId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, resourceItemId])
+}
+
+model PlatformConfig {
+  id                            String   @id @default("global-config")
+  institutionName               String   @default("Profe Tabla")
+  logoUrl                       String?
+  faviconUrl                    String?
+  themePreset                   String   @default("DEFAULT")
+  primaryColor                  String   @default("#2563EB")
+  secondaryColor                String   @default("#475569")
+  accentColor                   String   @default("#F59E0B")
+  fontFamily                    String   @default("Inter")
+  borderRadius                  String   @default("0.5rem")
+  loginLayout                   String   @default("SPLIT")
+  loginBgUrl                    String?
+  loginMessage                  String?
+  customCss                     String?
+  geminiApiKey                  String?
+  geminiModel                   String   @default("gemini-pro")
+  googleClientId                String?
+  googleClientSecret            String?
+  googleDriveClientId           String?
+  googleDriveClientSecret       String?
+  googleDriveFolderId           String?
+  smtpHost                      String?
+  smtpPort                      Int      @default(587)
+  smtpUser                      String?
+  smtpPassword                  String?
+  smtpSenderName                String?
+  smtpFrom                      String   @default("noreply@profetabla.com")
+  updatedAt                     DateTime @updatedAt
+  aiInstructions                String?  @default("Actúa como un experto Diseñador Instruccional...")
+  aiSearchEnabled               Boolean  @default(false)
+  aiTone                        String   @default("ACADEMIC")
+  googleDriveServiceAccountJson String?
+}
+
+model WorkExperience {
+  id          String    @id @default(uuid())
+  userId      String
+  position    String
+  company     String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Education {
+  id           String    @id @default(uuid())
+  userId       String
+  institution  String
+  degree       String
+  fieldOfStudy String?
+  startDate    DateTime
+  endDate      DateTime?
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Language {
+  id     String @id @default(uuid())
+  userId String
+  name   String
+  level  String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 enum Role {
   STUDENT
   TEACHER
@@ -17,9 +391,9 @@ enum Role {
 }
 
 enum ProjectStatus {
-  OPEN         // Available for applications
-  IN_PROGRESS  // Student assigned
-  COMPLETED    // Finished
+  OPEN
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum ProjectType {
@@ -52,400 +426,6 @@ enum Priority {
   HIGH
 }
 
-// ---------------------------------------------------------
-// 2. USER MODEL
-// ---------------------------------------------------------
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String   
-  name      String?
-  avatarUrl String?  
-  role      Role     @default(STUDENT)
-  isActive  Boolean  @default(true)
-  
-  // Projects
-  projectsAsStudent    Project[]            @relation("StudentProjects")
-  projectsAsTeacher    Project[]            @relation("TeacherProjects")
-  projectApplications  ProjectApplication[] @relation("StudentApplications")
-  
-  // Mentorship
-  mentorshipSlots MentorshipSlot[] 
-  bookings        MentorshipBooking[]
-
-  // Activity & Other
-  activityLogs    ActivityLog[]    
-  comments        Comment[]        
-  assignedTasks   Task[]           @relation("TaskAssignees") 
-  submissions     Submission[]
-  resourceInteractions ResourceInteraction[]
-  itemInteractions     ItemInteraction[]
-  createdLearningObjects LearningObject[]  
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // --- NUEVOS CAMPOS DE PERFIL (Opcionales) ---
-  age           Int?
-  bio           String?  @db.Text // Descripción de perfil
-  linkedinUrl   String?
-  portfolioUrl  String?
-  
-  // Intereses como array de Strings (PostgreSQL nativo)
-  interests     String[] 
-  
-  // Relaciones "Uno a Muchos"
-  workExperiences WorkExperience[]
-  education       Education[]
-  languages       Language[]
-
-  // Auth Verification
-  emailVerified DateTime?
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model PasswordResetToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-// ---------------------------------------------------------
-// 3. PROJECT MODEL (The Pedagogical Core)
-// ---------------------------------------------------------
-model Project {
-  id          String   @id @default(uuid())
-  title       String
-  type        ProjectType @default(PROJECT)
-  description String?
-
-  // PHASE 1: Justification & Content
-  industry      String?  // e.g. "Fintech", "Health"
-  justification String?  @db.Text
-  objectives    String?  @db.Text
-  deliverables  String?  @db.Text
-  
-  // NEW Metadata from User Request
-  methodology   String?  @db.Text // Fases y actividades
-  resourcesDescription String? @db.Text // Recursos
-  schedule      String?  @db.Text // Cronograma
-  budget        String?  @db.Text // Presupuesto
-  evaluation    String?  @db.Text // Evaluación
-  kpis          String?  @db.Text // Indicadores (KPI)
-  
-  // Google Drive Integration
-  googleDriveFolderId String? 
-  
-  status        ProjectStatus @default(OPEN)
-
-  // Actors
-  teacherId   String
-  teacher     User     @relation("TeacherProjects", fields: [teacherId], references: [id])
-  
-  studentId   String?  // Optional initially
-  student     User?    @relation("StudentProjects", fields: [studentId], references: [id])
-
-  // Applications (Matchmaking)
-  applications ProjectApplication[] 
-
-  // Ecosystem
-  tasks       Task[]
-  resources   Resource[]          @relation("ProjectResources") 
-  mentorships MentorshipBooking[] @relation("ProjectMentorships")
-  
-  tags        Tag[]
-  assignments Assignment[]
-  
-  learningObjects LearningObject[] @relation("ProjectLearningObjects")
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([teacherId])
-  @@index([studentId])
-  @@index([status])
-}
-
-// ---------------------------------------------------------
-// 4. MARKETPLACE / MATCHMAKING
-// ---------------------------------------------------------
-model ProjectApplication {
-  id        String   @id @default(uuid())
-
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  studentId String
-  student   User     @relation("StudentApplications", fields: [studentId], references: [id])
-
-  motivation String? @db.Text 
-  status     ApplicationStatus @default(PENDING)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([projectId, studentId])
-  @@index([status])
-}
-
-// ---------------------------------------------------------
-// 5. RESOURCES (Project Contextualized)
-// ---------------------------------------------------------
-model Resource {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  url         String
-  type        String   @default("ARTICLE") 
-  
-  projectId   String?
-  project     Project? @relation("ProjectResources", fields: [projectId], references: [id], onDelete: Cascade)
-
-  categoryId  String
-  category    ResourceCategory @relation(fields: [categoryId], references: [id])
-  tasks       Task[]   @relation("TaskResources") 
-  interactions ResourceInteraction[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([projectId])
-  @@index([categoryId])
-}
-
-model ResourceCategory {
-  id        String     @id @default(uuid())
-  name      String     @unique
-  color     String     @default("blue")
-  resources Resource[]
-}
-
-model ResourceInteraction {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  resourceId String
-  resource   Resource @relation(fields: [resourceId], references: [id])
-  
-  isCompleted Boolean @default(false)
-  isFavorite  Boolean @default(false)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@unique([userId, resourceId])
-}
-
-// ---------------------------------------------------------
-// 6. MENTORSHIP & SLOTS
-// ---------------------------------------------------------
-model MentorshipSlot {
-  id        String   @id @default(uuid())
-  teacherId String
-  teacher   User     @relation(fields: [teacherId], references: [id])
-  
-  startTime DateTime
-  endTime   DateTime
-  isBooked  Boolean  @default(false)
-  meetingUrl String?
-
-  version   Int      @default(0)
-  booking   MentorshipBooking?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model MentorshipBooking {
-  id        String        @id @default(uuid())
-  slotId    String        @unique
-  slot      MentorshipSlot @relation(fields: [slotId], references: [id])
-  
-  studentId String
-  student   User          @relation(fields: [studentId], references: [id])
-  
-  projectId String?
-  project   Project?      @relation("ProjectMentorships", fields: [projectId], references: [id])
-
-  note      String?
-  status    BookingStatus @default(PENDING) // CONFIRMED if initiatedBy TEACHER
-  initiatedBy Role      @default(STUDENT)
-  
-  minutes     String?     
-  agreements  String?     
-  rating      Int?        
-  
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  @@index([studentId])
-  @@index([projectId])
-  @@index([status])
-}
-
-// ---------------------------------------------------------
-// 7. KANBAN & TASKS
-// ---------------------------------------------------------
-model Task {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  status      TaskStatus @default(TODO)
-  priority    Priority   @default(MEDIUM)
-  
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  assignees   User[]   @relation("TaskAssignees")
-  
-  dueDate     DateTime?
-  
-  resources   Resource[] @relation("TaskResources")
-  comments    Comment[]
-  tags        Tag[]      @relation("TaskTags")
-  
-  // Approval System
-  isApproved    Boolean @default(false)
-  approvalNotes String?
-
-  // Extended Details
-  deliverable        String? // Producto esperado
-  evaluationCriteria String? // Criterios de valoración
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([projectId])
-  @@index([status])
-}
-
-model Comment {
-  id               String   @id @default(uuid())
-  content          String
-  
-  taskId           String?
-  task             Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  
-  learningObjectId String?
-  learningObject   LearningObject? @relation(fields: [learningObjectId], references: [id], onDelete: Cascade)
-
-  authorId         String
-  author           User     @relation(fields: [authorId], references: [id])
-  createdAt        DateTime @default(now())
-}
-
-model Tag {
-  id       String    @id @default(uuid())
-  name     String
-  color    String    @default("blue")
-  tasks    Task[]    @relation("TaskTags")
-  projects Project[]
-}
-
-// ---------------------------------------------------------
-// 8. SUBMISSIONS & ETC
-// ---------------------------------------------------------
-model Assignment {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  dueDate     DateTime?
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  submissions Submission[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Submission {
-  id           String   @id @default(uuid())
-  assignmentId String
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
-  studentId    String
-  student      User       @relation(fields: [studentId], references: [id])
-  
-  fileUrl      String
-  fileName     String
-  fileType     String?
-  fileSize     Int?
-  
-  grade        Int?
-  feedback     String?
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-
-model ActivityLog {
-  id          String   @id @default(uuid())
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  level       String   @default("INFO")
-  action      String
-  description String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-
-  @@index([userId])
-  @@index([action])
-}
-
-// ---------------------------------------------------------
-// 9. LEARNING OBJECTS (OAs)
-// ---------------------------------------------------------
-model LearningObject {
-  id          String   @id @default(uuid())
-  title       String
-  description String?  @db.Text
-  
-  // METADATOS CLAVE
-  subject     String   
-  competency  String?  
-  keywords    String[] 
-  
-  // EL "PAQUETE SCORM"
-  items       ResourceItem[] 
-
-  // VINCULACIÓN
-  projects    Project[] @relation("ProjectLearningObjects")
-
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([authorId])
-  comments    Comment[]
-}
-
-model ResourceItem {
-  id          String   @id @default(uuid())
-  title       String
-  
-  type        ItemType @default(LINK) 
-  url         String   @db.Text       
-  
-  order       Int      @default(0)
-
-  learningObjectId String
-  learningObject   LearningObject @relation(fields: [learningObjectId], references: [id], onDelete: Cascade)
-  
-  interactions     ItemInteraction[]
-}
-
 enum ItemType {
   PDF
   VIDEO
@@ -454,130 +434,4 @@ enum ItemType {
   S3
   LINK
   DOC
-}
-
-// ---------------------------------------------------------
-// 10. LEARNING TRACKING (SCORM-lite)
-// ---------------------------------------------------------
-model ItemInteraction {
-  id             String       @id @default(uuid())
-  
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
-  
-  resourceItemId String
-  resourceItem   ResourceItem @relation(fields: [resourceItemId], references: [id])
-  
-  // DATOS DE SEGUIMIENTO
-  isCompleted    Boolean      @default(false)
-  timeSpentSecs  Int          @default(0) 
-  lastAccessed   DateTime     @default(now())
-
-  @@unique([userId, resourceItemId])
-}
-
-// ---------------------------------------------------------
-// 11. SYSTEM CONFIGURATION
-// ---------------------------------------------------------
-model PlatformConfig {
-  id                 String   @id @default("global-config")
-  
-  // 1. Branding (Look & Feel)
-  institutionName    String   @default("Profe Tabla")
-  logoUrl            String?
-  faviconUrl         String?
-
-  // --- 2. Sistema de Diseño (Design System) ---
-  themePreset      String   @default("DEFAULT") 
-  primaryColor     String   @default("#2563EB") 
-  secondaryColor   String   @default("#475569") 
-  accentColor      String   @default("#F59E0B") 
-  
-  // --- 3. Tipografía y Forma ---
-  fontFamily       String   @default("Inter")   
-  borderRadius     String   @default("0.5rem")  
-  
-  // --- 4. Personalización del Login ---
-  loginLayout      String   @default("SPLIT")   
-  loginBgUrl       String?  
-  loginMessage     String?  
-
-  // --- 5. Avanzado (Solo Expertos) ---
-  customCss        String?  @db.Text 
-
-  // 6. Configuración de API Keys y SSO
-  // githubToken        String? // DEPRECATED
-  geminiApiKey       String?
-  geminiModel        String   @default("gemini-pro")
-  
-  // New AI Behavior Config
-  aiInstructions     String?  @db.Text @default("Actúa como un experto Diseñador Instruccional...")
-  aiTone             String   @default("ACADEMIC") // ACADEMIC, CREATIVE, PROFESSIONAL
-  aiSearchEnabled    Boolean  @default(false)
-  
-  // Google SSO
-  googleClientId     String?
-  googleClientSecret String?
-  
-  // Google Drive
-  googleDriveClientId     String?
-  googleDriveClientSecret String? // Keeping for legacy/OAuth if needed
-  googleDriveServiceAccountJson String? @db.Text // New: Service Account JSON
-  googleDriveFolderId     String? // Approved folder/repo for resources
-
-  // 7. Correo (SMTP)
-  smtpHost           String?
-  smtpPort           Int      @default(587)
-  smtpUser           String?
-  smtpPassword       String?
-  smtpSenderName     String?  // Optional custom sender name
-  smtpFrom           String   @default("noreply@profetabla.com")
-
-  updatedAt          DateTime @updatedAt
-}
-
-// NUEVO: EXPERIENCIA LABORAL
-model WorkExperience {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  position    String   // Ej: Desarrollador Junior
-  company     String   // Ej: Google
-  startDate   DateTime
-  endDate     DateTime? // Null = "Actualmente"
-  description String?  @db.Text
-  
-  createdAt   DateTime @default(now())
-
-  @@index([userId])
-}
-
-// NUEVO: ESTUDIOS / FORMACIÓN
-model Education {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  institution String   // Ej: Universidad Nacional
-  degree      String   // Ej: Ingeniería de Sistemas
-  fieldOfStudy String? // Ej: Software
-  startDate   DateTime
-  endDate     DateTime?
-  
-  createdAt   DateTime @default(now())
-
-  @@index([userId])
-}
-
-// NUEVO: IDIOMAS
-model Language {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  name      String   // Ej: Inglés, Francés
-  level     String   // Ej: B2, Nativo, Básico
-
-  @@index([userId])
 }
