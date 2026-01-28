@@ -16,6 +16,8 @@ type Task = {
     status: 'TODO' | 'IN_PROGRESS' | 'DONE';
     priority: 'LOW' | 'MEDIUM' | 'HIGH';
     dueDate: string | null;
+    deliverable: string | null;
+    evaluationCriteria: string | null;
     isApproved: boolean;
     approvalNotes: string | null;
     /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -100,6 +102,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
             status,
             priority: 'MEDIUM',
             dueDate: null,
+            deliverable: null,
+            evaluationCriteria: null,
             isApproved: false,
             approvalNotes: null,
             comments: [],
