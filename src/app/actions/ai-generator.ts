@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { prisma } from '@/lib/prisma';
 
 // Definimos la estructura exacta que esperamos de la IA
+// Definimos la estructura exacta que esperamos de la IA
 export type AIProjectStructure = {
   title: string;           // Título académico sugerido
   industry: string;        // Industria inferida
@@ -21,6 +22,12 @@ export type AIProjectStructure = {
     url: string;
     type: 'ARTICLE' | 'VIDEO' | 'PDF';
   }[];
+};
+
+export type AIResponse = {
+  success: boolean;
+  data?: AIProjectStructure;
+  error?: string;
 };
 
 export async function generateProjectStructure(userIdea: string, type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' = 'PROJECT') {
