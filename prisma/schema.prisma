@@ -514,7 +514,8 @@ model PlatformConfig {
   
   // Google Drive
   googleDriveClientId     String?
-  googleDriveClientSecret String?
+  googleDriveClientSecret String? // Keeping for legacy/OAuth if needed
+  googleDriveServiceAccountJson String? @db.Text // New: Service Account JSON
   googleDriveFolderId     String? // Approved folder/repo for resources
 
   // 7. Correo (SMTP)

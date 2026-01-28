@@ -207,9 +207,16 @@ export function ConfigForm({ config }: { config: any }) {
                     <input type="password" name="googleDriveClientSecret" defaultValue={config?.googleDriveClientSecret || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="..." />
                 </div>
                 <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Carpeta Maestra (ID o URL)</label>
-                    <input type="text" name="googleDriveFolderId" defaultValue={config?.googleDriveFolderId || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="ID de la carpeta aprobada para repositorios" />
-                    <p className="text-[10px] text-slate-400 mt-1">Opcional: Restringe el acceso o define la raíz para nuevos proyectos.</p>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Service Account (JSON)</label>
+                    <textarea
+                        name="googleDriveServiceAccountJson"
+                        defaultValue={config?.googleDriveServiceAccountJson || ''}
+                        className="w-full px-3 py-2 border rounded-lg h-24 font-mono text-xs"
+                        placeholder='{ "type": "service_account", ... }'
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                        Pega aquí el contenido completo del archivo JSON de credenciales de la cuenta de servicio.
+                    </p>
                 </div>
             </div>
 
