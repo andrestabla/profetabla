@@ -72,6 +72,8 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
     // AI ASSISTANT STATE
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
+    const [aiTone, setAiTone] = useState('ACADEMIC');
+    const [aiSearch, setAiSearch] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiError, setAiError] = useState('');
 
@@ -83,7 +85,7 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
         try {
             // Import dynamically to avoid server-side issues if any, though it's a server action
             const { generateProjectStructure } = await import('@/app/actions/ai-generator');
-            const result = await generateProjectStructure(aiPrompt, type);
+            const result = await generateProjectStructure(aiPrompt, type, { tone: aiTone, useSearch: aiSearch });
 
             if (!result.success || !result.data) {
                 setAiError(result.error || 'Error desconocido al generar.');
@@ -92,33 +94,23 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
             }
 
             const data = result.data;
-
-            // Populate Form
             const form = document.querySelector('form') as HTMLFormElement;
             if (form) {
-                // Helper to set value and dispatch event for React
                 const setNativeValue = (name: string, value: string) => {
                     const input = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
                     if (input) {
                         input.value = value;
-                        // Dispatch input event to notify React (if needed for controlled inputs, though mostly uncontrolled here)
-                        // Actually, this form seems uncontrolled (using name attributes). Direct manipulation works.
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                 };
-
                 setNativeValue('title', data.title);
                 setNativeValue('industry', data.industry);
                 setNativeValue('description', data.description);
                 setNativeValue('justification', data.justification);
                 setNativeValue('objectives', data.objectives);
                 setNativeValue('deliverables', data.deliverables);
-
-                // For methodology/phases, we format them as text
                 const phasesText = data.phases.map((p, i) => `Fase ${i + 1}: ${p.title}\n- ${p.description}`).join('\n\n');
                 setNativeValue('methodology', phasesText);
-
-                // Resources (append to resource desc or just leave for user)
-                // We'll append to justification or resourcesDescription
                 const resourcesText = data.suggestedResources.map(r => `- ${r.title} (${r.type})`).join('\n');
                 setNativeValue('resourcesDescription', `Recursos Sugeridos:\n${resourcesText}`);
             }
@@ -126,22 +118,9 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
             setIsAIModalOpen(false);
         } catch (error: any) {
             console.error(error);
-            // Mostrar mensaje real del servidor si ocurriera un error fatal de red
             setAiError('Error crítico de conexión. Intente de nuevo.');
         } finally {
             setIsGenerating(false);
-        }
-    }
-
-    async function onSubmit(formData: FormData) {
-        setIsSubmitting(true);
-        try {
-            await createProjectAction(formData);
-        } catch (error) {
-            console.error(error);
-            alert("Error al crear el proyecto");
-        } finally {
-            setIsSubmitting(false);
         }
     }
 
@@ -173,6 +152,34 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                             autoFocus
                         />
 
+                        {/* AI OPTIONS CONTROLS */}
+                        <div className="flex gap-4 mb-4">
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tono</label>
+                                <select
+                                    value={aiTone}
+                                    onChange={(e) => setAiTone(e.target.value)}
+                                    className="w-full text-xs px-2 py-2 border rounded-lg bg-slate-50"
+                                >
+                                    <option value="ACADEMIC">Académico (Default)</option>
+                                    <option value="CREATIVE">Creativo / Innovador</option>
+                                    <option value="PROFESSIONAL">Corporativo</option>
+                                    <option value="SIMPLE">Sencillo</option>
+                                </select>
+                            </div>
+                            <div className="flex items-end pb-2">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={aiSearch}
+                                        onChange={(e) => setAiSearch(e.target.checked)}
+                                        className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
+                                    />
+                                    <span className="text-xs font-bold text-slate-600">Búsqueda Web</span>
+                                </label>
+                            </div>
+                        </div>
+
                         {aiError && <p className="text-red-500 text-xs mb-4">{aiError}</p>}
 
                         <div className="flex justify-end gap-3">
@@ -191,9 +198,10 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                                 {isGenerating ? 'Analizando...' : 'Generar Estructura'}
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
+                    </div >
+                </div >
+            )
+            }
 
             <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>

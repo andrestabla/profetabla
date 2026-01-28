@@ -30,7 +30,11 @@ export type AIResponse = {
   error?: string;
 };
 
-export async function generateProjectStructure(userIdea: string, type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' = 'PROJECT'): Promise<AIResponse> {
+export async function generateProjectStructure(
+  userIdea: string,
+  type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' = 'PROJECT',
+  options?: { tone?: string; useSearch?: boolean }
+): Promise<AIResponse> {
   // 1. Obtener la API Key desde Configuración DB o Variables de Entorno
   const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
 
@@ -47,15 +51,23 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const safeConfig = config as any;
   const systemRole = safeConfig?.aiInstructions || "Actúa como un Diseñador Instruccional Senior.";
-  const tone = safeConfig?.aiTone === 'CREATIVE' ? 'Creativo, Innovador, Disruptivo' :
-    safeConfig?.aiTone === 'PROFESSIONAL' ? 'Ejecutivo, Directo, Profesional' :
-      safeConfig?.aiTone === 'SIMPLE' ? 'Sencillo, Claro, Explicativo' :
+
+  // Resolve Tone: Option > Config > Default
+  const selectedTone = options?.tone || safeConfig?.aiTone || 'ACADEMIC';
+
+  const tone = selectedTone === 'CREATIVE' ? 'Creativo, Innovador, Disruptivo' :
+    selectedTone === 'PROFESSIONAL' ? 'Ejecutivo, Directo, Profesional' :
+      selectedTone === 'SIMPLE' ? 'Sencillo, Claro, Explicativo' :
         'Académico, Analítico, Riguroso'; // Default ACADEMIC
+
+  // Web Search Warning (Logic only, actual grounding requires tool integration which is next step if requested)
+  const searchEnabled = options?.useSearch !== undefined ? options.useSearch : safeConfig?.aiSearchEnabled;
+  const searchPrompt = searchEnabled ? " (CONSIDERA TENDENCIAS ACTUALES Y DATOS REALES SI ES POSIBLE)" : "";
 
   const prompt = `
     ${systemRole}
     
-    ESTILO Y TONO: ${tone}
+    ESTILO Y TONO: ${tone} ${searchPrompt}
     
     TAREA:
     Estructura una propuesta para un **${type}** sobre: "${userIdea}"
