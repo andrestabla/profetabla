@@ -5,8 +5,9 @@ import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, KeyboardSensor, 
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { clsx } from 'clsx';
-import { MoreVertical, Plus, Calendar, Flag, CheckCircle } from 'lucide-react';
+import { MoreVertical, Plus, Calendar, Flag, CheckCircle, Sparkles, Loader2 } from 'lucide-react';
 import { TaskModal } from './TaskModal';
+import { generateTasksFromProject } from '@/app/actions/kanban-actions';
 
 type Task = {
     id: string;
@@ -34,6 +35,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         if (!projectId) return;
@@ -135,12 +137,46 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-start">
                     {COLUMNS.map((col) => (
                         <div key={col.id} className={`p-4 rounded-xl border ${col.color} min-h-[500px]`}>
-                            <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2">
                                 <h3 className="font-semibold text-slate-700">{col.title}</h3>
                                 <span className="bg-white/50 text-slate-500 text-xs px-2 py-1 rounded-full font-medium">
                                     {tasks.filter(t => t.status === col.id).length}
                                 </span>
                             </div>
+                            {col.id === 'TODO' && (
+                                <button
+                                    onClick={async () => {
+                                        if (!confirm("¿Generar tareas automáticas basadas en el proyecto via IA?")) return;
+                                        setIsGenerating(true);
+                                        try {
+                                            const res = await generateTasksFromProject(projectId);
+                                            if (res.success) {
+                                                // Reload tasks
+                                                fetch(`/api/tasks?projectId=${projectId}`)
+                                                    .then((res) => res.json())
+                                                    .then((data) => {
+                                                        if (Array.isArray(data)) setTasks(data);
+                                                        setIsGenerating(false);
+                                                    });
+                                            } else {
+                                                alert(res.error || "Error al generar tareas");
+                                                setIsGenerating(false);
+                                            }
+                                        } catch (error) {
+                                            console.error(error);
+                                            alert("Error de conexión");
+                                            setIsGenerating(false);
+                                        }
+                                    }}
+                                    disabled={isGenerating}
+                                    className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-md flex items-center gap-1 transition-colors disabled:opacity-50"
+                                    title="Generar tareas con IA"
+                                >
+                                    {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                    IA
+                                </button>
+                            )}
+
 
                             <SortableContext
                                 items={tasks.filter(t => t.status === col.id).map(t => t.id)}
@@ -173,7 +209,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                         </div>
                     ) : null}
                 </DragOverlay>
-            </DndContext>
+            </DndContext >
 
             {selectedTask && (
                 <TaskModal
@@ -184,7 +220,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                     onClose={() => setIsModalOpen(false)}
                     onUpdate={handleTaskUpdate}
                 />
-            )}
+            )
+            }
         </>
     );
 }
