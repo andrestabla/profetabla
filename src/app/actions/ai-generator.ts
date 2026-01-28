@@ -43,17 +43,6 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
 
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  // Usar Flash por defecto por velocidad (evitar timeouts en Vercel)
-  let modelName = config?.geminiModel || "gemini-1.5-flash";
-
-  // AUTO-FIX: "gemini-pro" ya no está disponible en v1beta en algunas regiones/SDKs.
-  if (modelName === 'gemini-pro') {
-    modelName = 'gemini-1.5-flash';
-  }
-
-  // @ts-ignore - Ignore TS check for specific SDK version features
-  const model = genAI.getGenerativeModel({ model: modelName });
-
   // 2. El Prompt de Ingeniería Pedagógica
   const prompt = `
     Actúa como un Diseñador Instruccional Senior.
@@ -78,35 +67,65 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
     }
   `;
 
-  // 3. Generación y Limpieza
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+  // LISTA DE MODELOS CANDIDATOS (Estrategia de Fallback)
+  // Mapeamos gemini-pro a flash si viene en config, ya que pro está deprecado en v1beta
+  const configModel = config?.geminiModel === 'gemini-pro' ? 'gemini-1.5-flash' : (config?.geminiModel || 'gemini-1.5-flash');
 
-    console.log("AI Raw Response:", text.substring(0, 100) + "..."); // Debug log
+  const candidateModels = [
+    configModel,
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-001",
+    "gemini-1.5-flash-002",
+    "gemini-1.5-pro",
+    "gemini-1.5-pro-001",
+    "gemini-2.0-flash-exp"
+  ];
 
-    // Limpieza robusta
-    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const firstBrace = jsonString.indexOf('{');
-    const lastBrace = jsonString.lastIndexOf('}');
+  // Eliminar duplicados manteniendo el orden de prioridad
+  const uniqueModels = Array.from(new Set(candidateModels));
 
-    if (firstBrace === -1 || lastBrace === -1) {
-      console.error("Invalid JSON response:", text);
-      return { success: false, error: "La IA no devolvió un formato JSON válido." };
+  let lastError = null;
+
+  // 3. Intento de Generación con Fallback
+  for (const modelName of uniqueModels) {
+    console.log(`Intentando generar con modelo: ${modelName}`);
+
+    try {
+      // @ts-ignore
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      console.log(`Éxito con ${modelName}`);
+
+      // Limpieza robusta
+      const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const firstBrace = jsonString.indexOf('{');
+      const lastBrace = jsonString.lastIndexOf('}');
+
+      if (firstBrace === -1 || lastBrace === -1) {
+        console.error(`Invalid JSON from ${modelName}:`, text);
+        throw new Error("Formato JSON inválido");
+      }
+
+      const cleanJson = jsonString.substring(firstBrace, lastBrace + 1);
+      const projectData: AIProjectStructure = JSON.parse(cleanJson);
+
+      return { success: true, data: projectData };
+
+    } catch (error: any) {
+      console.warn(`Fallo con modelo ${modelName}:`, error.message);
+      lastError = error;
+      // Continuar al siguiente modelo
     }
-
-    const cleanJson = jsonString.substring(firstBrace, lastBrace + 1);
-    const projectData: AIProjectStructure = JSON.parse(cleanJson);
-    return { success: true, data: projectData };
-
-  } catch (error: any) {
-    console.error("Error AI Generator:", error);
-    // Retornar mensaje descriptivo
-    const msg = error.message || "Error desconocido";
-    if (msg.includes("API key")) return { success: false, error: "Error de Configuración: API Key inválida." };
-    if (msg.includes("fetch failed")) return { success: false, error: "Error de Conexión con Google AI (posible bloqueo de red)." };
-
-    return { success: false, error: `Error generando: ${msg}` };
   }
+
+  // Si salimos del loop, todos fallaron
+  const msg = lastError?.message || "Error desconocido";
+  console.error("Todos los modelos fallaron. Último error:", msg);
+
+  if (msg.includes("API key")) return { success: false, error: "Error de Configuración: API Key inválida." };
+
+  return { success: false, error: `Error generando (Todos los modelos fallaron). Último: ${msg}` };
 }
