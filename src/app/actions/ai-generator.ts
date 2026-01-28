@@ -44,10 +44,12 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
   const genAI = new GoogleGenerativeAI(apiKey);
 
   // 2. El Prompt de Ingeniería Pedagógica
-  const systemRole = config?.aiInstructions || "Actúa como un Diseñador Instruccional Senior.";
-  const tone = config?.aiTone === 'CREATIVE' ? 'Creativo, Innovador, Disruptivo' :
-    config?.aiTone === 'PROFESSIONAL' ? 'Ejecutivo, Directo, Profesional' :
-      config?.aiTone === 'SIMPLE' ? 'Sencillo, Claro, Explicativo' :
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const safeConfig = config as any;
+  const systemRole = safeConfig?.aiInstructions || "Actúa como un Diseñador Instruccional Senior.";
+  const tone = safeConfig?.aiTone === 'CREATIVE' ? 'Creativo, Innovador, Disruptivo' :
+    safeConfig?.aiTone === 'PROFESSIONAL' ? 'Ejecutivo, Directo, Profesional' :
+      safeConfig?.aiTone === 'SIMPLE' ? 'Sencillo, Claro, Explicativo' :
         'Académico, Analítico, Riguroso'; // Default ACADEMIC
 
   const prompt = `
