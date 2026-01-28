@@ -68,7 +68,7 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
   `;
 
   // LISTA DE MODELOS CANDIDATOS (Estrategia de Fallback)
-  // Mapeamos gemini-pro a flash si viene en config, ya que pro está deprecado en v1beta
+  // Mapeamos gemini-pro a flash si viene en config, ya que pro está deprecado en v1beta en ciertos contextos
   const configModel = config?.geminiModel === 'gemini-pro' ? 'gemini-1.5-flash' : (config?.geminiModel || 'gemini-1.5-flash');
 
   const candidateModels = [
@@ -76,20 +76,21 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
     "gemini-1.5-flash",
     "gemini-1.5-flash-001",
     "gemini-1.5-flash-002",
+    "gemini-1.5-flash-8b",
     "gemini-1.5-pro",
     "gemini-1.5-pro-001",
-    "gemini-2.0-flash-exp"
+    "gemini-1.0-pro",
+    "gemini-pro"
   ];
 
   // Eliminar duplicados manteniendo el orden de prioridad
-  // Eliminar duplicados manteniendo el orden de prioridad
   const uniqueModels = Array.from(new Set(candidateModels));
 
-  let firstError: Error | null = null;
-  let lastError: Error | null = null;
+  const errorLogs: string[] = [];
 
   // 3. Intento de Generación con Fallback
   for (const modelName of uniqueModels) {
+    if (!modelName) continue;
     console.log(`Intentando generar con modelo: ${modelName}`);
 
     try {
@@ -107,8 +108,9 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
       const lastBrace = jsonString.lastIndexOf('}');
 
       if (firstBrace === -1 || lastBrace === -1) {
-        console.error(`Invalid JSON from ${modelName}:`, text);
-        // Si el formato es malo, lanzamos error para que el fallback intente otro modelo (tal vez pro es mejor formateando)
+        const err = `Invalid JSON from ${modelName}`;
+        console.error(err, text);
+        errorLogs.push(`${modelName}: Bad Format`);
         throw new Error("Formato JSON inválido");
       }
 
@@ -118,21 +120,30 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
       return { success: true, data: projectData };
 
     } catch (error: any) {
-      console.warn(`Fallo con modelo ${modelName}:`, error.message);
-      if (!firstError) firstError = error; // Guardamos el primer error (el del modelo preferido)
-      lastError = error;
-      // Continuar al siguiente modelo
+      const errMsg = error.message || "Unknown error";
+      console.warn(`Fallo con modelo ${modelName}:`, errMsg);
+
+      // Simplificar el error para el log
+      let shortMsg = "Error";
+      if (errMsg.includes("404")) shortMsg = "404 Not Found";
+      else if (errMsg.includes("403")) shortMsg = "403 Forbidden";
+      else if (errMsg.includes("503")) shortMsg = "503 Overloaded";
+      else if (errMsg.includes("API key")) shortMsg = "Bad Key";
+      else shortMsg = errMsg.substring(0, 20) + "...";
+
+      errorLogs.push(`${modelName}: ${shortMsg}`);
     }
   }
 
   // Si salimos del loop, todos fallaron
-  // Reportamos el PRIMER error porque es el más relevante (el modelo que debería haber funcionado)
-  const relevantError = firstError || lastError!;
-  const msg = relevantError.message || "Error desconocido";
+  console.error("Todos los modelos fallaron. Logs:", errorLogs);
 
-  console.error("Todos los modelos fallaron. Error relevante:", msg);
+  // Construir mensaje detallado para el usuario
+  const fullLog = errorLogs.join(" | ");
 
-  if (msg.includes("API key")) return { success: false, error: "Error de Configuración: API Key inválida." };
+  if (fullLog.includes("Bad Key") || fullLog.includes("API key")) {
+    return { success: false, error: "Error: API Key inválida o sin permisos." };
+  }
 
-  return { success: false, error: `Error generando: ${msg}` };
+  return { success: false, error: `Error: Todos los modelos fallaron. Detalles: [${fullLog}]` };
 }
