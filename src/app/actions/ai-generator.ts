@@ -29,6 +29,12 @@ export type AIProjectStructure = {
   }[];
 };
 
+export type AIResponse = {
+  success: boolean;
+  data?: AIProjectStructure;
+  error?: string;
+};
+
 export async function generateProjectStructure(
   userIdea: string,
   type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' = 'PROJECT',
