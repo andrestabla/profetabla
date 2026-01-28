@@ -65,6 +65,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         switch (type) {
             case 'VIDEO': return <Video className="w-5 h-5 text-red-500" />;
             case 'FILE': return <FileText className="w-5 h-5 text-blue-500" />;
+            case 'EMBED': return <Sparkles className="w-5 h-5 text-amber-500" />;
             case 'DRIVE': return <Cloud className="w-5 h-5 text-blue-600" />;
             default: return <BookOpen className="w-5 h-5 text-emerald-500" />;
         }
@@ -201,14 +202,22 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                             <form action={async (formData) => {
                                 setIsUploading(true);
                                 try {
+                                    let result;
                                     if (resourceType === 'DRIVE' && driveMode === 'UPLOAD') {
-                                        await uploadProjectFileToDriveAction(formData);
+                                        result = await uploadProjectFileToDriveAction(formData);
                                     } else {
-                                        await addResourceToProjectAction(formData);
+                                        result = await addResourceToProjectAction(formData);
+                                    }
+
+                                    if (result?.success === false) {
+                                        alert(`Error: ${result.error}`);
+                                    } else {
+                                        // Limpiar formulario o feedback de éxito si es necesario
+                                        setSelectedDriveFile(null);
                                     }
                                 } catch (e: any) {
                                     console.error(e);
-                                    alert(`Error al procesar el recurso: ${e.message || 'Error desconocido'}`);
+                                    alert(`Crash crítico: ${e.message || 'Error desconocido'}`);
                                 } finally {
                                     setIsUploading(false);
                                 }
@@ -233,11 +242,11 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                 handleFetchDriveFiles();
                                             }
                                         }}
-                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-700"
+                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-medium text-slate-700 text-sm"
                                     >
                                         <option value="ARTICLE">📖 Artículo / Blog</option>
-                                        <option value="VIDEO">▶️ Video Tutorial</option>
-                                        <option value="FILE">📄 Archivo / PDF</option>
+                                        <option value="VIDEO">▶️ Video</option>
+                                        <option value="EMBED">✨ Embeb</option>
                                         <option value="DRIVE">📁 Google Drive</option>
                                     </select>
                                 </div>
