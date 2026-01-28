@@ -44,7 +44,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         where: { projectId: id },
         include: {
             submissions: {
-                where: { studentId: project.studentId || undefined },
+                where: project.studentId ? { studentId: project.studentId } : { studentId: 'NONE' }, // Use a non-existent ID if no student
                 orderBy: { createdAt: 'desc' }
             }
         },
