@@ -102,10 +102,14 @@ export async function updateProjectAction(formData: FormData) {
 }
 
 export async function applyToProjectAction(projectId: string) {
+    console.log(`📡 [Server] applyToProjectAction called for project: ${projectId}`);
+
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
+        console.error("❌ [Server] No session or user found");
         throw new Error("Debes iniciar sesión para postularte");
     }
+    console.log(`👤 [Server] User: ${session.user.id} (${session.user.email})`);
 
     // Check if already applied
     const existing = await prisma.projectApplication.findUnique({
@@ -118,6 +122,7 @@ export async function applyToProjectAction(projectId: string) {
     });
 
     if (existing) {
+        console.warn("⚠️ [Server] Application already exists");
         throw new Error("Ya te has postulado a este proyecto");
     }
 
@@ -128,6 +133,7 @@ export async function applyToProjectAction(projectId: string) {
             status: 'PENDING'
         }
     });
+    console.log("✅ [Server] ProjectApplication record created");
 
     // Notify Teacher
     try {

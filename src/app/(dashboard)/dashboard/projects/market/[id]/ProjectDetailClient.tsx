@@ -29,13 +29,16 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
     const [applicationStatus, setApplicationStatus] = useState(initialStatus);
 
     const handleApply = () => {
+        console.log("🖱️ [Client] Postularme button clicked");
         startTransition(async () => {
             try {
+                console.log("⏳ [Client] Calling applyToProjectAction...");
                 await applyToProjectAction(project.id);
+                console.log("✅ [Client] applyToProjectAction successful");
                 setApplicationStatus('PENDING');
             } catch (error) {
-                console.error(error);
-                alert("Error al postularse. Inténtalo de nuevo.");
+                console.error("❌ [Client] Error in applyToProjectAction:", error);
+                alert("Error al postularse. Revisa la consola para más detalles.");
             }
         });
     };
