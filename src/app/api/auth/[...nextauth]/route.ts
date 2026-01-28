@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import GoogleProvider from "next-auth/providers/google";
 
 interface RouteContext {
-    params: { nextauth: string[] }
+    params: Promise<{ nextauth: string[] }>
 }
 
 const handler = async (req: Request, context: RouteContext) => {
