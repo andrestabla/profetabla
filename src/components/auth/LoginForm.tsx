@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { setAuthIntent } from '@/lib/auth-client';
 
 export function LoginForm() {
     const router = useRouter();
@@ -88,7 +89,10 @@ export function LoginForm() {
 
             <button
                 type="button"
-                onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+                onClick={() => {
+                    setAuthIntent('login');
+                    signIn('google', { callbackUrl: '/dashboard' });
+                }}
                 className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold py-3 rounded-lg transition-all"
             >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

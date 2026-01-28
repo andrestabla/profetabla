@@ -61,12 +61,20 @@ export const authOptions: NextAuthOptions = {
                 if (!user.email) return false;
 
                 try {
+                    // Check logic based on cookie intent? 
+                    // Note: 'cookies' is only available in server components or via next/headers in App Router, 
+                    // but in NextAuth callbacks we don't have direct access to request headers easily in all versions.
+                    // However, NextAuth 4+ allows reading headers if we export a function or rely on the context.
+                    // Actually, getting cookies inside the signIn callback is tricky without proper request access.
+                    // A cleaner way for the DB logic:
+
                     const existingUser = await prisma.user.findUnique({
                         where: { email: user.email }
                     });
 
+                    // 1. If user exists, we ALWAYS allow login (and update profile)
+                    // It doesn't matter if they clicked 'Login' or 'Register', they exist.
                     if (existingUser) {
-                        // Update existing user avatar/name if changed
                         await prisma.user.update({
                             where: { id: existingUser.id },
                             data: {
@@ -77,22 +85,66 @@ export const authOptions: NextAuthOptions = {
                         return true;
                     }
 
-                    // Create new user
-                    // Generate a random password since schema requires it
-                    const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-                    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+                    // 2. If user DOES NOT exist, we need to check if they are allowed to register.
+                    // We can attempt to parse the cookie from the request if possible, 
+                    // OR we can make a stricter assumption:
+                    // Since we can't easily read client cookies here without a custom wrapper, we rely on a workaround.
+                    // BUT for this specific requirement "If user doesn't have account, CANNOT login with Google", 
+                    // we can block creation unless we are explicitly in "Register" mode.
 
-                    await prisma.user.create({
-                        data: {
-                            email: user.email,
-                            name: user.name || 'Usuario Google',
-                            avatarUrl: user.image,
-                            password: hashedPassword,
-                            role: 'STUDENT', // Default role
-                            isActive: true
-                        }
-                    });
-                    return true;
+                    // Since we can't read the cookie easily here in standard config, 
+                    // we will modify the Auth Options to be a function if needed OR use `req` if available.
+                    // NextAuth v4 exposes `req` in the callback if defined as `async signIn({ user, account, profile, email, credentials }, { query, account, profile, email, ...? No })` 
+                    // Actually usually it's `signIn({ user, account, profile, email, credentials })`.
+
+                    // Workaround: We can't implement the cookie check strictly inside this `signIn` without access to headers.
+                    // However, we can use the `email` field to maybe pass a signal? No.
+
+                    // We will assume that if we are here, we verify if we can get headers.
+                    // `next-auth/next` handler passes `req`.
+                    // But `authOptions` is static object here.
+
+                    // IMPORTANT: We need to convert `authOptions` to be used in a route handler that has access to headers, 
+                    // or use `getServerSession` logic? No, this is the callback.
+
+                    // Let's rely on the user existing.
+                    // If user does not exist, we throw AccessDenied unless we find a way to permit it.
+                    // Since we implemented the cookies in frontend, let's try to access them via `next/headers`.
+                    // This is Next.js 13+ App Router. We CAN access cookies() here!
+
+                    const { cookies } = await import('next/headers');
+                    const cookieStore = await cookies();
+                    const intent = cookieStore.get('auth_intent')?.value;
+
+                    if (intent === 'login') {
+                        // User is trying to login, but doesn't exist. Block.
+                        console.warn(`[Auth] Blocked Google registration for ${user.email} (Intent: login)`);
+                        return false;
+                        // Or better: return '/register?error=AccountNotFound' (NextAuth allows string redirect)
+                    }
+
+                    // If intent is 'register' (or missing/undefined which implies maybe standard flow? No, let's be strict), 
+                    // we allow creation.
+                    if (intent === 'register') {
+                        const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+                        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+                        await prisma.user.create({
+                            data: {
+                                email: user.email,
+                                name: user.name || 'Usuario Google',
+                                avatarUrl: user.image,
+                                password: hashedPassword,
+                                role: 'STUDENT',
+                                isActive: true
+                            }
+                        });
+                        return true;
+                    }
+
+                    console.warn(`[Auth] Blocked Google auto-registration (No intent cookie found)`);
+                    return false;
+
                 } catch (error) {
                     console.error("Error creating google user:", error);
                     return false;

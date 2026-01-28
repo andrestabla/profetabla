@@ -19,6 +19,55 @@ type SimpleOA = {
 export default function CreateProjectForm({ availableOAs }: { availableOAs: SimpleOA[] }) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [type, setType] = useState<'PROJECT' | 'CHALLENGE' | 'PROBLEM'>('PROJECT');
+
+    // CONTEXTO PEDAGÓGICO
+    const typeConfig = {
+        PROJECT: {
+            label: "Proyecto",
+            description: "Construir, transformar o implementar algo con impacto sostenido.",
+            icon: Layers,
+            color: "text-blue-600",
+            bg: "bg-blue-50",
+            border: "border-blue-200",
+            placeholders: {
+                description: "Contexto organizacional amplio. Ej: Implementación de un sistema de gestión...",
+                objectives: "Objetivo General: Lograr un resultado complejo...\nEspecíficos: Diagnosticar, Diseñar, Validar...",
+                methodology: "Fase 1: Diagnóstico\nFase 2: Diseño\nFase 3: Ejecución\nFase 4: Validación",
+                deliverables: "- Documento de Diagnóstico\n- Prototipo Funcional\n- Manual de Usuario\n- Informe de Impacto"
+            }
+        },
+        CHALLENGE: {
+            label: "Reto",
+            description: "Resolver algo puntual bajo restricciones claras (tiempo, recursos).",
+            icon: CheckSquare,
+            color: "text-orange-600",
+            bg: "bg-orange-50",
+            border: "border-orange-200",
+            placeholders: {
+                description: "Situación específica y delimitada. Ej: Optimizar el tiempo de respuesta del servidor...",
+                objectives: "Resolver el problema X reduciendo Y en Z tiempo.",
+                methodology: "1. Comprender\n2. Idear\n3. Prototipar\n4. Proponer",
+                deliverables: "- Pitch de Solución\n- Prototipo Rápido"
+            }
+        },
+        PROBLEM: {
+            label: "Problema",
+            description: "Analizar, comprender y explicar una situación crítica.",
+            icon: Search,
+            color: "text-red-600",
+            bg: "bg-red-50",
+            border: "border-red-200",
+            placeholders: {
+                description: "Descripción basada en hechos, datos o síntomas de una disfunción...",
+                objectives: "Comprender las causas raíz de X y proponer alternativas fundamentadas.",
+                methodology: "1. Recolección de Datos\n2. Análisis Causa-Efecto\n3. Contrastación Teórica\n4. Conclusiones",
+                deliverables: "- Árbol de Problemas\n- Informe Analítico\n- Matriz de Hallazgos"
+            }
+        }
+    };
+
+    const currentConfig = typeConfig[type];
 
     async function onSubmit(formData: FormData) {
         setIsSubmitting(true);
@@ -36,15 +85,41 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
         <div className="max-w-4xl mx-auto p-6">
             <header className="mb-10">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                        <Briefcase className="w-6 h-6 text-blue-600" />
+                    <div className={`p-2 rounded-lg ${currentConfig.bg}`}>
+                        <currentConfig.icon className={`w-6 h-6 ${currentConfig.color}`} />
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-800">Crear Nuevo Proyecto</h1>
+                    <h1 className="text-3xl font-bold text-slate-800">Crear Nuevo {currentConfig.label}</h1>
                 </div>
-                <p className="text-slate-500">Completa los metadatos pedagógicos para estructurar tu propuesta educativa.</p>
+                <p className="text-slate-500">Define el alcance pedagógico seleccionando el tipo de intervención.</p>
             </header>
 
             <form action={onSubmit} className="space-y-8">
+                {/* SECCIÓN 0: TIPO DE INTERVENCIÓN */}
+                <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 className="text-lg font-bold text-slate-800 mb-6">Selecciona el Tipo de Intervención</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {(Object.keys(typeConfig) as Array<keyof typeof typeConfig>).map((key) => {
+                            const config = typeConfig[key];
+                            const isSelected = type === key;
+                            return (
+                                <div
+                                    key={key}
+                                    onClick={() => setType(key)}
+                                    className={`cursor-pointer p-4 rounded-xl border-2 transition-all ${isSelected ? `${config.border} ${config.bg} ring-2 ring-offset-2 ring-blue-100` : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'}`}
+                                >
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <config.icon className={`w-5 h-5 ${config.color}`} />
+                                        <h3 className={`font-bold ${isSelected ? 'text-slate-800' : 'text-slate-600'}`}>{config.label}</h3>
+                                    </div>
+                                    <p className="text-xs text-slate-500 leading-relaxed">{config.description}</p>
+                                </div>
+                            )
+                        })}
+                    </div>
+                    {/* Hidden Input for Server Action */}
+                    <input type="hidden" name="type" value={type} />
+                </section>
+
                 {/* SECCIÓN 1: IDENTIFICACIÓN */}
                 <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                     <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -52,11 +127,11 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                     </h2>
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Título del Proyecto</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Título del {currentConfig.label}</label>
                             <input
                                 name="title"
                                 required
-                                placeholder="Ej: Reducción de la brecha digital en estudiantes de Bachillerato..."
+                                placeholder={`Ej: ${type === 'PROJECT' ? 'Implementación de...' : type === 'CHALLENGE' ? 'Optimizar el proceso de...' : 'Análisis de la crisis en...'}`}
                                 className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                             />
                             <p className="text-xs text-slate-400 mt-1">Debe ser breve, claro y representativo.</p>
@@ -86,8 +161,8 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                                 name="description"
                                 rows={3}
                                 required
-                                placeholder="Resumen ejecutivo del proyecto..."
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
+                                placeholder={currentConfig.placeholders.description}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all placeholder:text-slate-400"
                             />
                         </div>
                     </div>
@@ -100,23 +175,23 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                     </h2>
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Justificación (Por qué del proyecto)</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Justificación</label>
                             <textarea
                                 name="justification"
                                 rows={4}
                                 required
-                                placeholder="Describe el problema detectado y las razones que motivan esta intervención..."
+                                placeholder="Describe la relevancia pedagógica, social o productiva..."
                                 className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Objetivos (General y Específicos)</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Objetivos</label>
                             <textarea
                                 name="objectives"
                                 rows={5}
-                                placeholder="Objetivo General: Incrementar...&#10;Objetivos Específicos:&#10;- Implementar talleres...&#10;- Evaluar..."
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
+                                placeholder={currentConfig.placeholders.objectives}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all placeholder:text-slate-400"
                             />
                         </div>
                     </div>
@@ -129,12 +204,12 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                     </h2>
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Fases y Actividades</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Fases y Actividades Sugeridas</label>
                             <textarea
                                 name="methodology"
                                 rows={5}
-                                placeholder="Fase 1: Diagnóstico (Actividades: encuestas, análisis)&#10;Fase 2: Diseño...&#10;Fase 3: Ejecución..."
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
+                                placeholder={currentConfig.placeholders.methodology}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all placeholder:text-slate-400"
                             />
                         </div>
 
@@ -146,17 +221,17 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                                 <textarea
                                     name="schedule"
                                     rows={4}
-                                    placeholder="Semana 1-2: Fase 1...&#10;Semana 3-6: Fase 2..."
+                                    placeholder="Cronograma estimado..."
                                     className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Entregables (Hitos)</label>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Entregables Esperados</label>
                                 <textarea
                                     name="deliverables"
                                     rows={4}
-                                    placeholder="- Informe de Diagnóstico&#10;- Prototipo Funcional&#10;- Documentación Final"
-                                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
+                                    placeholder={currentConfig.placeholders.deliverables}
+                                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all placeholder:text-slate-400"
                                 />
                             </div>
                         </div>
@@ -174,7 +249,7 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                             <textarea
                                 name="resourcesDescription"
                                 rows={4}
-                                placeholder="Humanos: 1 Profesor líder, 2 Tutores.&#10;Materiales: Equipos informáticos, Licencias de software..."
+                                placeholder="Recursos necesarios..."
                                 className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
                             />
                         </div>
@@ -186,7 +261,7 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                             <textarea
                                 name="budget"
                                 rows={3}
-                                placeholder="Detalle de costos y fuentes de financiamiento..."
+                                placeholder="Detalle de costos..."
                                 className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
                             />
                         </div>
@@ -200,11 +275,11 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                     </h2>
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Sistema de Evaluación (Formativa y Sumativa)</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Sistema de Evaluación</label>
                             <textarea
                                 name="evaluation"
                                 rows={4}
-                                placeholder="¿Cómo se medirá el avance? (Encuestas, rúbricas de evaluación final...)"
+                                placeholder="¿Cómo se medirá el avance?"
                                 className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
                             />
                         </div>
@@ -216,7 +291,7 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                             <textarea
                                 name="kpis"
                                 rows={3}
-                                placeholder="Ej: % de mejora en calificación, Tasa de participación en talleres..."
+                                placeholder="Ej: % de cumplimiento..."
                                 className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
                             />
                         </div>
@@ -228,7 +303,7 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                     <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                         <BookOpen className="w-5 h-5 text-indigo-500" /> 6. Recursos de Aprendizaje (OAs)
                     </h2>
-                    <p className="text-sm text-slate-500 mb-6">Selecciona los Objetos de Aprendizaje que estarán disponibles para el estudiante desde el inicio.</p>
+                    <p className="text-sm text-slate-500 mb-6">Selecciona los Objetos de Aprendizaje disponibles.</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto pr-2">
                         {availableOAs.map(oa => (
@@ -248,7 +323,6 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                             </label>
                         ))}
                     </div>
-                    {availableOAs.length === 0 && <p className="text-slate-400 italic">No hay OAs disponibles.</p>}
                 </section>
 
                 <div className="pt-6 flex justify-end gap-4">
@@ -269,7 +343,7 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                         ) : (
                             <>
                                 <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                Publicar Proyecto Pedagógico
+                                Publicar {currentConfig.label}
                             </>
                         )}
                     </button>

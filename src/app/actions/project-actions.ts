@@ -13,6 +13,7 @@ export async function createProjectAction(formData: FormData) {
     }
 
     const title = formData.get('title') as string;
+    const type = (formData.get('type') as 'PROJECT' | 'CHALLENGE' | 'PROBLEM') || 'PROJECT';
     const description = formData.get('description') as string;
     const industry = formData.get('industry') as string;
     const justification = formData.get('justification') as string;
