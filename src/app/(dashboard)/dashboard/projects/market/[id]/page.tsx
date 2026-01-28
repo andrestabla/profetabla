@@ -58,5 +58,5 @@ export default async function ProjectDetailPage(props: Props) {
 
     const config = typeConfig[project.type as keyof typeof typeConfig] || typeConfig.PROJECT;
 
-    return <ProjectDetailClient project={project} />;
+    return <ProjectDetailClient project={project} initialStatus={applicationStatus} />;
 }
