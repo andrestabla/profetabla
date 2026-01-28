@@ -118,7 +118,9 @@ export function ConfigForm({ config }: { config: any }) {
                 <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Modelo</label>
                     <select name="geminiModel" defaultValue={config?.geminiModel || 'gemini-1.5-flash'} className="w-full px-3 py-2 border rounded-lg">
-                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (Rápido - Recomendado)</option>
+                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (Cuenta Avanzada)</option>
+                        <option value="gemini-2.5-flash">Gemini 2.5 Flash (Preview)</option>
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (Estándar)</option>
                         <option value="gemini-1.5-pro">Gemini 1.5 Pro (Más detallado)</option>
                     </select>
                 </div>

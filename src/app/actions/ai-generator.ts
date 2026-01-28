@@ -73,6 +73,11 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
 
   const candidateModels = [
     configModel,
+    // Modelos detectados en cuenta avanzada (Prioridad Alta)
+    "gemini-2.0-flash",
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    // Modelos estándar (Fallback para cuentas normales)
     "gemini-1.5-flash",
     "gemini-1.5-flash-001",
     "gemini-1.5-flash-002",
