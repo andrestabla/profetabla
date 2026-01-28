@@ -124,6 +124,18 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
         }
     }
 
+    async function onSubmit(formData: FormData) {
+        setIsSubmitting(true);
+        try {
+            await createProjectAction(formData);
+        } catch (error) {
+            console.error(error);
+            alert("Error al crear el proyecto");
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
     return (
         <div className="max-w-4xl mx-auto p-6 relative">
             {/* AI MODAL */}
