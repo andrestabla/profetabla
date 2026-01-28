@@ -84,14 +84,14 @@ export async function generateProjectStructure(
     {
       "title": "Título Académico Profesional",
       "industry": "Industria / Sector Específico",
-      "description": "Descripción detallada del contexto, problema y oportunidad (mínimo 3 párrafos).",
-      "justification": "Fundamentación teórica y práctica robusta del por qué de este proyecto.",
-      "objectives": "Objetivo General: [Verbo]... \n\nObjetivos Específicos:\n- [Verbo]...\n- [Verbo]...",
-      "deliverables": "Lista detallada de productos tangibles e intangibles.",
-      "schedule": "Fase 1 (Semanas 1-2): ... \nFase 2 (Semanas 3-4): ...",
-      "budget": "Recursos Humanos: ... \nMateriales: ... \nPresupuesto Estimado: ...",
-      "evaluation": "Estrategia de evaluación formativa y sumativa detallada.",
-      "kpis": "1. Indicador de Impacto... \n2. Indicador de Proceso... \n3. Indicador de Resultado...",
+      "description": "Descripción detallada (mínimo 3 párrafos). Usa **negritas** para conceptos clave.",
+      "justification": "Fundamentación teórica. Usa referencias si es posible.",
+      "objectives": "Objetivo General: **[Verbo]...** \n\nObjetivos Específicos:\n- [Verbo]...\n- [Verbo]...",
+      "deliverables": "Lista detallada usando bullets:\n- **Producto 1:** Descripción\n- **Producto 2:** Descripción",
+      "schedule": "Usa una LISTA o TABLA Markdown:\n**Fase 1 (Semanas 1-2):** ... \n**Fase 2 (Semanas 3-4):** ...",
+      "budget": "GENERA UNA TABLA MARKDOWN:\n| Recurso | Tipo | Costo Est. |\n|---|---|---|\n| Personal | Humano | $... |\n| Licencias | Software | $... |",
+      "evaluation": "Estrategia de evaluación. Usa **negritas** para los criterios principales.",
+      "kpis": "Lista numerada con métricas:\n1. **Retención:** 90%...\n2. **Satisfacción:** 4.5/5...",
       "phases": [
         { "title": "Fase 1: Diagnóstico", "description": "Descripción extensa de actividades...", "priority": "HIGH" },
         { "title": "Fase 2: Diseño", "description": "Descripción extensa de actividades...", "priority": "HIGH" }

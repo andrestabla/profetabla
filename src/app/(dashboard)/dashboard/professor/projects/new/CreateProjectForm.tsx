@@ -33,8 +33,8 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
             placeholders: {
                 description: "Contexto organizacional amplio. Ej: Implementación de un sistema de gestión...",
                 objectives: "Objetivo General: Lograr un resultado complejo...\nEspecíficos: Diagnosticar, Diseñar, Validar...",
-                methodology: "Fase 1: Diagnóstico\nFase 2: Diseño\nFase 3: Ejecución\nFase 4: Validación",
-                deliverables: "- Documento de Diagnóstico\n- Prototipo Funcional\n- Manual de Usuario\n- Informe de Impacto"
+                methodology: "### Fase 1: Diagnóstico\nDescripción...\n\n### Fase 2: Diseño\nDescripción...",
+                deliverables: "- **Documento** de Diagnóstico\n- **Prototipo** Funcional"
             }
         },
         CHALLENGE: {
@@ -45,9 +45,9 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
             bg: "bg-orange-50",
             border: "border-orange-200",
             placeholders: {
-                description: "Situación específica y delimitada. Ej: Optimizar el tiempo de respuesta del servidor...",
+                description: "Situación específica. Usa **negrillas** para resaltar restricciones...",
                 objectives: "Resolver el problema X reduciendo Y en Z tiempo.",
-                methodology: "1. Comprender\n2. Idear\n3. Prototipar\n4. Proponer",
+                methodology: "1. **Comprender**:...\n2. **Idear**:...\n3. **Prototipar**:...",
                 deliverables: "- Pitch de Solución\n- Prototipo Rápido"
             }
         },
@@ -59,10 +59,10 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
             bg: "bg-red-50",
             border: "border-red-200",
             placeholders: {
-                description: "Descripción basada en hechos, datos o síntomas de una disfunción...",
+                description: "Descripción basada en hechos. Puedes usar listas...",
                 objectives: "Comprender las causas raíz de X y proponer alternativas fundamentadas.",
-                methodology: "1. Recolección de Datos\n2. Análisis Causa-Efecto\n3. Contrastación Teórica\n4. Conclusiones",
-                deliverables: "- Árbol de Problemas\n- Informe Analítico\n- Matriz de Hallazgos"
+                methodology: "1. Recolección de Datos\n2. Análisis Causa-Efecto",
+                deliverables: "- Árbol de Problemas\n- Matriz de Hallazgos"
             }
         }
     };
@@ -118,11 +118,11 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                 setNativeValue('evaluation', data.evaluation || '');
                 setNativeValue('kpis', data.kpis || '');
 
-                const phasesText = data.phases.map((p: any, i: number) => `Fase ${i + 1}: ${p.title}\n- ${p.description}`).join('\n\n');
+                const phasesText = data.phases.map((p: any, i: number) => `### Fase ${i + 1}: ${p.title}\n${p.description}`).join('\n\n');
                 setNativeValue('methodology', phasesText);
 
-                const resourcesText = data.suggestedResources.map((r: any) => `- ${r.title} (${r.type})`).join('\n');
-                setNativeValue('resourcesDescription', `Recursos Sugeridos:\n${resourcesText}`);
+                const resourcesText = data.suggestedResources.map((r: any) => `- [${r.title}](${r.url}) (${r.type})`).join('\n');
+                setNativeValue('resourcesDescription', `### Recursos Sugeridos:\n${resourcesText}`);
             }
 
             setIsAIModalOpen(false);
