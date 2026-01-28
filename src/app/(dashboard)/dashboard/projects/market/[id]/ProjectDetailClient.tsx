@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import {
     Calendar, DollarSign, BarChart, ClipboardCheck,
     BookOpen, Briefcase, ChevronLeft, CheckSquare, Layers, Search,
@@ -27,6 +27,11 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
     const [activeTab, setActiveTab] = useState<'overview' | 'methodology' | 'logistics'>('overview');
     const [isPending, startTransition] = useTransition();
     const [applicationStatus, setApplicationStatus] = useState(initialStatus);
+
+    // Sync state with server prop updates (from revalidatePath)
+    useEffect(() => {
+        setApplicationStatus(initialStatus);
+    }, [initialStatus]);
 
     const handleApply = () => {
         console.log("🖱️ [Client] Postularme button clicked");
@@ -143,9 +148,37 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
                                     </div>
                                 </div>
                             )}
-                            <button className="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group text-sm">
-                                Postularme Ahora
-                                <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+                            <button
+                                type="button"
+                                onClick={handleApply}
+                                disabled={isPending || applicationStatus === 'PENDING' || applicationStatus === 'ACCEPTED'}
+                                className={`w-full py-3.5 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group text-sm disabled:opacity-80 disabled:cursor-not-allowed
+                                    ${applicationStatus === 'ACCEPTED'
+                                        ? 'bg-green-600 text-white shadow-green-900/20'
+                                        : applicationStatus === 'PENDING'
+                                            ? 'bg-yellow-500 text-white shadow-yellow-900/20'
+                                            : 'bg-slate-900 hover:bg-black text-white shadow-slate-900/20 hover:-translate-y-0.5 active:translate-y-0'
+                                    }
+                                `}
+                            >
+                                {isPending ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Enviando...
+                                    </>
+                                ) : applicationStatus === 'ACCEPTED' ? (
+                                    <>
+                                        ¡Aceptado! Ir al Dashboard <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+                                    </>
+                                ) : applicationStatus === 'PENDING' ? (
+                                    <>
+                                        Solicitud Pendiente
+                                    </>
+                                ) : (
+                                    <>
+                                        Postularme Ahora <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
