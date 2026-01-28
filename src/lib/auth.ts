@@ -120,19 +120,22 @@ export const authOptions: NextAuthOptions = {
 
                     const { cookies } = await import('next/headers');
                     const cookieStore = await cookies();
-                    const intent = cookieStore.get('auth_intent')?.value;
+                    let intent = cookieStore.get('auth_intent')?.value;
 
                     console.log(`[GoogleAuth] Email: ${user.email}, Intent Cookie: ${intent}`);
+
+                    if (!intent) {
+                        console.warn(`[GoogleAuth] Warning: Intent cookie missing for ${user.email}. Defaulting to ALLOW (register) to prevent lockout.`);
+                        intent = 'register';
+                    }
 
                     if (intent === 'login') {
                         // User is trying to login, but doesn't exist. Block.
                         console.warn(`[Auth] Blocked Google registration for ${user.email} (Intent: login)`);
                         return false;
-                        // Or better: return '/register?error=AccountNotFound' (NextAuth allows string redirect)
                     }
 
-                    // If intent is 'register' (or missing/undefined which implies maybe standard flow? No, let's be strict), 
-                    // we allow creation.
+                    // If intent is 'register' (or fallback), allow creation.
                     if (intent === 'register') {
                         const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
                         const hashedPassword = await bcrypt.hash(randomPassword, 10);
