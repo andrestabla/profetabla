@@ -10,7 +10,7 @@ import { Readable } from 'stream';
 export async function addResourceToProjectAction(formData: FormData) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || session.user.role !== 'TEACHER') return { success: false, error: 'No autorizado' };
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) return { success: false, error: 'No autorizado' };
 
         const projectId = formData.get('projectId') as string;
         const driveTitle = formData.get('driveTitle') as string;
@@ -64,7 +64,7 @@ export async function getProjectDriveFilesAction(folderId: string) {
 export async function uploadProjectFileToDriveAction(formData: FormData) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || session.user.role !== 'TEACHER') return { success: false, error: 'No autorizado' };
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) return { success: false, error: 'No autorizado' };
 
         const projectId = formData.get('projectId') as string;
         const file = formData.get('file') as File;

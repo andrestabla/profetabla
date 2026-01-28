@@ -320,8 +320,20 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                         </div>
                                     ) : (
                                         <div className="relative">
-                                            <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                                            <input name="url" required type="url" placeholder="https://..." className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                                            {resourceType === 'EMBED' ? (
+                                                <textarea
+                                                    name="url"
+                                                    required
+                                                    rows={4}
+                                                    placeholder="Pega aquí el código del iframe o embebido..."
+                                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-mono text-[10px]"
+                                                />
+                                            ) : (
+                                                <>
+                                                    <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                                                    <input name="url" required type="url" placeholder="https://..." className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                                                </>
+                                            )}
                                         </div>
                                     )}
                                 </div>
