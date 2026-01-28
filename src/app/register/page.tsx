@@ -116,8 +116,16 @@ export default function RegisterPage() {
                 <button
                     type="button"
                     onClick={async () => {
-                        await setAuthIntentAction('register');
-                        signIn('google', { callbackUrl: '/dashboard' });
+                        try {
+                            await setAuthIntentAction('register');
+                            const result = await signIn('google', { callbackUrl: '/dashboard' });
+                            if (result?.error) {
+                                setError('Error iniciando Google Sign-In: ' + result.error);
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            setError('Error de conexión o configuración con Google');
+                        }
                     }}
                     className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold py-3 rounded-lg transition-all"
                 >
