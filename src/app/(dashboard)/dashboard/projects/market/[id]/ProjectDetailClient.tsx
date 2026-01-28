@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import {
     Calendar, DollarSign, BarChart, ClipboardCheck,
     BookOpen, Briefcase, ChevronLeft, CheckSquare, Layers, Search,
@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Project } from '@prisma/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { applyToProjectAction } from '@/app/actions/project-actions';
 
 // Extend Project type to include teacher
 type ProjectWithRelations = Project & {
@@ -22,8 +23,22 @@ type ProjectWithRelations = Project & {
     learningObjects: any[];
 };
 
-export default function ProjectDetailClient({ project }: { project: ProjectWithRelations }) {
+export default function ProjectDetailClient({ project, initialStatus }: { project: ProjectWithRelations, initialStatus: string }) {
     const [activeTab, setActiveTab] = useState<'overview' | 'methodology' | 'logistics'>('overview');
+    const [isPending, startTransition] = useTransition();
+    const [applicationStatus, setApplicationStatus] = useState(initialStatus);
+
+    const handleApply = () => {
+        startTransition(async () => {
+            try {
+                await applyToProjectAction(project.id);
+                setApplicationStatus('PENDING');
+            } catch (error) {
+                console.error(error);
+                alert("Error al postularse. Inténtalo de nuevo.");
+            }
+        });
+    };
 
     const typeConfig = {
         PROJECT: { label: "Proyecto", icon: Layers, color: "text-blue-600", bg: "bg-blue-50", ring: "ring-blue-100" },
