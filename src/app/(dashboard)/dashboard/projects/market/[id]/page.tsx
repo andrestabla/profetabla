@@ -8,7 +8,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function ProjectDetailPage({ params }: { params: { id: string } }) {
+type Props = {
+    params: Promise<{ id: string }>;
+};
+
+export default async function ProjectDetailPage(props: Props) {
+    const params = await props.params;
     const session = await getServerSession(authOptions);
     if (!session) redirect('/auth/login');
 
@@ -35,7 +40,7 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
         PROBLEM: { label: "Problema", icon: Search, color: "text-red-600", bg: "bg-red-50" }
     };
 
-    const config = typeConfig[project.type] || typeConfig.PROJECT;
+    const config = typeConfig[project.type as keyof typeof typeConfig] || typeConfig.PROJECT;
 
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-8 pb-24">
