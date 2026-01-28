@@ -108,7 +108,7 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
     console.log(`Intentando generar con modelo: ${modelName}`);
 
     try {
-      // @ts-expect-error - Ignore TS check for specific SDK version features
+      // Google SDK call
       const model = genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(prompt);
       const response = await result.response;
