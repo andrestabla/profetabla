@@ -69,6 +69,61 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
 
     const currentConfig = typeConfig[type];
 
+    // AI ASSISTANT STATE
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [aiError, setAiError] = useState('');
+
+    async function handleAIGenerate() {
+        if (!aiPrompt.trim()) return;
+        setIsGenerating(true);
+        setAiError('');
+
+        try {
+            // Import dynamically to avoid server-side issues if any, though it's a server action
+            const { generateProjectStructure } = await import('@/app/actions/ai-generator');
+            const data = await generateProjectStructure(aiPrompt, type);
+
+            // Populate Form
+            const form = document.querySelector('form') as HTMLFormElement;
+            if (form) {
+                // Helper to set value and dispatch event for React
+                const setNativeValue = (name: string, value: string) => {
+                    const input = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
+                    if (input) {
+                        input.value = value;
+                        // Dispatch input event to notify React (if needed for controlled inputs, though mostly uncontrolled here)
+                        // Actually, this form seems uncontrolled (using name attributes). Direct manipulation works.
+                    }
+                };
+
+                setNativeValue('title', data.title);
+                setNativeValue('industry', data.industry);
+                setNativeValue('description', data.description);
+                setNativeValue('justification', data.justification);
+                setNativeValue('objectives', data.objectives);
+                setNativeValue('deliverables', data.deliverables);
+
+                // For methodology/phases, we format them as text
+                const phasesText = data.phases.map((p, i) => `Fase ${i + 1}: ${p.title}\n- ${p.description}`).join('\n\n');
+                setNativeValue('methodology', phasesText);
+
+                // Resources (append to resource desc or just leave for user)
+                // We'll append to justification or resourcesDescription
+                const resourcesText = data.suggestedResources.map(r => `- ${r.title} (${r.type})`).join('\n');
+                setNativeValue('resourcesDescription', `Recursos Sugeridos:\n${resourcesText}`);
+            }
+
+            setIsAIModalOpen(false);
+        } catch (error) {
+            console.error(error);
+            setAiError('Error generando contenido. Intenta de nuevo.');
+        } finally {
+            setIsGenerating(false);
+        }
+    }
+
     async function onSubmit(formData: FormData) {
         setIsSubmitting(true);
         try {
@@ -82,15 +137,72 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <header className="mb-10">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className={`p-2 rounded-lg ${currentConfig.bg}`}>
-                        <currentConfig.icon className={`w-6 h-6 ${currentConfig.color}`} />
+        <div className="max-w-4xl mx-auto p-6 relative">
+            {/* AI MODAL */}
+            {isAIModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2 text-purple-600">
+                                <Search className="w-5 h-5" />
+                                <h3 className="text-xl font-bold">Asistente IA</h3>
+                            </div>
+                            <button onClick={() => setIsAIModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                &times;
+                            </button>
+                        </div>
+
+                        <p className="text-slate-600 text-sm mb-4">
+                            Describe tu idea brevemente y la IA estructurará el {currentConfig.label.toLowerCase()} por ti.
+                        </p>
+
+                        <textarea
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                            placeholder="Ej: Crear un sistema de riego automatizado para zonas áridas en La Guajira..."
+                            className="w-full h-32 p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none resize-none mb-4"
+                            autoFocus
+                        />
+
+                        {aiError && <p className="text-red-500 text-xs mb-4">{aiError}</p>}
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsAIModalOpen(false)}
+                                className="px-4 py-2 text-slate-500 hover:text-slate-700 font-bold"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleAIGenerate}
+                                disabled={isGenerating || !aiPrompt.trim()}
+                                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                {isGenerating ? 'Analizando...' : 'Generar Estructura'}
+                            </button>
+                        </div>
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-800">Crear Nuevo {currentConfig.label}</h1>
                 </div>
-                <p className="text-slate-500">Define el alcance pedagógico seleccionando el tipo de intervención.</p>
+            )}
+
+            <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className={`p-2 rounded-lg ${currentConfig.bg}`}>
+                            <currentConfig.icon className={`w-6 h-6 ${currentConfig.color}`} />
+                        </div>
+                        <h1 className="text-3xl font-bold text-slate-800">Crear Nuevo {currentConfig.label}</h1>
+                    </div>
+                    <p className="text-slate-500">Define el alcance pedagógico seleccionando el tipo de intervención.</p>
+                </div>
+                <button
+                    onClick={() => setIsAIModalOpen(true)}
+                    className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-purple-500/25 transition-all hover:scale-105"
+                >
+                    <Search className="w-4 h-4" />
+                    Asistente IA
+                </button>
             </header>
 
             <form action={onSubmit} className="space-y-8">
