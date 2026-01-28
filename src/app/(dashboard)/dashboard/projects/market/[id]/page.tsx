@@ -32,31 +32,31 @@ export default async function ProjectDetailPage(props: Props) {
         }
     });
 
-});
 
-if (!project) notFound();
 
-// Check if current user has already applied
-const existingApplication = await prisma.projectApplication.findUnique({
-    where: {
-        projectId_studentId: {
-            projectId: project.id,
-            studentId: session.user.id
+    if (!project) notFound();
+
+    // Check if current user has already applied
+    const existingApplication = await prisma.projectApplication.findUnique({
+        where: {
+            projectId_studentId: {
+                projectId: project.id,
+                studentId: session.user.id
+            }
         }
-    }
-});
+    });
 
-// Determine current status: 'NONE' | 'PENDING' | 'ACCEPTED' | 'REJECTED'
-const applicationStatus = existingApplication ? existingApplication.status : 'NONE';
+    // Determine current status: 'NONE' | 'PENDING' | 'ACCEPTED' | 'REJECTED'
+    const applicationStatus = existingApplication ? existingApplication.status : 'NONE';
 
-// Mapping icons/colors based on type
-const typeConfig = {
-    PROJECT: { label: "Proyecto", icon: Layers, color: "text-blue-600", bg: "bg-blue-50" },
-    CHALLENGE: { label: "Reto", icon: CheckSquare, color: "text-orange-600", bg: "bg-orange-50" },
-    PROBLEM: { label: "Problema", icon: Search, color: "text-red-600", bg: "bg-red-50" }
-};
+    // Mapping icons/colors based on type
+    const typeConfig = {
+        PROJECT: { label: "Proyecto", icon: Layers, color: "text-blue-600", bg: "bg-blue-50" },
+        CHALLENGE: { label: "Reto", icon: CheckSquare, color: "text-orange-600", bg: "bg-orange-50" },
+        PROBLEM: { label: "Problema", icon: Search, color: "text-red-600", bg: "bg-red-50" }
+    };
 
-const config = typeConfig[project.type as keyof typeof typeConfig] || typeConfig.PROJECT;
+    const config = typeConfig[project.type as keyof typeof typeConfig] || typeConfig.PROJECT;
 
-return <ProjectDetailClient project={project} />;
+    return <ProjectDetailClient project={project} />;
 }
