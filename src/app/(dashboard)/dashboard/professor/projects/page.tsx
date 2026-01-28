@@ -51,6 +51,19 @@ export default async function ProfessorProjectsPage() {
                                     }`}>
                                     {project.status === 'OPEN' ? 'Abierto' : project.status === 'IN_PROGRESS' ? 'En Curso' : 'Completado'}
                                 </span>
+
+                                {/* New Type Badge */}
+                                <span className={`text-[10px] font-extrabold px-2 py-1 rounded-full uppercase tracking-wider ml-2 border ${project.type === 'CHALLENGE' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                        project.type === 'PROBLEM' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                            'bg-indigo-50 text-indigo-600 border-indigo-100' // Default PROJECT
+                                    }`}>
+                                    {project.type === 'CHALLENGE' ? 'Reto' :
+                                        project.type === 'PROBLEM' ? 'Problema' :
+                                            'Proyecto'}
+                                </span>
+
+                                <div className="flex-1"></div>
+
                                 {project.industry && (
                                     <span className="text-xs font-medium text-slate-400">
                                         {project.industry}

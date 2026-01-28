@@ -44,7 +44,8 @@ export async function GET() {
                 studentName: p.student?.name || 'Sin Asignar',
                 teacherName: p.teacher?.name || 'Sistema',
                 progress,
-                risk
+                risk,
+                type: p.type
             };
         });
 
