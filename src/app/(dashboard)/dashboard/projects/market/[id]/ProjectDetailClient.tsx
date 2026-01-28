@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import {
     Calendar, DollarSign, BarChart, ClipboardCheck,
-    BookOpen, User, Briefcase, Clock, ChevronLeft, CheckSquare, Layers, Search,
-    ChevronDown, ChevronUp, Clock3, Target, GraduationCap, Map
+    BookOpen, Briefcase, ChevronLeft, CheckSquare, Layers, Search,
+    Clock3, Target, GraduationCap, Map, Layout
 } from 'lucide-react';
 import Link from 'next/link';
 import { Project } from '@prisma/client';
@@ -31,7 +31,10 @@ export default function ProjectDetailClient({ project }: { project: ProjectWithR
         PROBLEM: { label: "Problema", icon: Search, color: "text-red-600", bg: "bg-red-50", ring: "ring-red-100" }
     };
 
-    const config = typeConfig[project.type as keyof typeof typeConfig] || typeConfig.PROJECT;
+    // Safe type fallback
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const projectType = (project as any).type || 'PROJECT';
+    const config = typeConfig[projectType as keyof typeof typeConfig] || typeConfig.PROJECT;
     const Icon = config.icon;
 
     // Helper for Markdown Styling
@@ -45,6 +48,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectWithR
                 prose-li:text-slate-600 prose-li:marker:text-blue-500
                 prose-strong:text-slate-800 prose-strong:font-bold
                 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+                prose-ul:list-disc prose-ol:list-decimal
             ">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {content}
@@ -54,9 +58,9 @@ export default function ProjectDetailClient({ project }: { project: ProjectWithR
     };
 
     return (
-        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8 pb-24 font-sans bg-slate-50/50 min-h-screen">
+        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-24 font-sans bg-slate-50/50 min-h-screen">
             {/* Navigation & Breadcrumbs */}
-            <nav className="flex items-center gap-3 text-sm text-slate-500 mb-6">
+            <nav className="flex items-center gap-3 text-sm text-slate-500 mb-2">
                 <Link href="/dashboard/projects/market" className="hover:text-slate-900 transition-colors flex items-center gap-1">
                     <ChevronLeft className="w-4 h-4" /> Volver al Mercado
                 </Link>
@@ -68,9 +72,9 @@ export default function ProjectDetailClient({ project }: { project: ProjectWithR
             <div className="relative overflow-hidden rounded-3xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-1">
                 <div className={`absolute top-0 right-0 w-96 h-96 ${config.bg} rounded-full blur-3xl opacity-30 -translate-y-1/2 translate-x-1/2`}></div>
 
-                <div className="relative p-8 md:p-10 bg-white/50 backdrop-blur-sm rounded-[20px]">
+                <div className="relative p-6 md:p-10 bg-white/50 backdrop-blur-sm rounded-[20px]">
                     <div className="flex flex-col md:flex-row gap-8 items-start">
-                        <div className="flex-1 space-y-6">
+                        <div className="flex-1 space-y-5">
                             <div className="flex items-center gap-3">
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${config.bg} ${config.color} ring-1 inset ring-black/5`}>
                                     <Icon className="w-3.5 h-3.5" />
@@ -84,30 +88,30 @@ export default function ProjectDetailClient({ project }: { project: ProjectWithR
                                 )}
                             </div>
 
-                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.1]">
+                            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-[1.1]">
                                 {project.title}
                             </h1>
 
-                            <div className="flex items-center gap-6 pt-2">
-                                <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3 bg-white/60 px-4 py-2 rounded-full border border-slate-100 shadow-sm">
                                     {project.teacher.avatarUrl ? (
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={project.teacher.avatarUrl} alt={project.teacher.name || ""} className="w-10 h-10 rounded-full object-cover ring-4 ring-white shadow-md bg-white" />
+                                        <img src={project.teacher.avatarUrl} alt={project.teacher.name || ""} className="w-8 h-8 rounded-full object-cover ring-2 ring-white" />
                                     ) : (
-                                        <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm ring-4 ring-white shadow-md">
+                                        <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs ring-2 ring-white">
                                             {(project.teacher.name || "P")[0]}
                                         </div>
                                     )}
                                     <div className="leading-tight">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Liderado por</p>
-                                        <p className="font-bold text-slate-800">{project.teacher.name}</p>
+                                        <p className="text-sm font-bold text-slate-800">{project.teacher.name}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Quick Stats / CTA Card */}
-                        <div className="w-full md:w-80 bg-white/80 backdrop-blur-md rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col gap-4 relative z-10">
+                        <div className="w-full md:w-80 bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col gap-4 relative z-10">
                             {project.schedule && (
                                 <div className="flex gap-4 items-start pb-4 border-b border-slate-100">
                                     <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600 shrink-0">
@@ -115,13 +119,13 @@ export default function ProjectDetailClient({ project }: { project: ProjectWithR
                                     </div>
                                     <div>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Duración Estimada</p>
-                                        <div className="text-sm font-semibold text-slate-700 line-clamp-3 leading-snug">
+                                        <div className="text-xs font-semibold text-slate-700 line-clamp-2 leading-snug">
                                             <MarkdownContent content={project.schedule?.split('\n')[0] || "No especificada"} />
                                         </div>
                                     </div>
                                 </div>
                             )}
-                            <button className="w-full py-4 bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group">
+                            <button className="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group text-sm">
                                 Postularme Ahora
                                 <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
                             </button>
@@ -130,160 +134,146 @@ export default function ProjectDetailClient({ project }: { project: ProjectWithR
                 </div>
             </div>
 
-            {/* Layout Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-                {/* Left Column (Navigation Tabs) - Sticky */}
-                <div className="lg:col-span-3 lg:sticky lg:top-8 space-y-1">
-                    <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 pl-6">Navegación</p>
+            {/* HORIZONTAL TABS */}
+            <div className="border-b border-slate-200">
+                <div className="flex gap-8 overflow-x-auto pb-px">
                     <button
                         onClick={() => setActiveTab('overview')}
-                        className={`w-full text-left px-6 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'overview' ? 'bg-white text-indigo-600 shadow-lg shadow-indigo-100 ring-1 ring-indigo-50' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                        className={`pb-3 text-sm font-bold transition-all whitespace-nowrap border-b-2 flex items-center gap-2 ${activeTab === 'overview'
+                            ? 'border-indigo-600 text-indigo-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
                     >
-                        <BookOpen className="w-4 h-4 opacity-70" /> Resumen General
+                        <Layout className="w-4 h-4" /> Resumen & Objetivos
                     </button>
                     <button
                         onClick={() => setActiveTab('methodology')}
-                        className={`w-full text-left px-6 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'methodology' ? 'bg-white text-orange-600 shadow-lg shadow-orange-100 ring-1 ring-orange-50' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                        className={`pb-3 text-sm font-bold transition-all whitespace-nowrap border-b-2 flex items-center gap-2 ${activeTab === 'methodology'
+                            ? 'border-orange-500 text-orange-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
                     >
-                        <Map className="w-4 h-4 opacity-70" /> Ruta de Trabajo
+                        <Map className="w-4 h-4" /> Ruta de Trabajo
                     </button>
                     <button
                         onClick={() => setActiveTab('logistics')}
-                        className={`w-full text-left px-6 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'logistics' ? 'bg-white text-emerald-600 shadow-lg shadow-emerald-100 ring-1 ring-emerald-50' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                        className={`pb-3 text-sm font-bold transition-all whitespace-nowrap border-b-2 flex items-center gap-2 ${activeTab === 'logistics'
+                            ? 'border-emerald-500 text-emerald-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
                     >
-                        <Target className="w-4 h-4 opacity-70" /> Criterios y Recursos
+                        <Target className="w-4 h-4" /> Evaluación y Recursos
                     </button>
                 </div>
+            </div>
 
-                {/* Right Column (Content) */}
-                <div className="lg:col-span-9 space-y-10 min-h-[600px]">
+            {/* TAB CONTENT AREAD (Full Width) */}
+            <div className="min-h-[500px]">
 
-                    {/* TAB: OVERVIEW */}
-                    {activeTab === 'overview' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-forwards">
+                {/* TAB: OVERVIEW */}
+                {activeTab === 'overview' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {/* Main Column */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <Target className="w-5 h-5 text-purple-600" />
+                                    Contexto y Justificación
+                                </h3>
+                                <MarkdownContent content={project.description} />
 
-                            {/* Justification Card */}
-                            <div className="bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-full blur-3xl -mr-16 -mt-16"></div>
-
-                                <div className="flex flex-col gap-6 relative">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                            <Target className="w-5 h-5 text-purple-600" />
-                                            Contexto y Justificación
-                                        </h3>
-                                        <MarkdownContent content={project.description} />
+                                {project.justification && (
+                                    <div className="mt-6 pt-6 border-t border-slate-100">
+                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Fundamentación Teórica</h4>
+                                        <MarkdownContent content={project.justification} />
                                     </div>
+                                )}
+                            </div>
+                        </div>
 
-                                    {project.justification && (
-                                        <div className="pt-6 border-t border-slate-100">
-                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Fundamentación Teórica</h4>
-                                            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                                                <MarkdownContent content={project.justification} />
-                                            </div>
-                                        </div>
-                                    )}
+                        {/* Side Column */}
+                        <div className="space-y-6">
+                            <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100">
+                                <h3 className="font-bold text-emerald-800 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                    <CheckSquare className="w-4 h-4" /> Objetivos
+                                </h3>
+                                <div className="text-emerald-900/80 text-sm">
+                                    <MarkdownContent content={project.objectives} />
                                 </div>
                             </div>
-
-                            {/* Objectives Grid */}
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <div className="bg-white p-8 rounded-3xl border border-emerald-100 shadow-sm relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                                    <h3 className="font-bold text-emerald-800 mb-4 flex items-center gap-2 relative z-10">
-                                        <CheckSquare className="w-5 h-5" /> Objetivos de Aprendizaje
-                                    </h3>
-                                    <div className="relative z-10 text-emerald-900/80">
-                                        <MarkdownContent content={project.objectives} />
-                                    </div>
-                                </div>
-                                <div className="bg-white p-8 rounded-3xl border border-blue-100 shadow-sm relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                                    <h3 className="font-bold text-blue-800 mb-4 flex items-center gap-2 relative z-10">
-                                        <GraduationCap className="w-5 h-5" /> Entregables Esperados
-                                    </h3>
-                                    <div className="relative z-10 text-blue-900/80">
-                                        <MarkdownContent content={project.deliverables} />
-                                    </div>
+                            <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
+                                <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                    <GraduationCap className="w-4 h-4" /> Entregables
+                                </h3>
+                                <div className="text-blue-900/80 text-sm">
+                                    <MarkdownContent content={project.deliverables} />
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {/* TAB: METHODOLOGY */}
-                    {activeTab === 'methodology' && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-forwards space-y-6">
-                            <div className="bg-white p-8 md:p-12 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-40 bg-orange-50/50 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-
-                                <div className="relative">
-                                    <h3 className="text-2xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-                                        <Map className="w-6 h-6 text-orange-500" />
-                                        Metodología del Proyecto
-                                    </h3>
-                                    <p className="text-slate-500 mb-8">Pasos detallados y enfoque pedagógico</p>
-
-                                    {project.methodology ? (
-                                        <div className="pl-4 border-l-2 border-orange-100 md:pl-8 md:border-l-4">
-                                            <MarkdownContent content={project.methodology} />
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                                            <p className="text-slate-400 italic">No se ha especificado una metodología detallada.</p>
-                                        </div>
-                                    )}
+                {/* TAB: METHODOLOGY */}
+                {activeTab === 'methodology' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                <Map className="w-6 h-6 text-orange-500" />
+                                Metodología Detallada
+                            </h3>
+                            {project.methodology ? (
+                                <div className="pl-4 border-l-4 border-orange-100">
+                                    <MarkdownContent content={project.methodology} />
                                 </div>
-                            </div>
+                            ) : (
+                                <p className="text-slate-400 italic">No especificada.</p>
+                            )}
+                        </div>
 
-                            {/* Schedule Card (Separate visual block) */}
+                        <div>
                             {project.schedule && (
-                                <div className="bg-slate-900 text-slate-200 p-8 md:p-10 rounded-3xl shadow-xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-slate-800 rounded-full blur-3xl -mr-20 -mt-20 opacity-50"></div>
-                                    <h3 className="font-bold text-white mb-6 flex items-center gap-2 relative relative z-10">
-                                        <Calendar className="w-5 h-5 text-blue-400" /> Cronograma Estimado
+                                <div className="bg-slate-900 text-slate-200 p-8 rounded-3xl shadow-xl sticky top-8">
+                                    <h3 className="font-bold text-white mb-6 flex items-center gap-2">
+                                        <Calendar className="w-5 h-5 text-blue-400" /> Cronograma
                                     </h3>
-                                    <div className="relative z-10 prose prose-invert prose-sm max-w-none">
+                                    <div className="prose prose-invert prose-sm max-w-none">
                                         <MarkdownContent content={project.schedule} />
                                     </div>
                                 </div>
                             )}
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {/* TAB: LOGISTICS */}
-                    {activeTab === 'logistics' && (
-                        <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-forwards">
-                            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm h-full">
+                {/* TAB: LOGISTICS */}
+                {activeTab === 'logistics' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                <ClipboardCheck className="w-5 h-5 text-indigo-500" /> Criterios de Evaluación
+                            </h3>
+                            <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-50">
+                                <MarkdownContent content={project.evaluation} />
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
                                 <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                    <ClipboardCheck className="w-5 h-5 text-indigo-500" /> Criterios de Evaluación
+                                    <BarChart className="w-5 h-5 text-pink-500" /> Indicadores (KPIs)
                                 </h3>
-                                <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-50 h-[calc(100%-4rem)]">
-                                    <MarkdownContent content={project.evaluation} />
-                                </div>
+                                <MarkdownContent content={project.kpis} />
                             </div>
 
-                            <div className="space-y-6">
-                                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-                                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                        <BarChart className="w-5 h-5 text-pink-500" /> Indicadores (KPIs)
-                                    </h3>
-                                    <MarkdownContent content={project.kpis} />
-                                </div>
-
-                                <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-3xl text-white shadow-lg">
-                                    <h3 className="font-bold mb-4 flex items-center gap-2 text-slate-200">
-                                        <DollarSign className="w-5 h-5 text-emerald-400" /> Presupuesto & Recursos
-                                    </h3>
-                                    <div className="text-slate-300 text-sm">
-                                        <MarkdownContent content={project.budget} />
-                                    </div>
+                            <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-3xl text-white shadow-lg">
+                                <h3 className="font-bold mb-4 flex items-center gap-2 text-slate-200">
+                                    <DollarSign className="w-5 h-5 text-emerald-400" /> Presupuesto & Recursos
+                                </h3>
+                                <div className="text-slate-300 text-sm">
+                                    <MarkdownContent content={project.budget} />
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                </div>
             </div>
         </div>
     );
