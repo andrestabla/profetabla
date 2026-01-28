@@ -42,11 +42,16 @@ export async function addResourceToProjectAction(formData: FormData) {
         console.log('Recurso creado con éxito en la base de datos');
     } catch (e: any) {
         console.error('Error al crear recurso en DB:', e);
-        throw new Error(`Error de base de datos: ${e.message}`);
+        throw new Error(`Database error: ${e.message}`);
     }
 
-    // Recargamos la página del proyecto para mostrar el nuevo recurso sin recargar el navegador
-    revalidatePath(`/dashboard/professor/projects/${projectId}`);
+    try {
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+    } catch (e) {
+        console.error('Revalidation error (non-fatal):', e);
+    }
+
+    return { success: true };
 }
 
 export async function getProjectDriveFilesAction(folderId: string) {
@@ -56,21 +61,24 @@ export async function getProjectDriveFilesAction(folderId: string) {
     try {
         const files = await listProjectFiles(folderId);
         console.log(`Encontrados ${files.length} archivos en Drive`);
-        return files;
+        return files || [];
     } catch (e: any) {
         console.error('Error al listar archivos de Drive:', e);
-        throw new Error(`Error de Drive: ${e.message}`);
+        throw new Error(`Drive listing error: ${e.message}`);
     }
 }
 
 export async function uploadProjectFileToDriveAction(formData: FormData) {
+    console.log('--- uploadProjectFileToDriveAction ---');
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'TEACHER') throw new Error('No autorizado');
 
     const projectId = formData.get('projectId') as string;
     const file = formData.get('file') as File;
 
-    if (!file) throw new Error('No se proporcionó ningún archivo');
+    if (!file || !projectId) {
+        throw new Error('Faltan datos requeridos (archivo o projectId)');
+    }
 
     const project = await prisma.project.findUnique({
         where: { id: projectId },
@@ -86,18 +94,23 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
     const buffer = Buffer.from(arrayBuffer);
     const stream = Readable.from(buffer);
 
-    console.log(`Subiendo archivo "${file.name}" de tipo "${file.type}" a la carpeta "${(project as any).googleDriveFolderId}"`);
+    console.log(`Subiendo archivo "${file.name}" a Drive...`);
 
-    const uploadedFile = await uploadFileToDrive(
-        (project as any).googleDriveFolderId,
-        file.name,
-        file.type,
-        stream
-    );
+    let uploadedFile;
+    try {
+        uploadedFile = await uploadFileToDrive(
+            (project as any).googleDriveFolderId,
+            file.name,
+            file.type,
+            stream
+        );
+    } catch (e: any) {
+        console.error('Error en uploadFileToDrive:', e);
+        throw new Error(`Drive upload error: ${e.message}`);
+    }
 
-    if (!uploadedFile) {
-        console.error("Fallo la subida a Drive: uploadFileToDrive retornó null");
-        throw new Error('Error al subir el archivo a Google Drive (Servicio no disponible)');
+    if (!uploadedFile || !uploadedFile.webViewLink) {
+        throw new Error('Error al obtener el enlace del archivo subido');
     }
 
     // Automatically create the resource link
@@ -109,16 +122,21 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
             data: {
                 title: file.name,
                 type: 'DRIVE',
-                url: uploadedFile.webViewLink!,
+                url: uploadedFile.webViewLink,
                 projectId,
                 categoryId: categoryId
             }
         });
     } catch (dbError: any) {
         console.error("Error al guardar el recurso en la base de datos:", dbError);
-        throw new Error(`Archivo subido a Drive pero falló el guardado en DB: ${dbError.message}`);
+        throw new Error(`Database error after upload: ${dbError.message}`);
     }
 
-    revalidatePath(`/dashboard/professor/projects/${projectId}`);
+    try {
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+    } catch (e) {
+        console.error('Revalidation error (non-fatal):', e);
+    }
+
     return { success: true, file: uploadedFile };
 }

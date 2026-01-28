@@ -72,53 +72,56 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
 
     return (
         <div className="max-w-6xl mx-auto p-6">
-            {/* Cabecera del Proyecto */}
+            {/* Cabecera del Proyecto - Rediseñada */}
             <header className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                    <div>
-                        <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2 inline-block">
-                            {project.industry || 'Proyecto Institucional'}
-                        </span>
-                        <h1 className="text-2xl font-bold text-slate-800">{project.title}</h1>
-                        <p className="text-slate-500 font-medium flex items-center gap-2 mt-1">
-                            Estudiante: <span className="text-slate-700 font-bold">{project.student?.name || 'Sin Asignar'}</span>
-                        </p>
+                <div className="flex flex-col gap-6">
+                    {/* Título y Acciones Superiores */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2 inline-block">
+                                {project.industry || 'Proyecto Institucional'}
+                            </span>
+                            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{project.title}</h1>
+                            <p className="text-slate-500 font-medium flex items-center gap-2 mt-1">
+                                Estudiante: <span className="text-slate-700 font-bold">{project.student?.name || 'Sin Asignar'}</span>
+                            </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Link
+                                href={`/dashboard/professor/projects/${project.id}/edit`}
+                                className="flex items-center gap-2 px-4 py-2 text-slate-600 font-bold bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all text-xs"
+                            >
+                                <Edit3 className="w-4 h-4" /> Editar Metadatos
+                            </Link>
+
+                            {project.googleDriveFolderId && (
+                                <a
+                                    href={`https://drive.google.com/drive/folders/${project.googleDriveFolderId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-2 text-blue-600 font-bold bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-all text-xs"
+                                >
+                                    <Cloud className="w-4 h-4" /> Drive del Proyecto
+                                </a>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={`/dashboard/professor/projects/${project.id}/edit`}
-                            className="flex items-center gap-2 px-4 py-2 text-slate-600 font-bold bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all text-sm"
-                        >
-                            <Edit3 className="w-4 h-4" /> Editar Metadatos
-                        </Link>
-
-                        {project.googleDriveFolderId && (
-                            <a
-                                href={`https://drive.google.com/drive/folders/${project.googleDriveFolderId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 text-blue-600 font-bold bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-all text-sm"
-                            >
-                                <Cloud className="w-4 h-4" /> Drive del Proyecto
-                            </a>
-                        )}
-
-                        {/* Navegación de Pestañas */}
-                        <div className="flex bg-slate-100 p-1 rounded-xl">
-                            <button onClick={() => setActiveTab('KANBAN')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'KANBAN' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                                <Kanban className="w-4 h-4" /> Kanban
-                            </button>
-                            <button onClick={() => setActiveTab('RESOURCES')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'RESOURCES' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                                <BookOpen className="w-4 h-4" /> Recursos
-                            </button>
-                            <button onClick={() => setActiveTab('MENTORSHIP')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'MENTORSHIP' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                                <Calendar className="w-4 h-4" /> Mentorías
-                            </button>
-                            <button onClick={() => setActiveTab('ASSIGNMENTS')} className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${activeTab === 'ASSIGNMENTS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                                <FileCheck className="w-4 h-4" /> Entregables
-                            </button>
-                        </div>
+                    {/* Navegación de Pestañas (Debajo del Título) */}
+                    <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+                        <button onClick={() => setActiveTab('KANBAN')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'KANBAN' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <Kanban className="w-4 h-4" /> Kanban
+                        </button>
+                        <button onClick={() => setActiveTab('RESOURCES')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'RESOURCES' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <BookOpen className="w-4 h-4" /> Recursos
+                        </button>
+                        <button onClick={() => setActiveTab('MENTORSHIP')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'MENTORSHIP' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <Calendar className="w-4 h-4" /> Mentorías
+                        </button>
+                        <button onClick={() => setActiveTab('ASSIGNMENTS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'ASSIGNMENTS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <FileCheck className="w-4 h-4" /> Entregables
+                        </button>
                     </div>
                 </div>
 
