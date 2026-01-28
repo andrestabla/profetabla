@@ -203,3 +203,44 @@ export async function generateProjectStructure(
 
   return { success: false, error: `Error: Todos los modelos fallaron.${availableModelsMsg} Detalles técnicos: [${fullLog}]` };
 }
+
+export async function extractOAMetadata(content: string): Promise<{
+  title: string;
+  subject: string;
+  competency?: string;
+  keywords: string[];
+  description: string;
+} | null> {
+  const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
+  const apiKey = config?.geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
+  if (!apiKey) return null;
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: config?.geminiModel || "gemini-1.5-flash" });
+
+  const prompt = `
+    Analiza el siguiente contenido extraído de un documento y genera los metadatos para un "Objeto de Aprendizaje" (OA).
+    Responde ÚNICAMENTE con un JSON con esta estructura:
+    {
+      "title": "Título sugerido",
+      "subject": "Materia o área de conocimiento",
+      "competency": "Competencia que desarrolla (opcional)",
+      "keywords": ["palabra1", "palabra2"],
+      "description": "Descripción resumida y clara"
+    }
+
+    CONTENIDO:
+    ${content.substring(0, 10000)}
+    `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(jsonString);
+  } catch (e) {
+    console.error("Error extracting OA metadata:", e);
+    return null;
+  }
+}

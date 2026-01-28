@@ -73,3 +73,31 @@ export async function listProjectFiles(folderId: string) {
         return [];
     }
 }
+
+/**
+ * Gets the content of a file for AI processing.
+ */
+export async function getFileContent(fileId: string, mimeType: string) {
+    try {
+        const drive = await getDriveClient();
+
+        if (mimeType.includes('google-apps.document')) {
+            const response = await drive.files.export({
+                fileId: fileId,
+                mimeType: 'text/plain',
+            }, { responseType: 'text' });
+            return response.data as string;
+        }
+
+        // For other files, we just return the name for now if we can't parse content easily
+        const file = await drive.files.get({
+            fileId: fileId,
+            fields: 'name,description'
+        });
+        return `Nombre del archivo: ${file.data.name}\nDescripción: ${file.data.description || 'Sin descripción'}`;
+
+    } catch (error) {
+        console.error("Error fetching file content:", error);
+        return null;
+    }
+}

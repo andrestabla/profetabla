@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Save, ArrowLeft, Plus, Trash2, FileText, Video, Link as LinkIcon, Box } from 'lucide-react';
+import { BookOpen, Save, ArrowLeft, Plus, Trash2, FileText, Video, Link as LinkIcon, Box, Cloud, Sparkles, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { DrivePickerModal } from './DrivePickerModal';
+import { processDriveFileForOAAction } from '@/app/actions/oa-actions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function OAForm({ initialData, action }: { initialData?: any, action: (fd: FormData) => Promise<void> }) {
@@ -14,6 +16,17 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
     const [newItemUrl, setNewItemUrl] = useState('');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [newItemType, setNewItemType] = useState<any>('VIDEO');
+
+    // AI & Drive states
+    const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+    const [isExtractingMetadata, setIsExtractingMetadata] = useState(false);
+
+    // Main form fields for AI auto-fill
+    const [title, setTitle] = useState(initialData?.title || '');
+    const [subject, setSubject] = useState(initialData?.subject || '');
+    const [competency, setCompetency] = useState(initialData?.competency || '');
+    const [keywords, setKeywords] = useState(initialData?.keywords?.join(', ') || '');
+    const [description, setDescription] = useState(initialData?.description || '');
 
     const handleAddItem = () => {
         if (!newItemTitle || !newItemUrl) {
@@ -29,6 +42,33 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
         setItems(items.filter((i: { id: string }) => i.id !== id));
     };
 
+    const handleDriveFileSelected = async (file: any) => {
+        setIsDriveModalOpen(false);
+        setNewItemTitle(file.name);
+        setNewItemUrl(file.webViewLink);
+
+        // AI Extraction
+        setIsExtractingMetadata(true);
+        try {
+            const aiData = await processDriveFileForOAAction(file.id, file.mimeType);
+            if (aiData) {
+                // Pre-fill main form!
+                if (!title) setTitle(aiData.title);
+                if (!subject) setSubject(aiData.subject);
+                if (!competency && aiData.competency) setCompetency(aiData.competency);
+                if (!keywords) setKeywords(aiData.keywords.join(', '));
+                if (!description) setDescription(aiData.description);
+
+                // Also update the item title to be more specific if AI suggests something better
+                setNewItemTitle(aiData.title);
+            }
+        } catch (e) {
+            console.error("AI Extraction failed", e);
+        } finally {
+            setIsExtractingMetadata(false);
+        }
+    };
+
     return (
         <form action={async (fd) => { setIsSaving(true); await action(fd); }} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {initialData && <input type="hidden" name="id" value={initialData.id} />}
@@ -41,23 +81,23 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Título del OA *</label>
-                            <input name="title" defaultValue={initialData?.title} required placeholder="Ej: Fundamentos React" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <input name="title" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Ej: Fundamentos React" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Materia / Categoría *</label>
-                            <input name="subject" defaultValue={initialData?.subject} required placeholder="Ej: Frontend" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <input name="subject" value={subject} onChange={e => setSubject(e.target.value)} required placeholder="Ej: Frontend" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Competencia (Opcional)</label>
-                            <input name="competency" defaultValue={initialData?.competency} placeholder="Ej: Implementar Hooks" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <input name="competency" value={competency} onChange={e => setCompetency(e.target.value)} placeholder="Ej: Implementar Hooks" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Keywords (Separa por comas)</label>
-                            <input name="keywords" defaultValue={initialData?.keywords?.join(', ')} placeholder="react, hooks, state" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <input name="keywords" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="react, hooks, state" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Descripción</label>
-                            <textarea name="description" defaultValue={initialData?.description} rows={3} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
+                            <textarea name="description" value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
                         </div>
                     </div>
                 </div>
@@ -105,13 +145,29 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                                     <option value="LINK">Enlace Externo</option>
                                 </select>
                             </div>
-                            <div className="md:col-span-4">
+                            <div className="md:col-span-4 flex gap-2">
                                 <input
                                     value={newItemUrl} onChange={(e) => setNewItemUrl(e.target.value)}
-                                    placeholder="URL del recurso (Youtube, PDF link, Drive link...)"
-                                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                                    placeholder={newItemType === 'DRIVE' ? "Selecciona un archivo de Drive..." : "URL del recurso (Youtube, PDF link, Drive link...)"}
+                                    readOnly={newItemType === 'DRIVE'}
+                                    className="flex-1 px-3 py-2 border rounded-lg text-sm bg-white"
                                 />
+                                {newItemType === 'DRIVE' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDriveModalOpen(true)}
+                                        className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-200 transition-colors"
+                                    >
+                                        <Cloud className="w-4 h-4" /> Seleccionar
+                                    </button>
+                                )}
                             </div>
+                            {isExtractingMetadata && (
+                                <div className="md:col-span-4 bg-purple-50 p-3 rounded-lg border border-purple-100 flex items-center gap-3 animate-pulse">
+                                    <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />
+                                    <span className="text-xs font-bold text-purple-700">Asistente IA está analizando el documento y extrayendo metadatos...</span>
+                                </div>
+                            )}
                         </div>
                         <div className="flex justify-end">
                             <button type="button" onClick={handleAddItem} className="bg-blue-600 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
@@ -140,6 +196,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                                             {item.type === 'VIDEO' && <Video className="w-3 h-3" />}
                                             {item.type === 'PDF' && <FileText className="w-3 h-3" />}
                                             {item.type === 'LINK' && <LinkIcon className="w-3 h-3" />}
+                                            {item.type === 'DRIVE' && <Cloud className="w-3 h-3 text-blue-500" />}
                                             <span className="truncate max-w-[200px]">{item.url}</span>
                                         </div>
                                     </div>
@@ -159,6 +216,12 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                     <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
                 </div>
             </div>
+
+            <DrivePickerModal
+                isOpen={isDriveModalOpen}
+                onClose={() => setIsDriveModalOpen(false)}
+                onSelect={handleDriveFileSelected}
+            />
         </form>
     );
 }
