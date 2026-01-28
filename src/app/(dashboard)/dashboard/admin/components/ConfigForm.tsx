@@ -192,7 +192,7 @@ export function ConfigForm({ config }: { config: any }) {
                     <h3 className="font-bold text-slate-800 flex items-center gap-2">
                         <Cloud className="w-5 h-5 text-blue-500" /> Google Drive (Recursos)
                     </h3>
-                    <StatusBadge isConfigured={!!config?.googleDriveClientId} />
+                    <StatusBadge isConfigured={!!config?.googleDriveClientId || !!config?.googleDriveServiceAccountJson} />
                 </div>
                 <IntegrationGuide type="GOOGLE_DRIVE" />
                 <p className="text-xs text-slate-500">
