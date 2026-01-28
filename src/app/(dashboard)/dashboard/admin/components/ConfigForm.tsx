@@ -129,6 +129,39 @@ export function ConfigForm({ config }: { config: any }) {
                         </optgroup>
                     </select>
                 </div>
+
+                {/* Advanced AI Behavior */}
+                <div className="pt-2 border-t border-dashed">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Instrucciones del Sistema (System Prompt)</label>
+                    <textarea
+                        name="aiInstructions"
+                        defaultValue={config?.aiInstructions || 'Actúa como un experto Diseñador Instruccional...'}
+                        className="w-full px-3 py-2 border rounded-lg text-sm h-24"
+                        placeholder="Define la personalidad y el rol de la IA..."
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Define el &quot;Rol&quot; base de la IA para todos los proyectos.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tono de Respuesta</label>
+                        <select name="aiTone" defaultValue={config?.aiTone || 'ACADEMIC'} className="w-full px-3 py-2 border rounded-lg">
+                            <option value="ACADEMIC">Académico / Formal</option>
+                            <option value="CREATIVE">Creativo / Innovador</option>
+                            <option value="PROFESSIONAL">Corporativo / Profesional</option>
+                            <option value="SIMPLE">Sencillo / Explicativo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Acceso a Web (Grounding)</label>
+                        <div className="flex items-center h-10">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="aiSearchEnabled" defaultChecked={config?.aiSearchEnabled} className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500" />
+                                <span className="text-sm text-slate-700">Habilitar Búsqueda</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* 2. Asistente SSO Google */}

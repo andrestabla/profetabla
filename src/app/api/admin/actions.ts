@@ -42,6 +42,11 @@ export async function updatePlatformConfigAction(formData: FormData) {
             smtpUser: formData.get('smtpUser') as string,
             smtpSenderName: formData.get('smtpSenderName') as string,
             smtpFrom: formData.get('smtpFrom') as string,
+
+            // AI Behavior Config
+            aiInstructions: formData.get('aiInstructions') as string,
+            aiTone: formData.get('aiTone') as string,
+            aiSearchEnabled: formData.get('aiSearchEnabled') === 'on',
         };
 
         // Only update password if provided

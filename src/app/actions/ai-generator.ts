@@ -44,19 +44,28 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
   const genAI = new GoogleGenerativeAI(apiKey);
 
   // 2. El Prompt de Ingeniería Pedagógica
+  const systemRole = config?.aiInstructions || "Actúa como un Diseñador Instruccional Senior.";
+  const tone = config?.aiTone === 'CREATIVE' ? 'Creativo, Innovador, Disruptivo' :
+    config?.aiTone === 'PROFESSIONAL' ? 'Ejecutivo, Directo, Profesional' :
+      config?.aiTone === 'SIMPLE' ? 'Sencillo, Claro, Explicativo' :
+        'Académico, Analítico, Riguroso'; // Default ACADEMIC
+
   const prompt = `
-    Actúa como un Diseñador Instruccional Senior.
+    ${systemRole}
+    
+    ESTILO Y TONO: ${tone}
+    
+    TAREA:
     Estructura una propuesta para un **${type}** sobre: "${userIdea}"
     
-    Requisitos: Tono académico, analítico. Objetivos Bloom.
-    
+    FORMATO DE SALIDA (JSON ESTRICTO):
     Responde ÚNICAMENTE con este JSON (sin markdown):
     {
       "title": "Título",
       "industry": "Industria",
       "description": "Resumen",
       "justification": "Fundamentación",
-      "objectives": "Objetivos",
+      "objectives": "Objetivos (Taxonomía de Bloom)",
       "deliverables": "Entregables",
       "phases": [
         { "title": "Fase 1", "description": "Actividad", "priority": "HIGH" }
@@ -99,7 +108,7 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
     console.log(`Intentando generar con modelo: ${modelName}`);
 
     try {
-      // @ts-ignore
+      // @ts-expect-error - Ignore TS check for specific SDK version features
       const model = genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(prompt);
       const response = await result.response;

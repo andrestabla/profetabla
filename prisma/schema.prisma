@@ -503,6 +503,11 @@ model PlatformConfig {
   geminiApiKey       String?
   geminiModel        String   @default("gemini-pro")
   
+  // New AI Behavior Config
+  aiInstructions     String?  @db.Text @default("Actúa como un experto Diseñador Instruccional...")
+  aiTone             String   @default("ACADEMIC") // ACADEMIC, CREATIVE, PROFESSIONAL
+  aiSearchEnabled    Boolean  @default(false)
+  
   // Google SSO
   googleClientId     String?
   googleClientSecret String?
