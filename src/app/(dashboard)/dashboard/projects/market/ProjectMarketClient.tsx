@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Briefcase, BookOpen, Target, Send, User, Loader2, Plus } from 'lucide-react';
-import { applyToProjectAction } from './actions';
+import { Search, Layers, CheckSquare, User, Plus } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -24,12 +22,10 @@ type ProjectWithTeacher = {
 };
 
 export default function ProjectMarketClient({ availableProjects }: { availableProjects: ProjectWithTeacher[] }) {
-    // REMOVED MODAL STATE
     const { data: session } = useSession();
     const canCreate = session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN';
-    const router = useRouter(); // Added useRouter
 
-    // Mapping icons/colors based on type (Keep this for the card design)
+    // Mapping icons/colors based on type
     const typeConfig = {
         PROJECT: { label: "Proyecto", icon: Layers, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
         CHALLENGE: { label: "Reto", icon: CheckSquare, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
@@ -52,9 +48,6 @@ export default function ProjectMarketClient({ availableProjects }: { availablePr
                     </Link>
                 )}
             </header>
-
-            {/* Barra de Búsqueda y Filtros - REMOVED */}
-            {/* The search bar and filter section was removed as per the instruction's implied changes */}
 
             {/* Grid de Proyectos */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -115,30 +108,10 @@ export default function ProjectMarketClient({ availableProjects }: { availablePr
 
                 {availableProjects.length === 0 && (
                     <div className="col-span-full py-12 text-center text-slate-400">
-                        rows={4}
-                        required
-                        placeholder="Explícale al profesor por qué te interesa este proyecto y qué valor puedes aportar..."
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                ></textarea>
-                            </div>
-
-            <div className="flex gap-4">
-                <button type="button" onClick={() => setSelectedProject(null)} className="flex-1 py-3 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors">
-                    Cancelar
-                </button>
-                <button
-                    type="submit"
-                    disabled={isApplying}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg disabled:opacity-50 transition-all"
-                >
-                    {isApplying ? <Loader2 className="animate-spin" /> : <><Send className="w-5 h-5" /> Enviar Postulación</>}
-                </button>
+                        No hay proyectos disponibles en este momento.
+                    </div>
+                )}
             </div>
-        </form>
-                    </div >
-                </div >
-            )
-}
-        </div >
+        </div>
     );
 }
