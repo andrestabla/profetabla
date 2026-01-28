@@ -56,6 +56,50 @@ export const authOptions: NextAuthOptions = {
         })
     ],
     callbacks: {
+        async signIn({ user, account, profile }) {
+            if (account?.provider === 'google') {
+                if (!user.email) return false;
+
+                try {
+                    const existingUser = await prisma.user.findUnique({
+                        where: { email: user.email }
+                    });
+
+                    if (existingUser) {
+                        // Update existing user avatar/name if changed
+                        await prisma.user.update({
+                            where: { id: existingUser.id },
+                            data: {
+                                name: user.name || existingUser.name,
+                                avatarUrl: user.image || existingUser.avatarUrl,
+                            }
+                        });
+                        return true;
+                    }
+
+                    // Create new user
+                    // Generate a random password since schema requires it
+                    const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+                    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+                    await prisma.user.create({
+                        data: {
+                            email: user.email,
+                            name: user.name || 'Usuario Google',
+                            avatarUrl: user.image,
+                            password: hashedPassword,
+                            role: 'STUDENT', // Default role
+                            isActive: true
+                        }
+                    });
+                    return true;
+                } catch (error) {
+                    console.error("Error creating google user:", error);
+                    return false;
+                }
+            }
+            return true;
+        },
         async session({ session, token }) {
             if (session?.user) {
                 session.user.id = token.id as string;
@@ -63,11 +107,20 @@ export const authOptions: NextAuthOptions = {
             }
             return session;
         },
-        async jwt({ token, user }) {
-            if (user) {
-                token.id = user.id;
-                // @ts-expect-error - Custom role in user
-                token.role = user.role;
+        async jwt({ token, user, trigger, session }) {
+            // Force fetch user from DB to ensure we have the correct ID and Role (especially for new Google users)
+            // 'user' param is present only on initial sign in
+            const email = token.email || user?.email;
+
+            if (email) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { email: email }
+                });
+
+                if (dbUser) {
+                    token.id = dbUser.id;
+                    token.role = dbUser.role;
+                }
             }
             return token;
         }
