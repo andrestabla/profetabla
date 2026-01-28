@@ -107,6 +107,7 @@ export async function getFileContent(fileId: string, mimeType: string) {
  */
 export async function uploadFileToDrive(folderId: string, fileName: string, mimeType: string, body: any) {
     try {
+        console.log(`Iniciando uploadFileToDrive para "${fileName}" en folder "${folderId}"`);
         const drive = await getDriveClient();
 
         const fileMetadata = {
@@ -125,6 +126,8 @@ export async function uploadFileToDrive(folderId: string, fileName: string, mime
             fields: 'id, name, webViewLink',
         });
 
+        console.log(`Archivo creado en Drive. ID: ${response.data.id}`);
+
         // Set permissions to anyone with link (optional, but useful for resources)
         await drive.permissions.create({
             fileId: response.data.id!,
@@ -134,9 +137,11 @@ export async function uploadFileToDrive(folderId: string, fileName: string, mime
             },
         });
 
+        console.log(`Permisos 'anyone' establecidos para ${response.data.id}`);
+
         return response.data;
     } catch (error) {
         console.error("Error uploading file to Google Drive:", error);
-        return null;
+        throw error; // Throw so actions catch it
     }
 }

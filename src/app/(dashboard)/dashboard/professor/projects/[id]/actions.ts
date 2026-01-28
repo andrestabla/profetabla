@@ -17,26 +17,50 @@ export async function addResourceToProjectAction(formData: FormData) {
     const type = formData.get('type') as string;
     const url = formData.get('url') as string;
 
-    // Creamos el recurso atado específicamente a este proyecto
-    await prisma.resource.create({
-        data: {
-            title,
-            type,
-            url,
-            projectId, // <-- EL PUNTO CLAVE: El contexto pedagógico
-            // Categoría por defecto para simplificar. Buscamos cualquiera o creamos 'General' si no existe.
-            categoryId: (await prisma.resourceCategory.findFirst())?.id || (await prisma.resourceCategory.create({ data: { name: 'General' } })).id
-        }
-    });
+    console.log('--- addResourceToProjectAction ---');
+    console.log('Project:', projectId, 'Title:', title, 'Type:', type, 'URL:', url);
+
+    if (!projectId || !title || !url) {
+        console.error('Faltan datos requeridos en addResourceToProjectAction');
+        throw new Error(`Faltan datos requeridos: ${!projectId ? 'ProjectID ' : ''}${!title ? 'Title ' : ''}${!url ? 'URL' : ''}`);
+    }
+
+    try {
+        const category = await prisma.resourceCategory.findFirst();
+        const categoryId = category?.id || (await prisma.resourceCategory.create({ data: { name: 'General' } })).id;
+
+        // Creamos el recurso atado específicamente a este proyecto
+        await prisma.resource.create({
+            data: {
+                title,
+                type,
+                url,
+                projectId,
+                categoryId: categoryId
+            }
+        });
+        console.log('Recurso creado con éxito en la base de datos');
+    } catch (e: any) {
+        console.error('Error al crear recurso en DB:', e);
+        throw new Error(`Error de base de datos: ${e.message}`);
+    }
 
     // Recargamos la página del proyecto para mostrar el nuevo recurso sin recargar el navegador
     revalidatePath(`/dashboard/professor/projects/${projectId}`);
 }
 
 export async function getProjectDriveFilesAction(folderId: string) {
+    console.log('--- getProjectDriveFilesAction ---', folderId);
     const session = await getServerSession(authOptions);
     if (!session) throw new Error('No autorizado');
-    return await listProjectFiles(folderId);
+    try {
+        const files = await listProjectFiles(folderId);
+        console.log(`Encontrados ${files.length} archivos en Drive`);
+        return files;
+    } catch (e: any) {
+        console.error('Error al listar archivos de Drive:', e);
+        throw new Error(`Error de Drive: ${e.message}`);
+    }
 }
 
 export async function uploadProjectFileToDriveAction(formData: FormData) {
