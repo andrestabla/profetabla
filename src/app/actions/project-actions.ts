@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { sendEmail } from '@/lib/email';
 
 export async function createProjectAction(formData: FormData) {
     const session = await getServerSession(authOptions);
@@ -127,6 +128,34 @@ export async function applyToProjectAction(projectId: string) {
             status: 'PENDING'
         }
     });
+
+    // Notify Teacher
+    try {
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            include: { teacher: true }
+        });
+
+        if (project && project.teacher.email) {
+            await sendEmail({
+                to: project.teacher.email,
+                subject: `Nueva Postulación: ${project.title}`,
+                html: `
+                    <div style="font-family: sans-serif;">
+                        <h2>¡Un estudiante se ha postulado!</h2>
+                        <p><strong>${session.user.name}</strong> quiere unirse a tu proyecto/reto:</p>
+                        <h3 style="color: #2563EB;">${project.title}</h3>
+                        <p>Visita tu Panel de Profesor para revisar y aceptar la solicitud.</p>
+                        <br/>
+                        <a href="${process.env.NEXTAUTH_URL}/dashboard/professor/projects/${projectId}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;">Ir al Proyecto</a>
+                    </div>
+                `
+            });
+        }
+    } catch (emailError) {
+        console.error("Error sending notification email:", emailError);
+        // Don't fail the action if email fails
+    }
 
     revalidatePath(`/dashboard/projects/market/${projectId}`);
 }
