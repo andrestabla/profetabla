@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle, UserPlus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
-import { setAuthIntentAction } from '@/app/actions/auth-actions';
+
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -117,7 +117,12 @@ export default function RegisterPage() {
                     type="button"
                     onClick={async () => {
                         try {
-                            await setAuthIntentAction('register');
+                            await fetch('/api/auth/intent', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ intent: 'register' })
+                            });
+
                             const result = await signIn('google', { callbackUrl: '/dashboard' });
                             if (result?.error) {
                                 setError('Error iniciando Google Sign-In: ' + result.error);

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { setAuthIntentAction } from '@/app/actions/auth-actions';
+
 
 export function LoginForm() {
     const router = useRouter();
@@ -91,7 +91,12 @@ export function LoginForm() {
                 type="button"
                 onClick={async () => {
                     try {
-                        await setAuthIntentAction('login');
+                        await fetch('/api/auth/intent', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ intent: 'login' })
+                        });
+
                         const result = await signIn('google', { callbackUrl: '/dashboard' });
                         if (result?.error) {
                             setError('Error iniciando Google Sign-In: ' + result.error);
