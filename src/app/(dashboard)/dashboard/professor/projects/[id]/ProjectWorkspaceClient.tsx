@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload } from 'lucide-react';
+import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2 } from 'lucide-react';
 import Link from 'next/link';
-import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction } from './actions';
+import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, extractResourceMetadataAction } from './actions';
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
 import { SubmissionCard } from '@/components/SubmissionCard';
@@ -14,6 +14,8 @@ type Resource = {
     title: string;
     url: string;
     type: string;
+    presentation?: string | null;
+    utility?: string | null;
     createdAt: Date;
 };
 
@@ -44,6 +46,14 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [isLoadingDrive, setIsLoadingDrive] = useState(false);
     const [selectedDriveFile, setSelectedDriveFile] = useState<{ title: string, url: string } | null>(null);
     const [driveMode, setDriveMode] = useState<'LINK' | 'UPLOAD'>('LINK');
+    const [viewerResource, setViewerResource] = useState<Resource | null>(null);
+    const [isExtracting, setIsExtracting] = useState(false);
+
+    // Metadata form states
+    const [metaTitle, setMetaTitle] = useState('');
+    const [metaPresentation, setMetaPresentation] = useState('');
+    const [metaUtility, setMetaUtility] = useState('');
+    const [metaUrl, setMetaUrl] = useState('');
 
     // Fetch drive files if configured
     const handleFetchDriveFiles = async () => {
@@ -59,8 +69,6 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         }
     };
 
-    // Iconos por tipo de recurso
-
     const ResourceIcon = ({ type }: { type: string }) => {
         switch (type) {
             case 'VIDEO': return <Video className="w-5 h-5 text-red-500" />;
@@ -73,17 +81,16 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
 
     return (
         <div className="max-w-6xl mx-auto p-6">
-            {/* Cabecera del Proyecto - Rediseñada */}
+            {/* Cabecera del Proyecto */}
             <header className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
                 <div className="flex flex-col gap-6">
-                    {/* Título y Acciones Superiores */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2 inline-block">
                                 {project.industry || 'Proyecto Institucional'}
                             </span>
                             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{project.title}</h1>
-                            <p className="text-slate-500 font-medium flex items-center gap-2 mt-1">
+                            <p className="text-slate-500 font-medium flex items-center gap-2 mt-1 text-sm">
                                 Estudiante: <span className="text-slate-700 font-bold">{project.student?.name || 'Sin Asignar'}</span>
                             </p>
                         </div>
@@ -109,7 +116,6 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                         </div>
                     </div>
 
-                    {/* Navegación de Pestañas (Debajo del Título) */}
                     <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
                         <button onClick={() => setActiveTab('KANBAN')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'KANBAN' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <Kanban className="w-4 h-4" /> Kanban
@@ -126,7 +132,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                     </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100">
+                <div className="pt-4 border-t border-slate-100 mt-4">
                     <button
                         onClick={() => setShowContext(!showContext)}
                         className="text-xs font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors"
@@ -154,323 +160,251 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                     {project.methodology || 'No definido'}
                                 </div>
                             </div>
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Cronograma (Plazos)</h4>
-                                <div className="text-sm text-slate-600 whitespace-pre-wrap bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    {project.schedule || 'Sin cronograma'}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Recursos Humanos y Materiales</h4>
-                                <div className="text-sm text-slate-600 whitespace-pre-wrap bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    {project.resourcesDescription || 'No definido'}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Presupuesto</h4>
-                                <div className="text-sm text-slate-600 whitespace-pre-wrap bg-slate-50 p-3 rounded-xl border border-slate-100 text-emerald-700">
-                                    {project.budget || 'No definido'}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Sistema de Evaluación</h4>
-                                <div className="text-sm text-slate-600 whitespace-pre-wrap bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    {project.evaluation || 'No definido'}
-                                </div>
-                            </div>
-                            <div className="md:col-span-1">
-                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Indicadores (KPIs)</h4>
-                                <div className="text-sm text-blue-700 font-bold bg-blue-50 p-3 rounded-xl border border-blue-100">
-                                    {project.kpis || 'No definidos'}
-                                </div>
-                            </div>
                         </div>
                     )}
                 </div>
-            </header >
+            </header>
 
-            {/* CONTENIDO DE LA PESTAÑA RECURSOS */}
-            {
-                activeTab === 'RESOURCES' && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                        {/* Formulario para Añadir Recurso */}
-                        <div className="md:col-span-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-fit">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <Plus className="w-5 h-5 text-blue-600" /> Añadir Material
-                            </h3>
-                            <form action={async (formData) => {
-                                setIsUploading(true);
-                                try {
-                                    let result;
-                                    if (resourceType === 'DRIVE' && driveMode === 'UPLOAD') {
-                                        result = await uploadProjectFileToDriveAction(formData);
-                                    } else {
-                                        result = await addResourceToProjectAction(formData);
-                                    }
-
-                                    if (result?.success === false) {
-                                        alert(`Error: ${result.error}`);
-                                    } else {
-                                        // Limpiar formulario o feedback de éxito si es necesario
-                                        setSelectedDriveFile(null);
-                                    }
-                                } catch (e: any) {
-                                    console.error(e);
-                                    alert(`Crash crítico: ${e.message || 'Error desconocido'}`);
-                                } finally {
-                                    setIsUploading(false);
+            {/* TAB: RECURSOS */}
+            {activeTab === 'RESOURCES' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Formulario */}
+                    <div className="md:col-span-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-fit">
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <Plus className="w-5 h-5 text-blue-600" /> Añadir Material
+                        </h3>
+                        <form action={async (formData) => {
+                            setIsUploading(true);
+                            try {
+                                let result;
+                                if (resourceType === 'DRIVE' && driveMode === 'UPLOAD') {
+                                    result = await uploadProjectFileToDriveAction(formData);
+                                } else {
+                                    result = await addResourceToProjectAction(formData);
                                 }
-                            }} className="space-y-4">
-                                <input type="hidden" name="projectId" value={project.id} />
+                                if (result?.success === false) {
+                                    alert(`Error: ${result.error}`);
+                                } else {
+                                    setMetaTitle(''); setMetaPresentation(''); setMetaUtility(''); setMetaUrl(''); setSelectedDriveFile(null);
+                                }
+                            } catch (e: any) {
+                                alert(`Crash crítico: ${e.message || 'Error desconocido'}`);
+                            } finally {
+                                setIsUploading(false);
+                            }
+                        }} className="space-y-4">
+                            <input type="hidden" name="projectId" value={project.id} />
 
-                                {resourceType !== 'DRIVE' && (
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Título del Recurso</label>
-                                        <input name="title" required placeholder="Ej: Guía de Arquitectura" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
-                                    </div>
-                                )}
-
+                            {resourceType !== 'DRIVE' && (
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
-                                    <select
-                                        name="type"
-                                        value={resourceType}
-                                        onChange={(e) => {
-                                            setResourceType(e.target.value);
-                                            if (e.target.value === 'DRIVE' && driveFiles.length === 0) {
-                                                handleFetchDriveFiles();
-                                            }
-                                        }}
-                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-medium text-slate-700 text-sm"
-                                    >
-                                        <option value="ARTICLE">📖 Artículo / Blog</option>
-                                        <option value="VIDEO">▶️ Video</option>
-                                        <option value="EMBED">✨ Embeb</option>
-                                        <option value="DRIVE">📁 Google Drive</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                                        {resourceType === 'DRIVE' ? 'Documento de Drive' : 'URL o Enlace'}
-                                    </label>
-                                    {resourceType === 'DRIVE' ? (
-                                        <div className="space-y-2">
-                                            {project.googleDriveFolderId ? (
-                                                <>
-                                                    <div className="flex p-0.5 bg-slate-100 rounded-lg mb-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDriveMode('LINK')}
-                                                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${driveMode === 'LINK' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                                                        >
-                                                            <LinkIcon className="w-3 h-3" /> Vincular
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDriveMode('UPLOAD')}
-                                                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${driveMode === 'UPLOAD' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                                                        >
-                                                            <Upload className="w-3 h-3" /> Cargar
-                                                        </button>
-                                                    </div>
-
-                                                    {driveMode === 'LINK' ? (
-                                                        <select
-                                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-700"
-                                                            onChange={(e) => {
-                                                                const file = driveFiles.find(f => f.id === e.target.value);
-                                                                if (file) {
-                                                                    setSelectedDriveFile({ title: file.name, url: file.webViewLink! });
-                                                                } else {
-                                                                    setSelectedDriveFile(null);
-                                                                }
-                                                            }}
-                                                        >
-                                                            <option value="">Selecciona un archivo...</option>
-                                                            {driveFiles.map(file => (
-                                                                <option key={file.id} value={file.id}>{file.name}</option>
-                                                            ))}
-                                                        </select>
-                                                    ) : (
-                                                        <div className="space-y-2">
-                                                            <input
-                                                                type="file"
-                                                                name="file"
-                                                                required={driveMode === 'UPLOAD'}
-                                                                className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                                            />
-                                                            <p className="text-[10px] text-slate-400">El archivo se subirá automáticamente a la carpeta de Drive del proyecto.</p>
-                                                        </div>
-                                                    )}
-                                                    {isLoadingDrive && <p className="text-[10px] text-blue-500 animate-pulse">Cargando archivos de Drive...</p>}
-                                                    {!isLoadingDrive && driveFiles.length === 0 && (
-                                                        <p className="text-[10px] text-slate-400">No se encontraron archivos en la carpeta del proyecto.</p>
-                                                    )}
-                                                    <input type="hidden" name="url" value={selectedDriveFile?.url || ''} />
-                                                    {/* We override the title input value if a file is selected */}
-                                                    <input type="hidden" name="driveTitle" value={selectedDriveFile?.title || ''} />
-                                                </>
-                                            ) : (
-                                                <p className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100 italic">
-                                                    Este proyecto no tiene carpeta de Drive vinculada.
-                                                </p>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="relative">
-                                            {resourceType === 'EMBED' ? (
-                                                <textarea
-                                                    name="url"
-                                                    required
-                                                    rows={4}
-                                                    placeholder="Pega aquí el código del iframe o embebido..."
-                                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-mono text-[10px]"
-                                                />
-                                            ) : (
-                                                <>
-                                                    <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                                                    <input name="url" required type="url" placeholder="https://..." className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <button disabled={isUploading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-50">
-                                    {isUploading ? 'Guardando...' : 'Publicar Recurso'}
-                                </button>
-                            </form>
-                        </div>
-
-                        {/* Lista de Recursos del Proyecto */}
-                        <div className="md:col-span-2 space-y-8">
-                            {/* SECCIÓN: OBJETOS DE APRENDIZAJE (HU-06) */}
-                            {learningObjects.length > 0 && (
-                                <section>
-                                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                        <Sparkles className="w-5 h-5 text-amber-500" /> Contenido Sugerido por el Docente
-                                    </h3>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {learningObjects.map((oa) => (
-                                            <Link
-                                                key={oa.id}
-                                                href={`/dashboard/learning/object/${oa.id}`}
-                                                className="bg-gradient-to-r from-indigo-50 to-white p-4 rounded-xl border border-indigo-100 shadow-sm hover:shadow-md transition-all flex items-center gap-4 group"
-                                            >
-                                                <div className="p-3 bg-white rounded-lg border border-indigo-200 group-hover:scale-110 transition-transform">
-                                                    <BookOpen className="w-5 h-5 text-indigo-600" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter">OA • {oa.subject}</span>
-                                                        <h4 className="font-bold text-slate-800 leading-tight">{oa.title}</h4>
-                                                    </div>
-                                                    <p className="text-xs text-slate-500 mt-1 line-clamp-1">{oa.description}</p>
-                                                </div>
-                                                <div className="bg-white px-3 py-1 rounded-full text-[10px] font-bold text-indigo-600 border border-indigo-100">
-                                                    Comenzar →
-                                                </div>
-                                            </Link>
-                                        ))}
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="block text-xs font-bold text-slate-500 uppercase">Enlace</label>
+                                        <button
+                                            type="button"
+                                            disabled={isExtracting || (!metaUrl && resourceType !== 'EMBED')}
+                                            onClick={async () => {
+                                                setIsExtracting(true);
+                                                try {
+                                                    const result = await extractResourceMetadataAction(metaUrl, resourceType);
+                                                    if (result.success && result.data) {
+                                                        setMetaTitle(result.data.title);
+                                                        setMetaPresentation(result.data.presentation);
+                                                        setMetaUtility(result.data.utility);
+                                                    } else {
+                                                        alert(result.error || "No se pudo extraer metadatos");
+                                                    }
+                                                } finally {
+                                                    setIsExtracting(false);
+                                                }
+                                            }}
+                                            className="text-[10px] flex items-center gap-1 text-blue-600 font-bold disabled:opacity-50"
+                                        >
+                                            <Wand2 className="w-3 h-3" /> {isExtracting ? 'Analizando...' : 'Extraer con IA'}
+                                        </button>
                                     </div>
-                                </section>
+                                    <div className="relative">
+                                        {resourceType === 'EMBED' ? (
+                                            <textarea name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required rows={3} placeholder="<iframe>...</iframe>" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-[10px]" />
+                                        ) : (
+                                            <>
+                                                <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                                                <input name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required type="url" placeholder="https://..." className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             )}
 
-                            <section>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                        <FileText className="w-5 h-5 text-blue-600" /> Material de Apoyo
-                                    </h3>
-                                    <Link
-                                        href={`/dashboard/professor/projects/${project.id}/learning`}
-                                        className="text-xs font-bold text-blue-600 hover:underline"
-                                    >
-                                        Gestionar Curaduría OA
-                                    </Link>
-                                </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
+                                <select name="type" value={resourceType} onChange={(e) => { setResourceType(e.target.value); if (e.target.value === 'DRIVE' && driveFiles.length === 0) handleFetchDriveFiles(); }} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                                    <option value="ARTICLE">📖 Artículo / Blog</option>
+                                    <option value="VIDEO">▶️ Video</option>
+                                    <option value="EMBED">✨ Embeb</option>
+                                    <option value="DRIVE">📁 Google Drive</option>
+                                </select>
+                            </div>
 
-                                {resources.length === 0 ? (
-                                    <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-12 rounded-xl text-center text-slate-400 font-medium">
-                                        <BookOpen className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                                        Aún no hay recursos adicionales.
+                            {resourceType === 'DRIVE' && project.googleDriveFolderId && (
+                                <div className="space-y-2">
+                                    <div className="flex p-0.5 bg-slate-100 rounded-lg">
+                                        <button type="button" onClick={() => setDriveMode('LINK')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md ${driveMode === 'LINK' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Vincular</button>
+                                        <button type="button" onClick={() => setDriveMode('UPLOAD')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md ${driveMode === 'UPLOAD' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Cargar</button>
                                     </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {resources.map(resource => (
-                                            <div key={resource.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex items-center gap-4">
-                                                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                                    <ResourceIcon type={resource.type} />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-slate-800 leading-tight">{resource.title}</h4>
-                                                    <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1 font-medium">
-                                                        <LinkIcon className="w-3 h-3" /> Ver recurso completo
-                                                    </a>
-                                                </div>
-                                                <div className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded">
-                                                    {new Date(resource.createdAt).toLocaleDateString()}
+                                    {driveMode === 'LINK' ? (
+                                        <select className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" onChange={(e) => { const file = driveFiles.find(f => f.id === e.target.value); if (file) { setSelectedDriveFile({ title: file.name, url: file.webViewLink! }); setMetaTitle(file.name); } }}>
+                                            <option value="">Selecciona un archivo...</option>
+                                            {driveFiles.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                        </select>
+                                    ) : (
+                                        <input type="file" name="file" required className="w-full text-xs" />
+                                    )}
+                                    <input type="hidden" name="url" value={selectedDriveFile?.url || metaUrl} />
+                                    <input type="hidden" name="driveTitle" value={selectedDriveFile?.title || ''} />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre</label>
+                                <input name="title" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} required placeholder="Ej: Guía de Introducción" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Presentación</label>
+                                <textarea name="presentation" value={metaPresentation} onChange={(e) => setMetaPresentation(e.target.value)} rows={2} placeholder="¿Qué es este material?" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Utilidad</label>
+                                <textarea name="utility" value={metaUtility} onChange={(e) => setMetaUtility(e.target.value)} rows={2} placeholder="¿Para qué sirve?" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" />
+                            </div>
+
+                            <button disabled={isUploading} className="w-full bg-slate-900 border border-slate-800 text-white font-bold py-2.5 rounded-lg disabled:opacity-50">
+                                {isUploading ? 'Guardando...' : 'Publicar Recurso'}
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Lista */}
+                    <div className="md:col-span-2 space-y-8">
+                        {learningObjects.length > 0 && (
+                            <section>
+                                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 italic">Contenido Sugerido</h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {learningObjects.map((oa) => (
+                                        <Link key={oa.id} href={`/dashboard/learning/object/${oa.id}`} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
+                                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100"><BookOpen className="w-5 h-5 text-indigo-600" /></div>
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-slate-800 leading-tight">{oa.title}</h4>
+                                                <p className="text-xs text-slate-500 line-clamp-1">{oa.description}</p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        <section>
+                            <h3 className="font-bold text-slate-800 mb-4 flex justify-between items-center">
+                                <span className="flex items-center gap-2"><FileText className="w-5 h-5 text-blue-600" /> Material de Apoyo</span>
+                                <Link href={`/dashboard/professor/projects/${project.id}/learning`} className="text-[10px] text-blue-600 uppercase font-bold">Curaduría OA</Link>
+                            </h3>
+                            <div className="space-y-4">
+                                {resources.length === 0 ? <p className="text-center py-10 text-slate-400 italic">No hay recursos aún.</p> : resources.map(r => (
+                                    <div key={r.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 bg-slate-50 rounded-lg"><ResourceIcon type={r.type} /></div>
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-slate-800 text-sm">{r.title}</h4>
+                                                <div className="flex gap-4 mt-1">
+                                                    <button onClick={() => setViewerResource(r)} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><Play className="w-3 h-3" /> Ver en visor</button>
+                                                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-slate-400 hover:underline flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Original</a>
                                                 </div>
                                             </div>
-                                        ))}
+                                            <span className="text-[10px] text-slate-300">{new Date(r.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                        {(r.presentation || r.utility) && (
+                                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-50 text-[10px]">
+                                                {r.presentation && <div className="text-slate-500 italic">&ldquo;{r.presentation}&rdquo;</div>}
+                                                {r.utility && <div className="text-slate-700 font-medium">{r.utility}</div>}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </section>
-                        </div>
-
-                    </div>
-                )
-            }
-
-            {
-                activeTab === 'KANBAN' && (
-                    <div className="mt-8 text-center p-12 bg-slate-50 rounded-xl border border-dashed text-slate-400">
-                        <Kanban className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                        <p>El tablero Kanban del proyecto se cargará aquí.</p>
-                        <a href={`/dashboard/professor/projects/${project.id}/kanban`} className="text-blue-600 underline text-sm mt-2 inline-block">Ir a vista completa</a>
-                    </div>
-                )
-            }
-
-            {
-                activeTab === 'MENTORSHIP' && (
-                    <div className="mt-8">
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">Mentorías del Proyecto</h3>
-                            <p className="text-slate-500 text-sm">Reserva espacios exclusivos para resolver bloqueos de este reto.</p>
-                        </div>
-                        <BookingList defaultProjectId={project.id} />
-                    </div>
-                )
-            }
-            {
-                activeTab === 'ASSIGNMENTS' && (
-                    <div className="space-y-6">
-                        <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                            <div>
-                                <h3 className="text-xl font-bold text-slate-800">Entregables y Hitos</h3>
-                                <p className="text-slate-500 text-sm">Gestiona los envíos oficiales para la validación de tu proyecto.</p>
+                                ))}
                             </div>
-                            <CreateAssignmentForm projectId={project.id} />
+                        </section>
+                    </div>
+                </div>
+            )}
+
+            {/* TAB: KANBAN */}
+            {activeTab === 'KANBAN' && (
+                <div className="mt-8 text-center p-12 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400">
+                    <Kanban className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                    <p className="font-medium text-sm">El tablero Kanban del proyecto se cargará aquí.</p>
+                    <a href={`/dashboard/professor/projects/${project.id}/kanban`} className="text-blue-600 underline text-xs mt-2 inline-block font-bold">Ir a vista completa →</a>
+                </div>
+            )}
+
+            {/* TAB: MENTORSHIP */}
+            {activeTab === 'MENTORSHIP' && (
+                <div className="mt-8">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
+                        <h3 className="text-xl font-bold text-slate-800">Mentorías</h3>
+                        <p className="text-slate-500 text-sm">Reserva espacios exclusivos para este proyecto.</p>
+                    </div>
+                    <BookingList defaultProjectId={project.id} />
+                </div>
+            )}
+
+            {/* TAB: ASSIGNMENTS */}
+            {activeTab === 'ASSIGNMENTS' && (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-800">Entregables</h3>
+                            <p className="text-slate-500 text-sm">Gestiona los envíos oficiales.</p>
                         </div>
+                        <CreateAssignmentForm projectId={project.id} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {assignments.length === 0 ? (
+                            <div className="md:col-span-2 text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-400">No hay entregables.</div>
+                        ) : assignments.map((a: any) => <SubmissionCard key={a.id} assignment={a} />)}
+                    </div>
+                </div>
+            )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {assignments.length === 0 ? (
-                                <div className="md:col-span-2 text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                                    <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                                    <p className="text-slate-500 font-medium">No se han definido entregables aún.</p>
+            {/* MODAL DEL VISOR */}
+            {viewerResource && (
+                <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-10 animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white w-full max-w-6xl h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
+                            <div className="flex items-center gap-3">
+                                <ResourceIcon type={viewerResource.type} />
+                                <div>
+                                    <h3 className="font-bold text-slate-900 text-sm leading-none">{viewerResource.title}</h3>
+                                    <p className="text-[10px] text-slate-500 mt-1">{viewerResource.type} • {new Date(viewerResource.createdAt).toLocaleDateString()}</p>
                                 </div>
+                            </div>
+                            <button onClick={() => setViewerResource(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5 text-slate-400" /></button>
+                        </div>
+                        <div className="flex-1 bg-black relative">
+                            {viewerResource.type === 'VIDEO' ? (
+                                <iframe src={viewerResource.url.replace('watch?v=', 'embed/').split('&')[0]} className="w-full h-full" allowFullScreen allow="autoplay; encrypted-media" />
+                            ) : viewerResource.type === 'EMBED' ? (
+                                <div className="w-full h-full bg-white p-4 overflow-auto items-center justify-center flex" dangerouslySetInnerHTML={{ __html: viewerResource.url }} />
                             ) : (
-
-                                assignments.map((assignment: any) => (
-                                    <SubmissionCard key={assignment.id} assignment={assignment} />
-                                ))
+                                <iframe src={viewerResource.url} className="w-full h-full border-0 bg-white" title={viewerResource.title} />
                             )}
                         </div>
+                        {viewerResource.presentation && (
+                            <div className="p-4 bg-white border-t border-slate-100 grid grid-cols-2 gap-6">
+                                <div><h5 className="text-[8px] font-bold text-slate-400 uppercase mb-1">Presentación</h5><p className="text-xs text-slate-600 italic">&ldquo;{viewerResource.presentation}&rdquo;</p></div>
+                                <div><h5 className="text-[8px] font-bold text-slate-400 uppercase mb-1">Utilidad</h5><p className="text-xs text-slate-700 font-medium">{viewerResource.utility}</p></div>
+                            </div>
+                        )}
                     </div>
-                )
-            }
-        </div >
+                </div>
+            )}
+        </div>
     );
 }

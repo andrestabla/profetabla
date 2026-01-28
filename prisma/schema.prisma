@@ -111,6 +111,8 @@ model Resource {
   id           String                @id @default(uuid())
   title        String
   description  String?
+  presentation String?
+  utility      String?
   url          String
   type         String                @default("ARTICLE")
   projectId    String?
