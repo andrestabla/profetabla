@@ -138,6 +138,22 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
   // Si salimos del loop, todos fallaron
   console.error("Todos los modelos fallaron. Logs:", errorLogs);
 
+  // DIAGNÓSTICO FINAL: Listar modelos disponibles para esta Key
+  let availableModelsMsg = "";
+  try {
+    const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (listResponse.ok) {
+      const data = await listResponse.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const names = (data.models || []).map((m: any) => m.name.replace('models/', ''));
+      availableModelsMsg = ` | Modelos Disponibles en tu cuenta: [${names.join(', ')}]`;
+    } else {
+      availableModelsMsg = " | No se pudo obtener la lista de modelos (Error de conexión o permisos).";
+    }
+  } catch (e) {
+    console.error("Error diagnosticando modelos:", e);
+  }
+
   // Construir mensaje detallado para el usuario
   const fullLog = errorLogs.join(" | ");
 
@@ -145,5 +161,5 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
     return { success: false, error: "Error: API Key inválida o sin permisos." };
   }
 
-  return { success: false, error: `Error: Todos los modelos fallaron. Detalles: [${fullLog}]` };
+  return { success: false, error: `Error: Todos los modelos fallaron.${availableModelsMsg} Detalles técnicos: [${fullLog}]` };
 }
