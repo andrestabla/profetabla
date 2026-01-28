@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle } from 'lucide-react';
-
+import { setAuthIntentAction } from '@/app/actions/auth-actions';
 
 export function LoginForm() {
     const router = useRouter();
@@ -89,8 +89,8 @@ export function LoginForm() {
 
             <button
                 type="button"
-                onClick={() => {
-                    document.cookie = "auth_intent=login; path=/; max-age=300; SameSite=Lax";
+                onClick={async () => {
+                    await setAuthIntentAction('login');
                     signIn('google', { callbackUrl: '/dashboard' });
                 }}
                 className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold py-3 rounded-lg transition-all"
