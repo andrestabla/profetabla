@@ -22,6 +22,8 @@ export async function PATCH(
                 ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
                 ...(isApproved !== undefined && { isApproved }),
                 ...(approvalNotes !== undefined && { approvalNotes }),
+                ...(body.deliverable !== undefined && { deliverable: body.deliverable }),
+                ...(body.evaluationCriteria !== undefined && { evaluationCriteria: body.evaluationCriteria }),
             },
         });
 

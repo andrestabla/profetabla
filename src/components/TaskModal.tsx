@@ -19,6 +19,8 @@ interface Task {
     status: string;
     priority: 'LOW' | 'MEDIUM' | 'HIGH';
     dueDate: string | null;
+    deliverable: string | null;
+    evaluationCriteria: string | null;
     isApproved: boolean;
     approvalNotes: string | null;
     comments: Comment[];
@@ -39,6 +41,9 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
     const [description, setDescription] = useState(task.description || '');
     const [priority, setPriority] = useState(task.priority);
     const [dueDate, setDueDate] = useState(task.dueDate ? task.dueDate.split('T')[0] : '');
+    const [deliverable, setDeliverable] = useState(task.deliverable || '');
+    const [evaluationCriteria, setEvaluationCriteria] = useState(task.evaluationCriteria || '');
+
     const [newComment, setNewComment] = useState('');
     const [comments, setComments] = useState<Comment[]>(task.comments || []);
     const [isApproved, setIsApproved] = useState(task.isApproved);
@@ -53,7 +58,9 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                 title,
                 description,
                 priority,
-                dueDate: dueDate || null
+                dueDate: dueDate || null,
+                deliverable,
+                evaluationCriteria
             })
         });
         const updated = await res.json();
@@ -197,6 +204,26 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                                     />
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Extended Details (New) */}
+                        <div className="pt-4 border-t border-slate-100">
+                            <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Entregable</label>
+                            <input
+                                type="text"
+                                value={deliverable}
+                                onChange={(e) => setDeliverable(e.target.value)}
+                                placeholder="Ej: Documento PDF, Diagrama..."
+                                className="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-md px-2 py-1.5 mb-4"
+                            />
+
+                            <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Criterios de Valoración</label>
+                            <textarea
+                                value={evaluationCriteria}
+                                onChange={(e) => setEvaluationCriteria(e.target.value)}
+                                className="w-full text-slate-600 text-sm bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none resize-none h-24"
+                                placeholder="Ej: Cumple formato IEEE, Sin errores..."
+                            />
                         </div>
 
                         {/* Approval (Teacher Feature) */}

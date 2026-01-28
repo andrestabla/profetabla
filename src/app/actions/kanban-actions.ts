@@ -8,6 +8,8 @@ export type AITask = {
     title: string;
     description: string;
     priority: 'HIGH' | 'MEDIUM' | 'LOW';
+    deliverable: string;
+    evaluationCriteria: string;
 };
 
 export async function generateTasksFromProject(projectId: string): Promise<{ success: boolean; count?: number; error?: string }> {
@@ -38,25 +40,27 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
 
         // 3. Construct Prompt
         const prompt = `
-            ACT AS: Senior Project Manager & Agile Coach.
+            ROL: Senior Project Manager & Agile Coach (Español).
             
-            CONTEXT:
-            Project Title: "${project.title}"
-            Description: "${project.description || 'N/A'}"
-            Objectives: "${project.objectives || 'N/A'}"
-            Methodology: "${project.methodology || 'N/A'}"
-            Deliverables: "${project.deliverables || 'N/A'}"
+            CONTEXTO DEL PROYECTO:
+            Título: "${project.title}"
+            Descripción: "${project.description || 'N/A'}"
+            Objetivos: "${project.objectives || 'N/A'}"
+            Metodología: "${project.methodology || 'N/A'}"
+            Entregables Generales: "${project.deliverables || 'N/A'}"
 
-            TASK:
-            Break down this project into 5 to 8 concrete, actionable, and essential tasks for the initial phase.
-            These tasks will be added to a Kanban board in the "TODO" column.
+            TAREA:
+            Desglosa este proyecto en 5 a 8 tareas esenciales, accionables y concretas para la fase inicial.
+            Estas tareas irán al tablero Kanban en "Por Hacer". TODA LA SALIDA DEBE SER EN ESPAÑOL.
             
-            OUTPUT FORMAT (JSON ONLY, NO MARKDOWN):
+            FORMATO DE SALIDA (JSON ÚNICAMENTE):
             [
                 {
-                    "title": "Short, action-oriented title (max 50 chars)",
-                    "description": "Clear instruction of what needs to be done.",
-                    "priority": "HIGH" | "MEDIUM" | "LOW"
+                    "title": "Título corto y orientado a la acción (máx 50 caracteres)",
+                    "description": "Instrucción clara de qué hacer.",
+                    "priority": "HIGH" | "MEDIUM" | "LOW",
+                    "deliverable": "El producto tangible de esta tarea (ej: Documento PDF, Diagrama, Código)",
+                    "evaluationCriteria": "Criterio breve para aprobar la tarea (ej: Cumple formato IEEE, Sin errores de compilación)"
                 }
             ]
         `;
@@ -110,6 +114,8 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
                 title: t.title,
                 description: t.description,
                 priority: t.priority,
+                deliverable: t.deliverable || null,
+                evaluationCriteria: t.evaluationCriteria || null,
                 status: 'TODO',
                 projectId: projectId,
                 createdAt: new Date(),
