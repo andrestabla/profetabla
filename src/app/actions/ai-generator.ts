@@ -82,9 +82,11 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
   ];
 
   // Eliminar duplicados manteniendo el orden de prioridad
+  // Eliminar duplicados manteniendo el orden de prioridad
   const uniqueModels = Array.from(new Set(candidateModels));
 
-  let lastError = null;
+  let firstError: Error | null = null;
+  let lastError: Error | null = null;
 
   // 3. Intento de Generación con Fallback
   for (const modelName of uniqueModels) {
@@ -106,6 +108,7 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
 
       if (firstBrace === -1 || lastBrace === -1) {
         console.error(`Invalid JSON from ${modelName}:`, text);
+        // Si el formato es malo, lanzamos error para que el fallback intente otro modelo (tal vez pro es mejor formateando)
         throw new Error("Formato JSON inválido");
       }
 
@@ -116,16 +119,20 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
 
     } catch (error: any) {
       console.warn(`Fallo con modelo ${modelName}:`, error.message);
+      if (!firstError) firstError = error; // Guardamos el primer error (el del modelo preferido)
       lastError = error;
       // Continuar al siguiente modelo
     }
   }
 
   // Si salimos del loop, todos fallaron
-  const msg = lastError?.message || "Error desconocido";
-  console.error("Todos los modelos fallaron. Último error:", msg);
+  // Reportamos el PRIMER error porque es el más relevante (el modelo que debería haber funcionado)
+  const relevantError = firstError || lastError!;
+  const msg = relevantError.message || "Error desconocido";
+
+  console.error("Todos los modelos fallaron. Error relevante:", msg);
 
   if (msg.includes("API key")) return { success: false, error: "Error de Configuración: API Key inválida." };
 
-  return { success: false, error: `Error generando (Todos los modelos fallaron). Último: ${msg}` };
+  return { success: false, error: `Error generando: ${msg}` };
 }
