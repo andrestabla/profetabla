@@ -25,6 +25,9 @@ export async function createProjectAction(formData: FormData) {
     const evaluation = formData.get('evaluation') as string;
     const kpis = formData.get('kpis') as string;
 
+    // Get selected OAs
+    const selectedOAs = formData.getAll('selectedOAs') as string[];
+
     await prisma.project.create({
         data: {
             title,
@@ -40,7 +43,10 @@ export async function createProjectAction(formData: FormData) {
             evaluation,
             kpis,
             teacherId: session.user.id,
-            status: 'OPEN' // Default status
+            status: 'OPEN',
+            learningObjects: {
+                connect: selectedOAs.map(id => ({ id }))
+            }
         }
     });
 
