@@ -90,7 +90,15 @@ export function TeacherDashboard({ user, stats, pendingActions, todaySlots }: Te
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-sm font-bold text-slate-800">Nueva solicitud de {app.student.name}</p>
-                                        <p className="text-xs text-slate-500">Para: {app.project.title}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${app.project.type === 'CHALLENGE' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                                    app.project.type === 'PROBLEM' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                                        'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                                }`}>
+                                                {app.project.type === 'CHALLENGE' ? 'RETO' : app.project.type === 'PROBLEM' ? 'PROBLEMA' : 'PROY'}
+                                            </span>
+                                            <p className="text-xs text-slate-500 line-clamp-1">Para: {app.project.title}</p>
+                                        </div>
                                     </div>
                                     <ChevronRight className="w-5 h-5 text-slate-300" />
                                 </Link>

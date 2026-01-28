@@ -58,9 +58,19 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
                         </div>
 
                         <div className="relative z-10">
-                            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block">
-                                {project.industry || 'Proyecto Actual'}
-                            </span>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                                    {project.industry || 'General'}
+                                </span>
+                                <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border ${project.type === 'CHALLENGE' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                        project.type === 'PROBLEM' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                            'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                    }`}>
+                                    {project.type === 'CHALLENGE' ? 'Reto' :
+                                        project.type === 'PROBLEM' ? 'Problema' :
+                                            'Proyecto'}
+                                </span>
+                            </div>
                             <h2 className="text-2xl font-bold text-slate-800 mb-4">{project.title}</h2>
                             <p className="text-slate-500 mb-8 line-clamp-2 max-w-2xl">{project.description}</p>
 
