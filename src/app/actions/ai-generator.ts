@@ -9,9 +9,14 @@ export type AIProjectStructure = {
   title: string;           // Título académico sugerido
   industry: string;        // Industria inferida
   description: string;     // Descripción general del contexto
-  justification: string;   // Fundamentación pedagógica / Planteamiento del problema
-  objectives: string;      // Objetivos (Taxonomía de Bloom)
-  deliverables: string;    // Entregables esperados
+  justification: string;   // Fundamentación pedagógica
+  objectives: string;      // Texto completo de objetivos (General y Específicos)
+  methodology: string;     // Descripción metodológica o fases resumidas
+  deliverables: string;    // Lista detallada de entregables
+  schedule: string;        // Cronograma estimado (fases y tiempos)
+  budget: string;          // Presupuesto y recursos estimados
+  evaluation: string;      // Sistema de evaluación
+  kpis: string;            // Indicadores clave de desempeño
   phases: {
     title: string;
     description: string;
@@ -22,12 +27,6 @@ export type AIProjectStructure = {
     url: string;
     type: 'ARTICLE' | 'VIDEO' | 'PDF';
   }[];
-};
-
-export type AIResponse = {
-  success: boolean;
-  data?: AIProjectStructure;
-  error?: string;
 };
 
 export async function generateProjectStructure(
@@ -68,24 +67,31 @@ export async function generateProjectStructure(
     ${systemRole}
     
     ESTILO Y TONO: ${tone} ${searchPrompt}
+    INSTRUCCIÓN CLAVE: SE EXHAUSTIVO, DETALLADO Y EXTENSO. NO DEJES CAMPOS VACÍOS.
     
     TAREA:
-    Estructura una propuesta para un **${type}** sobre: "${userIdea}"
+    Estructura una propuesta COMPLETA y DETALLADA para un **${type}** sobre: "${userIdea}"
     
     FORMATO DE SALIDA (JSON ESTRICTO):
-    Responde ÚNICAMENTE con este JSON (sin markdown):
+    Responde ÚNICAMENTE con este JSON (sin markdown). Asegúrate de que los campos de texto (description, objectives, etc.) sean STRINGS largos y detallados, no objetos ni arrays.
+    
     {
-      "title": "Título",
-      "industry": "Industria",
-      "description": "Resumen",
-      "justification": "Fundamentación",
-      "objectives": "Objetivos (Taxonomía de Bloom)",
-      "deliverables": "Entregables",
+      "title": "Título Académico Profesional",
+      "industry": "Industria / Sector Específico",
+      "description": "Descripción detallada del contexto, problema y oportunidad (mínimo 3 párrafos).",
+      "justification": "Fundamentación teórica y práctica robusta del por qué de este proyecto.",
+      "objectives": "Objetivo General: [Verbo]... \n\nObjetivos Específicos:\n- [Verbo]...\n- [Verbo]...",
+      "deliverables": "Lista detallada de productos tangibles e intangibles.",
+      "schedule": "Fase 1 (Semanas 1-2): ... \nFase 2 (Semanas 3-4): ...",
+      "budget": "Recursos Humanos: ... \nMateriales: ... \nPresupuesto Estimado: ...",
+      "evaluation": "Estrategia de evaluación formativa y sumativa detallada.",
+      "kpis": "1. Indicador de Impacto... \n2. Indicador de Proceso... \n3. Indicador de Resultado...",
       "phases": [
-        { "title": "Fase 1", "description": "Actividad", "priority": "HIGH" }
+        { "title": "Fase 1: Diagnóstico", "description": "Descripción extensa de actividades...", "priority": "HIGH" },
+        { "title": "Fase 2: Diseño", "description": "Descripción extensa de actividades...", "priority": "HIGH" }
       ],
       "suggestedResources": [
-        { "title": "Recurso", "url": "", "type": "ARTICLE" }
+        { "title": "Título del Recurso", "url": "https://...", "type": "ARTICLE" }
       ]
     }
   `;

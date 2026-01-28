@@ -107,10 +107,20 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
                 setNativeValue('industry', data.industry);
                 setNativeValue('description', data.description);
                 setNativeValue('justification', data.justification);
-                setNativeValue('objectives', data.objectives);
+
+                // Ensure objectives is a string, even if AI returns an object/array by mistake
+                const objectivesVal = typeof data.objectives === 'string' ? data.objectives : JSON.stringify(data.objectives, null, 2);
+                setNativeValue('objectives', objectivesVal);
+
                 setNativeValue('deliverables', data.deliverables);
+                setNativeValue('schedule', data.schedule || '');
+                setNativeValue('budget', data.budget || '');
+                setNativeValue('evaluation', data.evaluation || '');
+                setNativeValue('kpis', data.kpis || '');
+
                 const phasesText = data.phases.map((p, i) => `Fase ${i + 1}: ${p.title}\n- ${p.description}`).join('\n\n');
                 setNativeValue('methodology', phasesText);
+
                 const resourcesText = data.suggestedResources.map(r => `- ${r.title} (${r.type})`).join('\n');
                 setNativeValue('resourcesDescription', `Recursos Sugeridos:\n${resourcesText}`);
             }
