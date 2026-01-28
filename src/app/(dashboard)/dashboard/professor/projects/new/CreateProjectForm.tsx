@@ -83,7 +83,15 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
         try {
             // Import dynamically to avoid server-side issues if any, though it's a server action
             const { generateProjectStructure } = await import('@/app/actions/ai-generator');
-            const data = await generateProjectStructure(aiPrompt, type);
+            const result = await generateProjectStructure(aiPrompt, type);
+
+            if (!result.success || !result.data) {
+                setAiError(result.error || 'Error desconocido al generar.');
+                setIsGenerating(false);
+                return;
+            }
+
+            const data = result.data;
 
             // Populate Form
             const form = document.querySelector('form') as HTMLFormElement;
@@ -118,8 +126,8 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
             setIsAIModalOpen(false);
         } catch (error: any) {
             console.error(error);
-            // Mostrar mensaje real del servidor
-            setAiError(error.message || 'Error generando contenido. Intenta de nuevo.');
+            // Mostrar mensaje real del servidor si ocurriera un error fatal de red
+            setAiError('Error crítico de conexión. Intente de nuevo.');
         } finally {
             setIsGenerating(false);
         }

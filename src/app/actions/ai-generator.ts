@@ -30,7 +30,7 @@ export type AIResponse = {
   error?: string;
 };
 
-export async function generateProjectStructure(userIdea: string, type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' = 'PROJECT') {
+export async function generateProjectStructure(userIdea: string, type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' = 'PROJECT'): Promise<AIResponse> {
   // 1. Obtener la API Key desde Configuración DB o Variables de Entorno
   const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
 
@@ -38,7 +38,7 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
   const apiKey = config?.geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
-    throw new Error("API Key no encontrada. Configure 'GEMINI_API_KEY' en .env o en la base de datos.");
+    return { success: false, error: "API Key no encontrada. Configure 'GEMINI_API_KEY' en .env o en la base de datos." };
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -88,19 +88,20 @@ export async function generateProjectStructure(userIdea: string, type: 'PROJECT'
 
     if (firstBrace === -1 || lastBrace === -1) {
       console.error("Invalid JSON response:", text);
-      throw new Error("La IA no devolvió un formato válido.");
+      return { success: false, error: "La IA no devolvió un formato JSON válido." };
     }
 
     const cleanJson = jsonString.substring(firstBrace, lastBrace + 1);
     const projectData: AIProjectStructure = JSON.parse(cleanJson);
-    return projectData;
+    return { success: true, data: projectData };
 
   } catch (error: any) {
     console.error("Error AI Generator:", error);
     // Retornar mensaje descriptivo
     const msg = error.message || "Error desconocido";
-    if (msg.includes("API key")) throw new Error("Error de Configuración: API Key inválida.");
-    if (msg.includes("fetch failed")) throw new Error("Error de Conexión con Google AI.");
-    throw new Error(`Error generando: ${msg}`);
+    if (msg.includes("API key")) return { success: false, error: "Error de Configuración: API Key inválida." };
+    if (msg.includes("fetch failed")) return { success: false, error: "Error de Conexión con Google AI (posible bloqueo de red)." };
+
+    return { success: false, error: `Error generando: ${msg}` };
   }
 }
