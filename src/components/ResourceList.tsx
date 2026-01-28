@@ -18,21 +18,22 @@ interface Resource {
     };
 }
 
-export function ResourceList() {
+export function ResourceList({ projectId }: { projectId?: string }) {
     const [resources, setResources] = useState<Resource[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState<'ALL' | 'FAVORITES'>('ALL');
 
     useEffect(() => {
-        fetch('/api/resources')
+        const url = projectId ? `/api/resources?projectId=${projectId}` : '/api/resources';
+        fetch(url)
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) setResources(data);
                 setLoading(false);
             })
             .catch(() => setLoading(false));
-    }, []);
+    }, [projectId]);
 
     const filteredResources = resources.filter(r => {
         const matchesSearch = r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

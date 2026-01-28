@@ -10,6 +10,7 @@ export default async function LearningPage() {
     const canCreate = session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN';
 
     let contextTitle = '';
+    let activeProjectId: string | undefined = undefined;
 
     // Logic for Student: Must have active project to see context
     if (session?.user?.role === 'STUDENT') {
@@ -41,6 +42,7 @@ export default async function LearningPage() {
             );
         }
         contextTitle = activeProject.title;
+        activeProjectId = activeProject.id;
     }
 
     return (
@@ -69,7 +71,7 @@ export default async function LearningPage() {
                 )}
             </div>
 
-            <ResourceList />
+            <ResourceList projectId={activeProjectId} />
         </div>
     );
 }
