@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { notFound, redirect } from 'next/navigation';
 import {
     Calendar, DollarSign, BarChart, ClipboardCheck,
-    BookOpen, User, Briefcase, Clock, ChevronLeft, checkSquare, Layers, Search
+    BookOpen, User, Briefcase, Clock, ChevronLeft, CheckSquare, Layers, Search
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -31,7 +31,7 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
     // Mapping icons/colors based on type
     const typeConfig = {
         PROJECT: { label: "Proyecto", icon: Layers, color: "text-blue-600", bg: "bg-blue-50" },
-        CHALLENGE: { label: "Reto", icon: checkSquare, color: "text-orange-600", bg: "bg-orange-50" },
+        CHALLENGE: { label: "Reto", icon: CheckSquare, color: "text-orange-600", bg: "bg-orange-50" },
         PROBLEM: { label: "Problema", icon: Search, color: "text-red-600", bg: "bg-red-50" }
     };
 

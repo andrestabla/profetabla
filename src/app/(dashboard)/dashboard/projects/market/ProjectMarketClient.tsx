@@ -7,8 +7,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 // Tipado basado en nuestro nuevo esquema Prisma
-type Project = {
-type ProjectWithTeacher = { // Renamed type and added 'type' property
+type ProjectWithTeacher = {
     id: string;
     title: string;
     description: string | null;
@@ -20,7 +19,7 @@ type ProjectWithTeacher = { // Renamed type and added 'type' property
     budget: string | null;
     evaluation: string | null;
     kpis: string | null;
-    type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM'; // Added type property
+    type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM';
     teacher: { name: string | null; avatarUrl: string | null };
 };
 
