@@ -51,7 +51,12 @@ export function LoginForm() {
                 />
             </div>
             <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+                <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-slate-700">Contraseña</label>
+                    <a href="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline">
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
                 <input
                     type="password"
                     required
@@ -91,12 +96,7 @@ export function LoginForm() {
                 type="button"
                 onClick={async () => {
                     try {
-                        await fetch('/api/auth/intent', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ intent: 'login' })
-                        });
-
+                        // Direct Google Sign In
                         const result = await signIn('google', { callbackUrl: '/dashboard' });
                         if (result?.error) {
                             setError('Error iniciando Google Sign-In: ' + result.error);

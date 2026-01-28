@@ -30,29 +30,56 @@ export async function POST(request: Request) {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // 1. Create User (Inactive / Unverified)
         const user = await prisma.user.create({
             data: {
                 email,
                 password: hashedPassword,
                 name,
-                role: 'STUDENT', // Default role for public signup
-                isActive: true
+                role: 'STUDENT',
+                isActive: true, // User is active, but email is not verified. 
+                // We could set isActive: false if we want to block login completely, 
+                // but usually we want to allow login but maybe restrict access or show "Verify Email" banner.
+                // However, user requirement implied "Account Confirmation". 
+                // Let's rely on emailVerified field check in auth.ts.
+                emailVerified: null
             }
         });
+
+        // 2. Create Verification Token
+        const token = crypto.randomUUID();
+        const expires = new Date(new Date().getTime() + 24 * 60 * 60 * 1000); // 24 hours
+
+        await prisma.verificationToken.create({
+            data: {
+                identifier: email,
+                token,
+                expires
+            }
+        });
+
+        // 3. Send Email
+        const { sendVerificationEmail } = await import('@/lib/email');
+        await sendVerificationEmail(email, token);
 
         // Log the activity
         await prisma.activityLog.create({
             data: {
                 userId: user.id,
                 action: 'REGISTER',
-                description: `New user registered: ${email}`,
+                description: `New user registered (pending verification): ${email}`,
                 level: 'INFO'
             }
         });
 
-        return NextResponse.json({ success: true, userId: user.id });
+        return NextResponse.json({
+            success: true,
+            userId: user.id,
+            message: 'Hemos enviado un correo de confirmación. Por favor revisa tu bandeja de entrada.'
+        });
 
-    } catch {
+    } catch (error) {
+        console.error('Registration error:', error);
         return NextResponse.json({ error: 'Error al procesar el registro' }, { status: 500 });
     }
 }

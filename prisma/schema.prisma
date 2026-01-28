@@ -98,6 +98,25 @@ model User {
   workExperiences WorkExperience[]
   education       Education[]
   languages       Language[]
+
+  // Auth Verification
+  emailVerified DateTime?
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 // ---------------------------------------------------------

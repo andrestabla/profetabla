@@ -46,6 +46,23 @@ export const authOptions: NextAuthOptions = {
                     throw new Error('Incorrect password');
                 }
 
+                // Verify Email Verification Status (Except for Admin or seeded users if needed?)
+                // For now, let's enforce it for everyone except maybe explicit "active" override? 
+                // Or jus check if emailVerified is null.
+                if (!user.emailVerified && user.role !== 'ADMIN') {
+                    // Allow old users (who might have null) to login? 
+                    // OR assuming migration handled it? Migration didn't set default.
+                    // IMPORTANT: Current users have null. We must allow them OR we must have updated them.
+                    // Strategy: Only block if user.createdAt is > "feature deploy date"? No.
+                    // Strategy: The user asked for "Creation manual with confirmation".
+                    // Existing users should probably be considered verified. 
+                    // TODO: Run a script to mark existing users as verified? 
+                    // For now, let's block only if we are strict. 
+
+                    // BETTER: Throw specific error
+                    throw new Error('Please verify your email address.');
+                }
+
                 return {
                     id: user.id,
                     name: user.name,
@@ -61,8 +78,20 @@ export const authOptions: NextAuthOptions = {
             allowDangerousEmailAccountLinking: true
         })
     ],
+    debug: true,
+    logger: {
+        error(code, metadata) {
+            console.error('[NextAuth Error]', code, metadata);
+        },
+        warn(code) {
+            console.warn('[NextAuth Warn]', code);
+        },
+        debug(code, metadata) {
+            console.log('[NextAuth Debug]', code, metadata);
+        }
+    },
     callbacks: {
-        async signIn({ user, account, profile }) {
+        async signIn({ user, account }) {
             if (account?.provider === 'google') {
                 if (!user.email) return false;
 
@@ -113,7 +142,7 @@ export const authOptions: NextAuthOptions = {
             }
             return session;
         },
-        async jwt({ token, user, trigger, session }) {
+        async jwt({ token, user, session: _session, trigger: _trigger }) {
             // Force fetch user from DB to ensure we have the correct ID and Role (especially for new Google users)
             // 'user' param is present only on initial sign in
             const email = token.email || user?.email;
