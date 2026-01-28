@@ -47,7 +47,18 @@ export default async function LoginPage() {
                 {/* Right Side - Form */}
                 <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
                     <div className="w-full max-w-md space-y-8">
-                        <div className="text-center lg:text-left">
+                        <div className="text-center lg:text-left mb-6">
+                            {logoUrl ? (
+                                <img
+                                    src={logoUrl}
+                                    alt={institutionName}
+                                    className="h-16 mx-auto lg:mx-0 mb-6 object-contain"
+                                />
+                            ) : (
+                                <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mx-auto lg:mx-0 mb-6">
+                                    <LayoutDashboard className="w-6 h-6" />
+                                </div>
+                            )}
                             <h2 className="text-2xl font-bold text-slate-800">Iniciar Sesión</h2>
                             <p className="text-slate-500 mt-2">Accede a tu cuenta institucional</p>
                         </div>
