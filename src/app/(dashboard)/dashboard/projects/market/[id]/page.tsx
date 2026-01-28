@@ -82,7 +82,7 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
                         </div>
                         <div className="border-t border-slate-100 pt-6">
                             <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                                <checkSquare className="w-5 h-5 text-emerald-600" /> Objetivos de Aprendizaje
+                                <CheckSquare className="w-5 h-5 text-emerald-600" /> Objetivos de Aprendizaje
                             </h3>
                             <div className="bg-emerald-50/50 p-6 rounded-xl border border-emerald-100">
                                 <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{project.objectives}</p>
