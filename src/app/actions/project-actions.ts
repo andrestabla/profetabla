@@ -99,3 +99,34 @@ export async function updateProjectAction(formData: FormData) {
     revalidatePath('/dashboard/projects/market');
     redirect(`/dashboard/professor/projects/${id}`);
 }
+
+export async function applyToProjectAction(projectId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+        throw new Error("Debes iniciar sesión para postularte");
+    }
+
+    // Check if already applied
+    const existing = await prisma.projectApplication.findUnique({
+        where: {
+            projectId_studentId: {
+                projectId,
+                studentId: session.user.id
+            }
+        }
+    });
+
+    if (existing) {
+        throw new Error("Ya te has postulado a este proyecto");
+    }
+
+    await prisma.projectApplication.create({
+        data: {
+            projectId,
+            studentId: session.user.id,
+            status: 'PENDING'
+        }
+    });
+
+    revalidatePath(`/dashboard/projects/market/${projectId}`);
+}
