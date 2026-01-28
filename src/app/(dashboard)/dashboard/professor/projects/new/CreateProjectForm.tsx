@@ -116,9 +116,10 @@ export default function CreateProjectForm({ availableOAs }: { availableOAs: Simp
             }
 
             setIsAIModalOpen(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            setAiError('Error generando contenido. Intenta de nuevo.');
+            // Mostrar mensaje real del servidor
+            setAiError(error.message || 'Error generando contenido. Intenta de nuevo.');
         } finally {
             setIsGenerating(false);
         }
