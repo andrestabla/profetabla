@@ -101,3 +101,42 @@ export async function getFileContent(fileId: string, mimeType: string) {
         return null;
     }
 }
+
+/**
+ * Uploads a file to a specific Google Drive folder.
+ */
+export async function uploadFileToDrive(folderId: string, fileName: string, mimeType: string, body: any) {
+    try {
+        const drive = await getDriveClient();
+
+        const fileMetadata = {
+            name: fileName,
+            parents: [folderId]
+        };
+
+        const media = {
+            mimeType: mimeType,
+            body: body
+        };
+
+        const response = await drive.files.create({
+            requestBody: fileMetadata,
+            media: media,
+            fields: 'id, name, webViewLink',
+        });
+
+        // Set permissions to anyone with link (optional, but useful for resources)
+        await drive.permissions.create({
+            fileId: response.data.id!,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error("Error uploading file to Google Drive:", error);
+        return null;
+    }
+}

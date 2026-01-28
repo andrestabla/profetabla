@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud } from 'lucide-react';
+import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload } from 'lucide-react';
 import Link from 'next/link';
-import { addResourceToProjectAction, getProjectDriveFilesAction } from './actions';
+import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction } from './actions';
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
 import { SubmissionCard } from '@/components/SubmissionCard';
@@ -43,6 +43,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [driveFiles, setDriveFiles] = useState<any[]>([]);
     const [isLoadingDrive, setIsLoadingDrive] = useState(false);
     const [selectedDriveFile, setSelectedDriveFile] = useState<{ title: string, url: string } | null>(null);
+    const [driveMode, setDriveMode] = useState<'LINK' | 'UPLOAD'>('LINK');
 
     // Fetch drive files if configured
     const handleFetchDriveFiles = async () => {
@@ -196,10 +197,18 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                             </h3>
                             <form action={async (formData) => {
                                 setIsUploading(true);
-                                await addResourceToProjectAction(formData);
-                                setIsUploading(false);
-                                // Reset form? In standard actions, we might need to reset manually or use useFormStatus etc. 
-                                // For simplified UX here, assuming revalidatePath refreshes data.
+                                try {
+                                    if (resourceType === 'DRIVE' && driveMode === 'UPLOAD') {
+                                        await uploadProjectFileToDriveAction(formData);
+                                    } else {
+                                        await addResourceToProjectAction(formData);
+                                    }
+                                } catch (e) {
+                                    console.error(e);
+                                    alert("Error al procesar el recurso");
+                                } finally {
+                                    setIsUploading(false);
+                                }
                             }} className="space-y-4">
                                 <input type="hidden" name="projectId" value={project.id} />
 
@@ -238,22 +247,51 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                         <div className="space-y-2">
                                             {project.googleDriveFolderId ? (
                                                 <>
-                                                    <select
-                                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-700"
-                                                        onChange={(e) => {
-                                                            const file = driveFiles.find(f => f.id === e.target.value);
-                                                            if (file) {
-                                                                setSelectedDriveFile({ title: file.name, url: file.webViewLink });
-                                                            } else {
-                                                                setSelectedDriveFile(null);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <option value="">Selecciona un archivo...</option>
-                                                        {driveFiles.map(file => (
-                                                            <option key={file.id} value={file.id}>{file.name}</option>
-                                                        ))}
-                                                    </select>
+                                                    <div className="flex p-0.5 bg-slate-100 rounded-lg mb-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDriveMode('LINK')}
+                                                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${driveMode === 'LINK' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                                        >
+                                                            <LinkIcon className="w-3 h-3" /> Vincular
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDriveMode('UPLOAD')}
+                                                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${driveMode === 'UPLOAD' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                                        >
+                                                            <Upload className="w-3 h-3" /> Cargar
+                                                        </button>
+                                                    </div>
+
+                                                    {driveMode === 'LINK' ? (
+                                                        <select
+                                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-700"
+                                                            onChange={(e) => {
+                                                                const file = driveFiles.find(f => f.id === e.target.value);
+                                                                if (file) {
+                                                                    setSelectedDriveFile({ title: file.name, url: file.webViewLink! });
+                                                                } else {
+                                                                    setSelectedDriveFile(null);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <option value="">Selecciona un archivo...</option>
+                                                            {driveFiles.map(file => (
+                                                                <option key={file.id} value={file.id}>{file.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : (
+                                                        <div className="space-y-2">
+                                                            <input
+                                                                type="file"
+                                                                name="file"
+                                                                required={driveMode === 'UPLOAD'}
+                                                                className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                                            />
+                                                            <p className="text-[10px] text-slate-400">El archivo se subirá automáticamente a la carpeta de Drive del proyecto.</p>
+                                                        </div>
+                                                    )}
                                                     {isLoadingDrive && <p className="text-[10px] text-blue-500 animate-pulse">Cargando archivos de Drive...</p>}
                                                     {!isLoadingDrive && driveFiles.length === 0 && (
                                                         <p className="text-[10px] text-slate-400">No se encontraron archivos en la carpeta del proyecto.</p>
