@@ -95,22 +95,28 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all duration-300">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                
+        <div
+            onClick={onClose}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all duration-300"
+        >
+            <div
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+            >
+
                 {/* Header (Minimal) */}
                 <div className="flex justify-between items-center px-8 py-5 border-b border-gray-100 bg-white sticky top-0 z-10">
                     <div className="flex items-center gap-3">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide 
-                            ${priority === 'HIGH' ? 'bg-red-100 text-red-700' : 
-                              priority === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 
-                              'bg-green-100 text-green-700'}`}>
+                            ${priority === 'HIGH' ? 'bg-red-100 text-red-700' :
+                                priority === 'MEDIUM' ? 'bg-amber-100 text-amber-700' :
+                                    'bg-green-100 text-green-700'}`}>
                             {priority === 'HIGH' ? 'Alta Prioridad' : priority === 'MEDIUM' ? 'Media Prioridad' : 'Baja Prioridad'}
                         </span>
                         <span className="text-slate-400 text-sm font-medium">#{task.id.slice(0, 8)}</span>
                     </div>
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
                     >
                         <X className="w-6 h-6" />
@@ -119,7 +125,7 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
 
                 {/* Body (Scrollable) */}
                 <div className="flex-1 overflow-y-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-10 bg-slate-50/30">
-                    
+
                     {/* Main Column (Left) */}
                     <div className="lg:col-span-2 space-y-8">
                         {/* Title Input */}
@@ -171,7 +177,7 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                                             className="w-full bg-white border border-slate-200 rounded-lg pl-4 pr-12 py-2 text-sm focus:outline-none focus:border-indigo-500 transition-all border-solid"
                                             onKeyDown={(e) => e.key === 'Enter' && handleComment()}
                                         />
-                                        <button 
+                                        <button
                                             onClick={handleComment}
                                             className="absolute right-2 top-1.5 p-1 text-slate-400 hover:text-indigo-600 transition-colors"
                                         >
@@ -213,7 +219,7 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                         {/* Status Card */}
                         <div className="bg-white p-5 rounded-xl border border-slate-200 border-solid shadow-sm space-y-4">
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Estado & Fecha</h3>
-                            
+
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1.5 block flex items-center gap-1 font-medium">
@@ -276,7 +282,7 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
 
                         {/* Teacher Actions */}
                         <div className="space-y-3 pt-2">
-                             <button
+                            <button
                                 onClick={handleApprove}
                                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all transform active:scale-95 border-solid ${isApproved
                                     ? 'bg-green-100 text-green-700 border border-green-200'
@@ -302,7 +308,7 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
 
                 {/* Footer (Sticky Bottom) */}
                 <div className="p-6 border-t border-slate-100 border-solid bg-white flex justify-end gap-3 rounded-b-2xl sticky bottom-0 z-10">
-                    <button 
+                    <button
                         onClick={onClose}
                         className="px-6 py-2.5 rounded-lg text-slate-500 font-medium hover:bg-slate-50 transition-colors border-none bg-transparent"
                     >
