@@ -316,7 +316,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                 <h4 className="font-bold text-slate-800 text-sm">{r.title}</h4>
                                                 <div className="flex gap-4 mt-1">
                                                     <button onClick={() => setViewerResource(r)} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><Play className="w-3 h-3" /> Ver en visor</button>
-                                                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-slate-400 hover:underline flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Original</a>
+                                                    {r.type !== 'EMBED' && (
+                                                        <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-slate-400 hover:underline flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Original</a>
+                                                    )}
                                                 </div>
                                             </div>
                                             <span className="text-[10px] text-slate-300">{new Date(r.createdAt).toLocaleDateString()}</span>
@@ -393,7 +395,13 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                             ) : viewerResource.type === 'EMBED' ? (
                                 <div className="w-full h-full bg-white p-4 overflow-auto items-center justify-center flex" dangerouslySetInnerHTML={{ __html: viewerResource.url }} />
                             ) : (
-                                <iframe src={viewerResource.url} className="w-full h-full border-0 bg-white" title={viewerResource.title} />
+                                <iframe
+                                    src={viewerResource.url.includes('drive.google.com')
+                                        ? viewerResource.url.replace(/\/(view|edit).*$/, '/preview')
+                                        : viewerResource.url}
+                                    className="w-full h-full border-0 bg-white"
+                                    title={viewerResource.title}
+                                />
                             )}
                         </div>
                         {viewerResource.presentation && (
