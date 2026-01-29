@@ -140,12 +140,9 @@ export async function extractResourceMetadataAction(url: string, type: string) {
         if (!apiKey) return { success: false, error: 'API Key de Gemini no configurada' };
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Habilitar herramienta de búsqueda para enriquecer el contexto si es una URL
-        // FORZAMOS gemini-1.5-pro para asegurar compatibilidad con herramientas de búsqueda de Google
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-pro",
-            tools: [{ googleSearchRetrieval: {} }]
-        });
+        // Use the same model configuration as ai-generator.ts (which works correctly)
+        const modelName = config?.geminiModel || "gemini-1.5-flash";
+        const model = genAI.getGenerativeModel({ model: modelName });
 
         const prompt = `
             Actúa como un asistente pedagógico experto.
@@ -155,9 +152,10 @@ export async function extractResourceMetadataAction(url: string, type: string) {
             Identificador (URL, Título o Código): ${url}
 
             INSTRUCCIONES:
-            1. Si es una URL o un Video, USA LA HERRAMIENTA DE BÚSQUEDA DE GOOGLE para obtener información real sobre el contenido (título, autor, resumen). No alucines.
-            2. Si es un archivo de Drive (basado en título) o un Embed code, analiza el texto proporcionado.
-            3. Genera un título profesional, una presentación descriptiva y una utilidad pedagógica clara.
+            1. Si es una URL de YouTube, analiza la estructura de la URL y el contexto para sugerir un título profesional.
+            2. Si es una URL de artículo, usa el dominio y el slug para inferir el contenido.
+            3. Si es un archivo de Drive (basado en título) o un Embed code, analiza el texto proporcionado.
+            4. Genera un título profesional, una presentación descriptiva y una utilidad pedagógica clara.
 
             Responde ÚNICAMENTE con un JSON válido con esta estructura:
             {
