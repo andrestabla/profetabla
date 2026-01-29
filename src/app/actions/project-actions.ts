@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { sendEmail } from '@/lib/email';
-import { createProjectFolder } from '@/lib/google-drive';
+import { createProjectFolder, deleteFolder } from '@/lib/google-drive';
 
 export async function createProjectAction(formData: FormData) {
     const session = await getServerSession(authOptions);
@@ -15,6 +15,7 @@ export async function createProjectAction(formData: FormData) {
     }
 
     const title = formData.get('title') as string;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const type = (formData.get('type') as 'PROJECT' | 'CHALLENGE' | 'PROBLEM') || 'PROJECT';
     const description = formData.get('description') as string;
     const industry = formData.get('industry') as string;
@@ -174,4 +175,49 @@ export async function applyToProjectAction(projectId: string) {
     }
 
     revalidatePath(`/dashboard/projects/market/${projectId}`);
+}
+
+export async function deleteProjectAction(projectId: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+            return { success: false, error: "No autorizado" };
+        }
+
+        // 1. Get Project to find Drive Folder ID and author
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            select: { id: true, googleDriveFolderId: true, teacherId: true }
+        });
+
+        if (!project) {
+            return { success: false, error: "Proyecto no encontrado" };
+        }
+
+        // Verify ownership (if not admin)
+        if (session.user.role !== 'ADMIN' && project.teacherId !== session.user.id) {
+            return { success: false, error: "No tienes permiso para eliminar este proyecto" };
+        }
+
+        // 2. Delete from Google Drive (if linked)
+        if (project.googleDriveFolderId) {
+            console.log(`🗑️ [Delete Project] Deleting Drive Folder: ${project.googleDriveFolderId}`);
+            await deleteFolder(project.googleDriveFolderId);
+        }
+
+        // 3. Delete from Database (Cascade will handle relations)
+        await prisma.project.delete({
+            where: { id: projectId }
+        });
+
+        console.log(`✅ [Delete Project] Deleted project ${projectId}`);
+
+        revalidatePath('/dashboard/professor/projects');
+        revalidatePath('/dashboard/projects/market');
+        return { success: true };
+    } catch (e: unknown) {
+        const error = e as Error;
+        console.error("❌ [Delete Project] Error:", error);
+        return { success: false, error: "Error al eliminar el proyecto" };
+    }
 }

@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Briefcase, Plus, Users, ArrowRight, Eye } from 'lucide-react';
+import { Briefcase, Plus, Users, ArrowRight } from 'lucide-react';
+import { ProjectListActions } from '@/components/ProjectListActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,8 +55,8 @@ export default async function ProfessorProjectsPage() {
 
                                 {/* New Type Badge */}
                                 <span className={`text-[10px] font-extrabold px-2 py-1 rounded-full uppercase tracking-wider ml-2 border ${project.type === 'CHALLENGE' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                                        project.type === 'PROBLEM' ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                                            'bg-indigo-50 text-indigo-600 border-indigo-100' // Default PROJECT
+                                    project.type === 'PROBLEM' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                        'bg-indigo-50 text-indigo-600 border-indigo-100' // Default PROJECT
                                     }`}>
                                     {project.type === 'CHALLENGE' ? 'Reto' :
                                         project.type === 'PROBLEM' ? 'Problema' :
@@ -105,20 +106,7 @@ export default async function ProfessorProjectsPage() {
                             )}
                         </div>
 
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2">
-                            <Link
-                                href={`/dashboard/professor/projects/${project.id}`}
-                                className="flex-1 bg-white border border-slate-200 text-slate-700 font-bold py-2 rounded-lg text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
-                            >
-                                <Eye className="w-4 h-4" /> Gestionar
-                            </Link>
-                            <Link
-                                href={`/dashboard/professor/projects/${project.id}/kanban`}
-                                className="flex-1 bg-slate-900 text-white font-bold py-2 rounded-lg text-sm flex items-center justify-center gap-2 hover:bg-black transition-colors"
-                            >
-                                Kanban <ArrowRight className="w-4 h-4" />
-                            </Link>
-                        </div>
+                        <ProjectListActions projectId={project.id} projectTitle={project.title} />
                     </div>
                 ))}
 
@@ -138,6 +126,6 @@ export default async function ProfessorProjectsPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

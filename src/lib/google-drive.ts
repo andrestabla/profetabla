@@ -105,6 +105,7 @@ export async function getFileContent(fileId: string, mimeType: string) {
 /**
  * Uploads a file to a specific Google Drive folder.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function uploadFileToDrive(folderId: string, fileName: string, mimeType: string, body: any) {
     try {
         console.log(`Iniciando uploadFileToDrive para "${fileName}" en folder "${folderId}"`);
@@ -143,5 +144,23 @@ export async function uploadFileToDrive(folderId: string, fileName: string, mime
     } catch (error) {
         console.error("Error uploading file to Google Drive:", error);
         throw error; // Throw so actions catch it
+    }
+}
+
+/**
+ * Deletes a file or folder from Google Drive.
+ */
+export async function deleteFolder(fileId: string) {
+    try {
+        console.log(`Intentando eliminar archivo/carpeta de Drive: ${fileId}`);
+        const drive = await getDriveClient();
+        await drive.files.delete({
+            fileId: fileId
+        });
+        console.log(`Archivo/Carpeta eliminada de Drive: ${fileId}`);
+        return true;
+    } catch (error) {
+        console.error("Error deleting file from Drive:", error);
+        return false;
     }
 }
