@@ -129,6 +129,86 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
     }
 }
 
+// Helper function for URL-based metadata extraction (fallback when AI fails)
+function extractMetadataFromUrl(url: string, type: string) {
+    try {
+        if (type === 'VIDEO') {
+            // YouTube URL parsing
+            const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)?.[1];
+            const vimeoId = url.match(/vimeo\.com\/(\d+)/)?.[1];
+
+            if (videoId) {
+                return {
+                    title: `Video de YouTube`,
+                    presentation: `Video educativo disponible en YouTube (ID: ${videoId})`,
+                    utility: `Recurso audiovisual para complementar el aprendizaje del proyecto`
+                };
+            }
+
+            if (vimeoId) {
+                return {
+                    title: `Video de Vimeo`,
+                    presentation: `Video educativo disponible en Vimeo`,
+                    utility: `Recurso audiovisual para complementar el aprendizaje del proyecto`
+                };
+            }
+        }
+
+        if (type === 'ARTICLE') {
+            const urlObj = new URL(url);
+            const domain = urlObj.hostname.replace('www.', '');
+            const pathParts = urlObj.pathname.split('/').filter(p => p);
+            const lastPart = pathParts[pathParts.length - 1] || '';
+            const title = lastPart.replace(/-/g, ' ').replace(/_/g, ' ').replace(/\.\w+$/, '');
+
+            return {
+                title: title ? title.charAt(0).toUpperCase() + title.slice(1) : `Artículo de ${domain}`,
+                presentation: `Artículo publicado en ${domain}`,
+                utility: `Lectura complementaria para profundizar en los conceptos del proyecto`
+            };
+        }
+
+        if (type === 'DRIVE') {
+            // For Drive, url is actually the filename
+            const cleanName = url.replace(/\.\w+$/, ''); // Remove extension
+            return {
+                title: cleanName,
+                presentation: `Documento almacenado en Google Drive`,
+                utility: `Material de referencia para el desarrollo del proyecto`
+            };
+        }
+
+        if (type === 'EMBED') {
+            // Try to extract title from HTML
+            const titleMatch = url.match(/title="([^"]+)"/i);
+            const srcMatch = url.match(/src="([^"]+)"/i);
+
+            let title = 'Contenido Embebido';
+            if (titleMatch?.[1]) {
+                title = titleMatch[1];
+            } else if (srcMatch?.[1]) {
+                try {
+                    const srcUrl = new URL(srcMatch[1]);
+                    title = `Contenido de ${srcUrl.hostname.replace('www.', '')}`;
+                } catch {
+                    // Invalid URL, keep default
+                }
+            }
+
+            return {
+                title,
+                presentation: `Contenido interactivo embebido en la página`,
+                utility: `Recurso multimedia para enriquecer la experiencia de aprendizaje`
+            };
+        }
+
+        return null;
+    } catch (error) {
+        console.error('[URL Extraction] Error parsing URL:', error);
+        return null;
+    }
+}
+
 export async function extractResourceMetadataAction(url: string, type: string) {
     try {
         const session = await getServerSession(authOptions);
@@ -205,7 +285,15 @@ export async function extractResourceMetadataAction(url: string, type: string) {
             }
         }
 
-        // If all models failed
+        // If all Gemini models failed, try URL-based extraction as fallback
+        console.log('[AI Extraction] All AI models failed, attempting URL-based extraction');
+        const fallbackData = extractMetadataFromUrl(url, type);
+
+        if (fallbackData) {
+            console.log('[AI Extraction] Successfully extracted metadata from URL');
+            return { success: true, data: fallbackData };
+        }
+
         return { success: false, error: 'No se pudo generar metadatos con ningún modelo disponible' };
     } catch (e: unknown) {
         const error = e as Error;
