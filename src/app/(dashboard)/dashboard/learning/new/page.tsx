@@ -160,20 +160,34 @@ export default function NewLearningObjectPage() {
                                     </select>
                                 </div>
 
-                                {/* URL Input */}
+                                {/* URL Input or Embed Code */}
                                 <div className="md:col-span-3">
-                                    <label className="text-xs font-bold text-slate-500 mb-1 block">URL del Recurso</label>
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">
+                                        {newItemType === 'EMBED' ? 'Código Embed/Iframe' : 'URL del Recurso'}
+                                    </label>
                                     <div className="flex gap-2">
-                                        <input
-                                            value={newItemUrl} onChange={(e) => setNewItemUrl(e.target.value)}
-                                            placeholder="https://..."
-                                            className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                                        />
+                                        {newItemType === 'EMBED' ? (
+                                            <textarea
+                                                value={newItemUrl}
+                                                onChange={(e) => setNewItemUrl(e.target.value)}
+                                                placeholder="<iframe src='...'></iframe>"
+                                                rows={3}
+                                                className="flex-1 px-3 py-2 border rounded-lg text-sm resize-none font-mono text-xs"
+                                            />
+                                        ) : (
+                                            <input
+                                                value={newItemUrl}
+                                                onChange={(e) => setNewItemUrl(e.target.value)}
+                                                placeholder="https://..."
+                                                className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                                            />
+                                        )}
+
                                         <button
                                             type="button"
                                             onClick={handleAIAutoFill}
                                             disabled={isGenerating || !newItemUrl}
-                                            className="bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-purple-200 transition-colors disabled:opacity-50"
+                                            className="bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-purple-200 transition-colors disabled:opacity-50 h-fit"
                                             title="Autocompletar datos con IA"
                                         >
                                             {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
