@@ -77,6 +77,8 @@ export async function generateProjectStructure(
     
     TAREA:
     Estructura una propuesta COMPLETA y DETALLADA para un **${type}** sobre: "${userIdea}"
+
+    IMPORTANTE: El idioma de respuesta debe ser EXCLUSIVAMENTE ESPAÑOL.
     
     FORMATO DE SALIDA (JSON ESTRICTO):
     Responde ÚNICAMENTE con este JSON (sin markdown). Asegúrate de que los campos de texto (description, objectives, etc.) sean STRINGS largos y detallados, no objetos ni arrays.
@@ -159,6 +161,7 @@ export async function generateProjectStructure(
 
       return { success: true, data: projectData };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const errMsg = error.message || "Unknown error";
       console.warn(`Fallo con modelo ${modelName}:`, errMsg);
@@ -221,6 +224,7 @@ export async function extractOAMetadata(content: string): Promise<{
 
   const prompt = `
     Analiza el siguiente contenido extraído de un documento y genera los metadatos para un "Objeto de Aprendizaje" (OA).
+    IMPORTANTE: Responde SIEMPRE EN ESPAÑOL.
     Responde ÚNICAMENTE con un JSON con esta estructura:
     {
       "title": "Título sugerido",

@@ -224,11 +224,13 @@ Analiza el siguiente recurso educativo y genera metadatos útiles para un estudi
 Tipo de Recurso: ${type}
 URL/Identificador: ${url}
 
+IMPORTANTE: El idioma de respuesta debe ser EXCLUSIVAMENTE ESPAÑOL.
+
 Genera un JSON con esta estructura EXACTA (sin markdown, solo JSON puro):
 {
-  "title": "Nombre claro y profesional del recurso (máx 100 caracteres)",
-  "presentation": "Descripción concisa de qué es y qué contiene (máx 250 caracteres)",
-  "utility": "Para qué le sirve al estudiante en su proyecto (máx 250 caracteres)"
+  "title": "Nombre claro y profesional del recurso (máx 100 caracteres, EN ESPAÑOL)",
+  "presentation": "Descripción concisa de qué es y qué contiene (máx 250 caracteres, EN ESPAÑOL)",
+  "utility": "Para qué le sirve al estudiante en su proyecto (máx 250 caracteres, EN ESPAÑOL)"
 }
 
 IMPORTANTE: Responde SOLO con el JSON, sin bloques de código markdown.`;
@@ -392,6 +394,8 @@ export async function extractResourceMetadataAction(url: string, type: string) {
             Tipo de Recurso: ${type}
             Identificador (URL, Título o Código): ${url}
 
+            IMPORTANTE: El resultado final debe estar SIEMPRE EN ESPAÑOL, independientemente del idioma original del recurso.
+
             INSTRUCCIONES:
             1. Si es una URL de YouTube, analiza la estructura de la URL y el contexto para sugerir un título profesional.
             2. Si es una URL de artículo, usa el dominio y el slug para inferir el contenido.
@@ -400,9 +404,9 @@ export async function extractResourceMetadataAction(url: string, type: string) {
 
             Responde ÚNICAMENTE con un JSON válido con esta estructura:
             {
-              "title": "Nombre claro y profesional del recurso (Ej: 'Introducción a React Hooks')",
-              "presentation": "Descripción concisa: qué es, quién lo crea y qué temas principales aborda. (Máx 250 caracteres)",
-              "utility": "Directo al grano: para qué le sirve al estudiante en su proyecto. (Ej: 'Útil para implementar la autenticación...'). (Máx 250 caracteres)"
+              "title": "Nombre claro y profesional del recurso (Ej: 'Introducción a React Hooks', EN ESPAÑOL)",
+              "presentation": "Descripción concisa: qué es, quién lo crea y qué temas principales aborda. (Máx 250 caracteres, EN ESPAÑOL)",
+              "utility": "Directo al grano: para qué le sirve al estudiante en su proyecto. (Ej: 'Útil para implementar la autenticación...', EN ESPAÑOL)"
             }
         `;
 
@@ -422,7 +426,7 @@ export async function extractResourceMetadataAction(url: string, type: string) {
                     let data;
                     try {
                         data = JSON.parse(jsonString);
-                    } catch (parseError) {
+                    } catch (_parseError) {
                         console.error(`[AI Extraction] JSON parse error with ${modelName}:`, text);
                         continue; // Try next model
                     }
