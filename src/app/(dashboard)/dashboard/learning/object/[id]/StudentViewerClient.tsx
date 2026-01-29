@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Video, FileText, Globe, CheckCircle2, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Menu, AlertTriangle, Trash2 } from 'lucide-react';
+import { BookOpen, Video, FileText, Globe, CheckCircle2, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Menu, AlertTriangle, Trash2, MessageSquare } from 'lucide-react';
 
 import { CommentsSection } from '../../components/CommentsSection';
 
@@ -35,12 +35,13 @@ export default function StudentViewerClient({ learningObject, comments, currentU
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
     const handleDelete = async () => {
         setIsDeleting(true);
         try {
             await deleteLearningObjectAction(learningObject.id);
-        } catch (error) {
+        } catch (_) {  
             alert("Error al eliminar");
             setIsDeleting(false);
             setShowDeleteModal(false);
@@ -67,8 +68,7 @@ export default function StudentViewerClient({ learningObject, comments, currentU
         )
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const session = { user: { id: currentUserId, role: currentUserRole } }; // Mock for simpler check, pass real props if cleaner
+    // const session = { user: { id: currentUserId, role: currentUserRole } };
 
     return (
         <div className="h-[calc(100vh-80px)] bg-slate-100 flex overflow-hidden rounded-xl border border-slate-200 relative">
@@ -85,7 +85,7 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                             <p className="text-slate-500 mb-6 text-sm">
                                 Esta acción es <strong>irreversible</strong>. Se eliminará permanentemente:
                                 <ul className="mt-2 text-left list-disc list-inside bg-red-50 p-3 rounded-lg text-red-700 font-medium">
-                                    <li>El objeto "{learningObject.title}"</li>
+                                    <li>El objeto &quot;{learningObject.title}&quot;</li>
                                     <li>Los {learningObject.items.length} recursos contenidos</li>
                                     <li>Todos los comentarios e historial de progreso de los estudiantes</li>
                                 </ul>
@@ -193,7 +193,17 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                         <span className="text-sm font-medium text-slate-400 hidden md:inline">
                             Paso {currentIndex + 1} de {sortedItems.length}
                         </span>
-                        {/* Mobile Toggle: Not implemented for brevity, but needed for Comments toggle on mobile */}
+
+                        <div className="h-6 w-px bg-slate-700 mx-2 hidden md:block"></div>
+
+                        <button
+                            onClick={() => setIsCommentsOpen(!isCommentsOpen)}
+                            className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${isCommentsOpen ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                            title={isCommentsOpen ? "Ocultar Comentarios" : "Mostrar Comentarios"}
+                        >
+                            <MessageSquare className="w-4 h-4" />
+                            <span className="text-xs font-bold hidden sm:inline">Comentarios</span>
+                        </button>
                     </div>
                 </header>
 
@@ -203,14 +213,20 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                         <ResourceRenderer item={activeItem} />
                     </div>
 
-                    {/* COMMENTS SIDEBAR (Right side, collapsible?) - Let's keep it fixed width for now or overlays */}
-                    <div className="w-80 border-l border-slate-200 bg-white hidden lg:flex flex-col h-full">
-                        <CommentsSection
-                            learningObjectId={learningObject.id}
-                            comments={comments}
-                            currentUserId={currentUserId}
-                        />
-                    </div>
+                    {/* COMMENTS SIDEBAR (Right side, collapsible) */}
+                    {isCommentsOpen && (
+                        <div className="w-80 border-l border-slate-200 bg-white flex flex-col h-full animate-in slide-in-from-right duration-300 absolute md:static inset-y-0 right-0 z-10 shadow-xl md:shadow-none">
+                            <div className="flex justify-between items-center p-4 border-b md:hidden">
+                                <h3 className="font-bold text-slate-700">Comentarios</h3>
+                                <button onClick={() => setIsCommentsOpen(false)}><ChevronRight /></button>
+                            </div>
+                            <CommentsSection
+                                learningObjectId={learningObject.id}
+                                comments={comments}
+                                currentUserId={currentUserId}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Controles de Navegación Inferior */}
@@ -260,13 +276,25 @@ function ResourceRenderer({ item }: { item: ResourceItem }) {
         );
     }
 
-    // 2. DOCUMENTOS PDF, DRIVE o iFRAMES GENERALES
+    // 2. DOCUMENTOS PDF, DRIVE o iFRAMES GENERALES y EMBEDS RAW HTML
     if (item.type === 'PDF' || item.type === 'DRIVE' || item.type === 'EMBED' || item.type === 'S3') {
+
+        // Special case for Raw HTML/Embed Codes
+        if (item.type === 'EMBED' && item.url.trim().startsWith('<')) {
+            return (
+                <div
+                    className="w-full h-full bg-white rounded-lg overflow-hidden flex items-center justify-center [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0"
+                    dangerouslySetInnerHTML={{ __html: item.url }}
+                />
+            );
+        }
+
         return (
             <iframe
                 src={item.url}
                 className="w-full h-full bg-white rounded-lg"
                 title={item.title}
+                allowFullScreen
             />
         );
     }
@@ -286,7 +314,7 @@ function ResourceRenderer({ item }: { item: ResourceItem }) {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-lg shadow-blue-500/30"
                 >
-                    <PlayCircle className="w-5 h-5" /> Abrir "{item.title}"
+                    <PlayCircle className="w-5 h-5" /> Abrir &quot;{item.title}&quot;
                 </a>
             </div>
         );
