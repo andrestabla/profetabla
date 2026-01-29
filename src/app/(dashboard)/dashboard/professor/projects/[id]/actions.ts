@@ -129,6 +129,41 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
     }
 }
 
+import OpenAI from 'openai';
+
+// OpenAI extraction function
+async function extractWithOpenAI(apiKey: string, model: string, url: string, type: string) {
+    const openai = new OpenAI({ apiKey });
+
+    const prompt = `Actúa como un asistente pedagógico experto.
+Analiza el siguiente recurso educativo y genera metadatos útiles para un estudiante universitario.
+
+Tipo de Recurso: ${type}
+URL/Identificador: ${url}
+
+Genera un JSON con esta estructura EXACTA (sin markdown, solo JSON puro):
+{
+  "title": "Nombre claro y profesional del recurso (máx 100 caracteres)",
+  "presentation": "Descripción concisa de qué es y qué contiene (máx 250 caracteres)",
+  "utility": "Para qué le sirve al estudiante en su proyecto (máx 250 caracteres)"
+}
+
+IMPORTANTE: Responde SOLO con el JSON, sin bloques de código markdown.`;
+
+    const completion = await openai.chat.completions.create({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 500,
+    });
+
+    const content = completion.choices[0].message.content;
+    if (!content) throw new Error('No content returned from OpenAI');
+
+    return JSON.parse(content);
+}
+
 // Helper function for URL-based metadata extraction (fallback when AI fails)
 function extractMetadataFromUrl(url: string, type: string) {
     try {
@@ -215,27 +250,49 @@ export async function extractResourceMetadataAction(url: string, type: string) {
         if (!session) return { success: false, error: 'No autorizado' };
 
         const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
-        const apiKey = config?.geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const safeConfig = config as any;
+        const aiProvider = safeConfig?.aiProvider || 'GEMINI';
 
-        if (!apiKey) return { success: false, error: 'API Key de Gemini no configurada' };
+        // Try OpenAI if configured as provider
+        if (aiProvider === 'OPENAI' && safeConfig?.openaiApiKey) {
+            try {
+                console.log('[AI Extraction] Using OpenAI');
+                const data = await extractWithOpenAI(
+                    safeConfig.openaiApiKey,
+                    safeConfig.openaiModel || 'gpt-4o-mini',
+                    url,
+                    type
+                );
+                console.log('[AI Extraction] OpenAI success');
+                return { success: true, data };
+            } catch (error) {
+                console.error('[AI Extraction] OpenAI failed:', error);
+                // Fall through to Gemini or URL fallback
+            }
+        }
 
-        const genAI = new GoogleGenerativeAI(apiKey);
+        // Try Gemini (existing logic)
+        const geminiApiKey = config?.geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-        // Use fallback model list like ai-generator.ts
-        const candidateModels = [
-            config?.geminiModel,
-            "gemini-1.5-flash-002",
-            "gemini-1.5-flash-8b",
-            "gemini-1.5-pro-002",
-            "gemini-2.0-flash-exp",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
-            "gemini-pro"
-        ];
+        if (geminiApiKey) {
+            const genAI = new GoogleGenerativeAI(geminiApiKey);
 
-        const uniqueModels = Array.from(new Set(candidateModels.filter((m): m is string => typeof m === 'string' && m.length > 0)));
+            // Use fallback model list like ai-generator.ts
+            const candidateModels = [
+                config?.geminiModel,
+                "gemini-1.5-flash-002",
+                "gemini-1.5-flash-8b",
+                "gemini-1.5-pro-002",
+                "gemini-2.0-flash-exp",
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
+                "gemini-pro"
+            ];
 
-        const prompt = `
+            const uniqueModels = Array.from(new Set(candidateModels.filter((m): m is string => typeof m === 'string' && m.length > 0)));
+
+            const prompt = `
             Actúa como un asistente pedagógico experto.
             Tu tarea es analizar el siguiente recurso educativo y generar metadatos útiles para un estudiante.
 
@@ -256,32 +313,33 @@ export async function extractResourceMetadataAction(url: string, type: string) {
             }
         `;
 
-        // Try each model until one works
-        for (const modelName of uniqueModels) {
-            try {
-                console.log(`[AI Extraction] Trying model: ${modelName}`);
-                const model = genAI.getGenerativeModel({ model: modelName });
-                const result = await model.generateContent(prompt);
-                const text = result.response.text();
-
-                console.log(`[AI Extraction] Success with ${modelName}`);
-
-                // Robust JSON cleanup
-                const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-                let data;
+            // Try each model until one works
+            for (const modelName of uniqueModels) {
                 try {
-                    data = JSON.parse(jsonString);
-                } catch (parseError) {
-                    console.error(`[AI Extraction] JSON parse error with ${modelName}:`, text);
-                    continue; // Try next model
-                }
+                    console.log(`[AI Extraction] Trying model: ${modelName}`);
+                    const model = genAI.getGenerativeModel({ model: modelName });
+                    const result = await model.generateContent(prompt);
+                    const text = result.response.text();
 
-                return { success: true, data };
-            } catch (modelError: unknown) {
-                const error = modelError as Error;
-                console.error(`[AI Extraction] Failed with ${modelName}:`, error?.message || 'Unknown error');
-                // Continue to next model
+                    console.log(`[AI Extraction] Success with ${modelName}`);
+
+                    // Robust JSON cleanup
+                    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+                    let data;
+                    try {
+                        data = JSON.parse(jsonString);
+                    } catch (parseError) {
+                        console.error(`[AI Extraction] JSON parse error with ${modelName}:`, text);
+                        continue; // Try next model
+                    }
+
+                    return { success: true, data };
+                } catch (modelError: unknown) {
+                    const error = modelError as Error;
+                    console.error(`[AI Extraction] Failed with ${modelName}:`, error?.message || 'Unknown error');
+                    // Continue to next model
+                }
             }
         }
 

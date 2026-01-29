@@ -102,6 +102,64 @@ export function ConfigForm({ config }: { config: any }) {
             }
         }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
+            {/* AI Provider Selection */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Proveedor de IA para Extracción de Metadatos
+                </label>
+                <select
+                    name="aiProvider"
+                    defaultValue={config?.aiProvider || 'GEMINI'}
+                    className="w-full px-3 py-2 border rounded-lg font-medium"
+                >
+                    <option value="GEMINI">🔮 Google Gemini</option>
+                    <option value="OPENAI">🤖 OpenAI (GPT)</option>
+                </select>
+                <p className="text-xs text-slate-600 mt-2">
+                    Selecciona qué modelo de IA usar para generar metadatos de recursos educativos
+                </p>
+            </div>
+
+            {/* 0. Integración OPENAI */}
+            <div className="space-y-4 mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between border-b pb-2">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        <Cpu className="w-5 h-5 text-green-600" /> OpenAI (GPT)
+                    </h3>
+                    <StatusBadge isConfigured={!!config?.openaiApiKey} />
+                </div>
+                <IntegrationGuide type="OPENAI" />
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">API Key</label>
+                    <input
+                        type="password"
+                        name="openaiApiKey"
+                        defaultValue={config?.openaiApiKey || ''}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="sk-proj-..."
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                        Obtén tu API key en: <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">platform.openai.com/api-keys</a>
+                    </p>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Modelo</label>
+                    <select
+                        name="openaiModel"
+                        defaultValue={config?.openaiModel || 'gpt-4o-mini'}
+                        className="w-full px-3 py-2 border rounded-lg"
+                    >
+                        <option value="gpt-4o-mini">GPT-4o Mini (Recomendado - Rápido y económico)</option>
+                        <option value="gpt-4o">GPT-4o (Más potente)</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Más económico)</option>
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                        GPT-4o Mini es el más recomendado: rápido, económico (~$0.00003 por extracción) y muy confiable
+                    </p>
+                </div>
+            </div>
+
             {/* 1. Integración GEMINI AI */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">

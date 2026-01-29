@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { HelpCircle, ExternalLink, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 
-type GuideType = 'GEMINI' | 'GOOGLE_SSO' | 'GOOGLE_DRIVE' | 'SMTP';
+type GuideType = 'GEMINI' | 'OPENAI' | 'GOOGLE_SSO' | 'GOOGLE_DRIVE' | 'SMTP';
 
 interface GuideStep {
     text: string;
@@ -29,6 +29,28 @@ const GUIDES: Record<GuideType, GuideContent> = {
             },
             {
                 text: 'Copia la clave generada (empieza por "AIza...") y pégala en el campo de abajo.'
+            }
+        ]
+    },
+    OPENAI: {
+        title: 'Configurar OpenAI API',
+        steps: [
+            {
+                text: 'Ve a la plataforma de OpenAI y crea una cuenta si no tienes una.',
+                link: { url: 'https://platform.openai.com/signup', label: 'OpenAI Platform' }
+            },
+            {
+                text: 'Navega a la sección de API Keys.',
+                link: { url: 'https://platform.openai.com/api-keys', label: 'API Keys' }
+            },
+            {
+                text: 'Haz clic en "Create new secret key" y dale un nombre descriptivo (ej: "Profetabla Metadata").'
+            },
+            {
+                text: 'Copia la clave generada (empieza por "sk-proj-...") y pégala en el campo de abajo. ⚠️ Solo se mostrará una vez.'
+            },
+            {
+                text: 'Asegúrate de tener créditos en tu cuenta. Puedes agregar $5-10 USD para empezar (dura mucho tiempo con GPT-4o Mini).'
             }
         ]
     },

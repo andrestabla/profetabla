@@ -30,6 +30,10 @@ export async function updatePlatformConfigAction(formData: FormData) {
             geminiApiKey: formData.get('geminiApiKey') as string,
             geminiModel: formData.get('geminiModel') as string,
 
+            openaiApiKey: formData.get('openaiApiKey') as string,
+            openaiModel: formData.get('openaiModel') as string,
+            aiProvider: formData.get('aiProvider') as string,
+
             googleClientId: formData.get('googleClientId') as string,
             googleClientSecret: formData.get('googleClientSecret') as string,
 

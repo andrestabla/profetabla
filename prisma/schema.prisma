@@ -330,6 +330,9 @@ model PlatformConfig {
   customCss                     String?
   geminiApiKey                  String?
   geminiModel                   String   @default("gemini-pro")
+  openaiApiKey                  String?
+  openaiModel                   String   @default("gpt-4o-mini")
+  aiProvider                    String   @default("GEMINI")
   googleClientId                String?
   googleClientSecret            String?
   googleDriveClientId           String?
