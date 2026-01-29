@@ -52,6 +52,45 @@ export async function addResourceToProjectAction(formData: FormData) {
     }
 }
 
+
+export async function updateProjectResourceAction(formData: FormData) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) return { success: false, error: 'No autorizado' };
+
+        const resourceId = formData.get('resourceId') as string;
+        const projectId = formData.get('projectId') as string;
+        const driveTitle = formData.get('driveTitle') as string;
+        const title = driveTitle || (formData.get('title') as string);
+        const type = formData.get('type') as string;
+        const url = formData.get('url') as string;
+        const presentation = formData.get('presentation') as string;
+        const utility = formData.get('utility') as string;
+
+        if (!resourceId || !projectId || !title || !url) {
+            return { success: false, error: 'Faltan datos requeridos para actualizar' };
+        }
+
+        await prisma.resource.update({
+            where: { id: resourceId },
+            data: {
+                title,
+                type,
+                url,
+                presentation,
+                utility,
+            }
+        });
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        return { success: true };
+    } catch (e: unknown) {
+        const error = e as Error;
+        console.error('Error en updateProjectResourceAction:', error);
+        return { success: false, error: error.message || 'Error desconocido al actualizar recurso' };
+    }
+}
+
 export async function getProjectDriveFilesAction(folderId: string) {
     try {
         const session = await getServerSession(authOptions);

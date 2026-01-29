@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2 } from 'lucide-react';
 import Link from 'next/link';
-import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, extractResourceMetadataAction } from './actions';
+import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, extractResourceMetadataAction, updateProjectResourceAction } from './actions';
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
 import { SubmissionCard } from '@/components/SubmissionCard';
@@ -54,6 +54,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [metaPresentation, setMetaPresentation] = useState('');
     const [metaUtility, setMetaUtility] = useState('');
     const [metaUrl, setMetaUrl] = useState('');
+    const [editingResource, setEditingResource] = useState<Resource | null>(null);
 
     // Fetch drive files if configured
     const handleFetchDriveFiles = async () => {
@@ -67,6 +68,27 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         } finally {
             setIsLoadingDrive(false);
         }
+    };
+
+    const handleEditResource = (resource: Resource) => {
+        setEditingResource(resource);
+        setResourceType(resource.type);
+        setMetaTitle(resource.title);
+        setMetaUrl(resource.url);
+        setMetaPresentation(resource.presentation || '');
+        setMetaUtility(resource.utility || '');
+
+        // Scroll to form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingResource(null);
+        setMetaTitle('');
+        setMetaUrl('');
+        setMetaPresentation('');
+        setMetaUtility('');
+        setResourceType('ARTICLE');
     };
 
     const ResourceIcon = ({ type }: { type: string }) => {
@@ -164,29 +186,42 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                 <div className="animate-in fade-in duration-500 space-y-12">
                     {/* Sección 1: Crear Nuevo Recurso (Full Width & Spacious) */}
                     <section className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm max-w-4xl mx-auto">
-                        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
-                            <div className="p-3 bg-blue-50 rounded-xl">
-                                <Plus className="w-6 h-6 text-blue-600" />
+                        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100 justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-3 rounded-xl ${editingResource ? 'bg-amber-50' : 'bg-blue-50'}`}>
+                                    {editingResource ? <Edit3 className="w-6 h-6 text-amber-600" /> : <Plus className="w-6 h-6 text-blue-600" />}
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900">{editingResource ? 'Editar Material' : 'Añadir Nuevo Material'}</h3>
+                                    <p className="text-slate-500 text-sm">{editingResource ? 'Modifica la información del recurso seleccionado.' : 'Sube archivos, enlaces o videos para enriquecer el proyecto.'}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900">Añadir Nuevo Material</h3>
-                                <p className="text-slate-500 text-sm">Sube archivos, enlaces o videos para enriquecer el proyecto.</p>
-                            </div>
+                            {editingResource && (
+                                <button onClick={handleCancelEdit} type="button" className="text-slate-400 hover:text-slate-600">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
 
                         <form action={async (formData) => {
                             setIsUploading(true);
                             try {
                                 let result;
-                                if (resourceType === 'DRIVE' && driveMode === 'UPLOAD') {
+                                if (editingResource) {
+                                    result = await updateProjectResourceAction(formData);
+                                } else if (resourceType === 'DRIVE' && driveMode === 'UPLOAD') {
                                     result = await uploadProjectFileToDriveAction(formData);
                                 } else {
                                     result = await addResourceToProjectAction(formData);
                                 }
+
                                 if (result?.success === false) {
                                     alert(`Error: ${result.error}`);
                                 } else {
-                                    setMetaTitle(''); setMetaPresentation(''); setMetaUtility(''); setMetaUrl(''); setSelectedDriveFile(null);
+                                    if (editingResource) handleCancelEdit();
+                                    else {
+                                        setMetaTitle(''); setMetaPresentation(''); setMetaUtility(''); setMetaUrl(''); setSelectedDriveFile(null);
+                                    }
                                 }
                             } catch (e: any) {
                                 alert(`Crash crítico: ${e.message || 'Error desconocido'}`);
@@ -195,6 +230,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                             }
                         }} className="space-y-8">
                             <input type="hidden" name="projectId" value={project.id} />
+                            {editingResource && <input type="hidden" name="resourceId" value={editingResource.id} />}
 
                             {/* Grid de Configuración Principal */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -307,7 +343,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
 
                             <div className="pt-4 border-t border-slate-100 flex justify-end">
                                 <button disabled={isUploading} className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg shadow-slate-200 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:transform-none flex items-center gap-2">
-                                    {isUploading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</> : 'Publicar Recurso'}
+                                    {isUploading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</> : (editingResource ? 'Actualizar Recurso' : 'Publicar Recurso')}
                                 </button>
                             </div>
                         </form>
@@ -333,7 +369,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                         <p className="text-slate-500 text-sm">Añade los primeros recursos arriba.</p>
                                     </div>
                                 ) : resources.map((r) => (
-                                    <div key={r.id} className="group bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300 flex flex-col justify-between h-48 relative overflow-hidden">
+                                    <div key={r.id} className="group bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300 flex flex-col h-auto min-h-[14rem] relative overflow-hidden">
                                         <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-50 to-transparent rounded-bl-full z-0 opacity-50 transition-opacity group-hover:opacity-100 group-hover:from-blue-50" />
 
                                         <div className="relative z-10 flex flex-col h-full">
@@ -349,9 +385,12 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                 <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{r.type}</p>
                                             </div>
 
-                                            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-50">
-                                                <button onClick={() => setViewerResource(r)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
+                                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-50">
+                                                <button onClick={() => setViewerResource(r)} className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
                                                     <Play className="w-3 h-3 fill-current" /> Ver
+                                                </button>
+                                                <button onClick={() => handleEditResource(r)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Editar recurso">
+                                                    <Edit3 className="w-4 h-4" />
                                                 </button>
                                                 {r.type !== 'EMBED' && (
                                                     <a href={r.url} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" title="Abrir original">
