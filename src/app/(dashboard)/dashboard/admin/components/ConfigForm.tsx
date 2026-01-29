@@ -160,6 +160,33 @@ export function ConfigForm({ config }: { config: any }) {
                 </div>
             </div>
 
+            {/* YouTube Data API */}
+            <div className="space-y-4 mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                <div className="flex items-center justify-between border-b pb-2">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-red-600" /> YouTube Data API
+                    </h3>
+                    <StatusBadge isConfigured={!!config?.youtubeApiKey} />
+                </div>
+                <IntegrationGuide type="YOUTUBE" />
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">API Key</label>
+                    <input
+                        type="password"
+                        name="youtubeApiKey"
+                        defaultValue={config?.youtubeApiKey || ''}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="AIza..."
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                        Obtén tu API key en: <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a>
+                    </p>
+                    <p className="text-[10px] text-amber-600 mt-1">
+                        ⚠️ Asegúrate de habilitar la <strong>YouTube Data API v3</strong> en tu proyecto de Google Cloud
+                    </p>
+                </div>
+            </div>
+
             {/* 1. Integración GEMINI AI */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">

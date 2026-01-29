@@ -34,6 +34,8 @@ export async function updatePlatformConfigAction(formData: FormData) {
             openaiModel: formData.get('openaiModel') as string,
             aiProvider: formData.get('aiProvider') as string,
 
+            youtubeApiKey: formData.get('youtubeApiKey') as string,
+
             googleClientId: formData.get('googleClientId') as string,
             googleClientSecret: formData.get('googleClientSecret') as string,
 

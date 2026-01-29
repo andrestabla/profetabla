@@ -333,6 +333,7 @@ model PlatformConfig {
   openaiApiKey                  String?
   openaiModel                   String   @default("gpt-4o-mini")
   aiProvider                    String   @default("GEMINI")
+  youtubeApiKey                 String?
   googleClientId                String?
   googleClientSecret            String?
   googleDriveClientId           String?

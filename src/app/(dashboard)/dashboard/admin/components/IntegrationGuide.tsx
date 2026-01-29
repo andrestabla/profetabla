@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { HelpCircle, ExternalLink, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 
-type GuideType = 'GEMINI' | 'OPENAI' | 'GOOGLE_SSO' | 'GOOGLE_DRIVE' | 'SMTP';
+type GuideType = 'GEMINI' | 'OPENAI' | 'YOUTUBE' | 'GOOGLE_SSO' | 'GOOGLE_DRIVE' | 'SMTP';
 
 interface GuideStep {
     text: string;
@@ -51,6 +51,31 @@ const GUIDES: Record<GuideType, GuideContent> = {
             },
             {
                 text: 'Asegúrate de tener créditos en tu cuenta. Puedes agregar $5-10 USD para empezar (dura mucho tiempo con GPT-4o Mini).'
+            }
+        ]
+    },
+    YOUTUBE: {
+        title: 'Configurar YouTube Data API v3',
+        steps: [
+            {
+                text: 'Ve a Google Cloud Console y selecciona tu proyecto (o crea uno nuevo).',
+                link: { url: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com', label: 'YouTube Data API v3' }
+            },
+            {
+                text: 'Haz clic en "HABILITAR" para activar la YouTube Data API v3.'
+            },
+            {
+                text: 'Ve a "Credenciales" en el menú lateral.',
+                link: { url: 'https://console.cloud.google.com/apis/credentials', label: 'Credenciales' }
+            },
+            {
+                text: 'Haz clic en "+ CREAR CREDENCIALES" y selecciona "Clave de API".'
+            },
+            {
+                text: 'Copia la clave generada (empieza por "AIza...") y pégala en el campo de abajo.'
+            },
+            {
+                text: 'Recomendación: Restringe la clave para que solo funcione con YouTube Data API v3 (Seguridad → Restricción de API).'
             }
         ]
     },

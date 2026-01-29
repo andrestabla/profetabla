@@ -132,17 +132,17 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
 import OpenAI from 'openai';
 
 // YouTube Data API integration
-async function fetchYouTubeMetadata(url: string) {
+async function fetchYouTubeMetadata(url: string, apiKey?: string) {
     try {
         // Extract video ID from URL
         const videoIdMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
         if (!videoIdMatch) return null;
 
+
         const videoId = videoIdMatch[1];
-        const apiKey = process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY;
 
         if (!apiKey) {
-            console.log('[YouTube API] No API key found, skipping YouTube fetch');
+            console.log('[YouTube API] No API key provided, skipping YouTube fetch');
             return null;
         }
 
@@ -300,7 +300,8 @@ export async function extractResourceMetadataAction(url: string, type: string) {
 
         // For YouTube videos, try to fetch real metadata first
         if (type === 'VIDEO' && url.includes('youtube.com') || url.includes('youtu.be')) {
-            const youtubeData = await fetchYouTubeMetadata(url);
+            const youtubeApiKey = safeConfig?.youtubeApiKey || process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY;
+            const youtubeData = await fetchYouTubeMetadata(url, youtubeApiKey);
             if (youtubeData) {
                 console.log('[AI Extraction] Using YouTube API data');
                 return { success: true, data: youtubeData };
