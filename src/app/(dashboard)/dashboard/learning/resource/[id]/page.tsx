@@ -4,12 +4,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import ResourceViewerClient from './ResourceViewerClient';
 
-export default async function ResourceViewerPage({ params }: { params: { id: string } }) {
+export default async function ResourceViewerPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions);
     if (!session) return notFound();
 
+    const { id } = await params;
+
     const resource = await prisma.resource.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: {
             category: true,
             project: {
