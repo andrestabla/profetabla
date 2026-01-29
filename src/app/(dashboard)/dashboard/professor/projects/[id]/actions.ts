@@ -140,9 +140,20 @@ export async function extractResourceMetadataAction(url: string, type: string) {
         if (!apiKey) return { success: false, error: 'API Key de Gemini no configurada' };
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Use the same model configuration as ai-generator.ts (which works correctly)
-        const modelName = config?.geminiModel || "gemini-1.5-flash";
-        const model = genAI.getGenerativeModel({ model: modelName });
+
+        // Use fallback model list like ai-generator.ts
+        const candidateModels = [
+            config?.geminiModel,
+            "gemini-1.5-flash-002",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro-002",
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-pro"
+        ];
+
+        const uniqueModels = Array.from(new Set(candidateModels.filter((m): m is string => typeof m === 'string' && m.length > 0)));
 
         const prompt = `
             Actúa como un asistente pedagógico experto.
@@ -165,21 +176,37 @@ export async function extractResourceMetadataAction(url: string, type: string) {
             }
         `;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        // Limpieza de JSON más robusta
-        const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Try each model until one works
+        for (const modelName of uniqueModels) {
+            try {
+                console.log(`[AI Extraction] Trying model: ${modelName}`);
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent(prompt);
+                const text = result.response.text();
 
-        let data;
-        try {
-            data = JSON.parse(jsonString);
-        } catch (parseError) {
-            console.error("Error al parsear JSON de Gemini:", text);
-            console.error(parseError);
-            throw new Error(`La IA no devolvió un formato válido. Respuesta: ${text.substring(0, 50)}...`);
+                console.log(`[AI Extraction] Success with ${modelName}`);
+
+                // Robust JSON cleanup
+                const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+                let data;
+                try {
+                    data = JSON.parse(jsonString);
+                } catch (parseError) {
+                    console.error(`[AI Extraction] JSON parse error with ${modelName}:`, text);
+                    continue; // Try next model
+                }
+
+                return { success: true, data };
+            } catch (modelError: unknown) {
+                const error = modelError as Error;
+                console.error(`[AI Extraction] Failed with ${modelName}:`, error?.message || 'Unknown error');
+                // Continue to next model
+            }
         }
 
-        return { success: true, data };
+        // If all models failed
+        return { success: false, error: 'No se pudo generar metadatos con ningún modelo disponible' };
     } catch (e: unknown) {
         const error = e as Error;
         console.error('Error en extractResourceMetadataAction:', error);
