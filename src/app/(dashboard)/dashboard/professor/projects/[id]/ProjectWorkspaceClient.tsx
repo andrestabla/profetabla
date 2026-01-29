@@ -161,187 +161,229 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
 
             {/* Contenido Principal */}
             {activeTab === 'RESOURCES' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-500">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Formulario */}
-                        <div className="md:col-span-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-fit">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <Plus className="w-5 h-5 text-blue-600" /> Añadir Material
-                            </h3>
-                            <form action={async (formData) => {
-                                setIsUploading(true);
-                                try {
-                                    let result;
-                                    if (resourceType === 'DRIVE' && driveMode === 'UPLOAD') {
-                                        result = await uploadProjectFileToDriveAction(formData);
-                                    } else {
-                                        result = await addResourceToProjectAction(formData);
-                                    }
-                                    if (result?.success === false) {
-                                        alert(`Error: ${result.error}`);
-                                    } else {
-                                        setMetaTitle(''); setMetaPresentation(''); setMetaUtility(''); setMetaUrl(''); setSelectedDriveFile(null);
-                                    }
-                                } catch (e: any) {
-                                    alert(`Crash crítico: ${e.message || 'Error desconocido'}`);
-                                } finally {
-                                    setIsUploading(false);
-                                }
-                            }} className="space-y-4">
-                                <input type="hidden" name="projectId" value={project.id} />
-
-                                <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        <label className="block text-xs font-bold text-slate-500 uppercase">
-                                            {resourceType === 'DRIVE' ? 'Contexto para IA' : 'Enlace / Fuente'}
-                                        </label>
-                                        <button
-                                            type="button"
-                                            disabled={isExtracting || (resourceType !== 'DRIVE' && !metaUrl && resourceType !== 'EMBED') || (resourceType === 'DRIVE' && !selectedDriveFile && !metaTitle)}
-                                            onClick={async () => {
-                                                setIsExtracting(true);
-                                                try {
-                                                    const context = resourceType === 'DRIVE' ? (selectedDriveFile?.title || metaTitle) : metaUrl;
-                                                    const result = await extractResourceMetadataAction(context, resourceType);
-                                                    if (result.success && result.data) {
-                                                        setMetaTitle(result.data.title);
-                                                        setMetaPresentation(result.data.presentation);
-                                                        setMetaUtility(result.data.utility);
-                                                    } else {
-                                                        alert(result.error || "No se pudo extraer metadatos");
-                                                    }
-                                                } finally {
-                                                    setIsExtracting(false);
-                                                }
-                                            }}
-                                            className="text-[10px] flex items-center gap-1 text-blue-600 font-bold disabled:opacity-50"
-                                        >
-                                            <Wand2 className="w-3 h-3" /> {isExtracting ? 'Analizando...' : 'Extraer con IA'}
-                                        </button>
-                                    </div>
-
-                                    {resourceType !== 'DRIVE' && (
-                                        <div className="relative">
-                                            {resourceType === 'EMBED' ? (
-                                                <textarea name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required rows={3} placeholder="<iframe>...</iframe>" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-[10px]" />
-                                            ) : (
-                                                <>
-                                                    <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                                                    <input name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required type="url" placeholder="https://..." className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
-                                    <select name="type" value={resourceType} onChange={(e) => { setResourceType(e.target.value); if (e.target.value === 'DRIVE' && driveFiles.length === 0) handleFetchDriveFiles(); }} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-                                        <option value="ARTICLE">📖 Artículo / Blog</option>
-                                        <option value="VIDEO">▶️ Video</option>
-                                        <option value="EMBED">✨ Embeb</option>
-                                        <option value="DRIVE">📁 Google Drive</option>
-                                    </select>
-                                </div>
-
-                                {resourceType === 'DRIVE' && project.googleDriveFolderId && (
-                                    <div className="space-y-2">
-                                        <div className="flex p-0.5 bg-slate-100 rounded-lg">
-                                            <button type="button" onClick={() => setDriveMode('LINK')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md ${driveMode === 'LINK' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Vincular</button>
-                                            <button type="button" onClick={() => setDriveMode('UPLOAD')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md ${driveMode === 'UPLOAD' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Cargar</button>
-                                        </div>
-                                        {driveMode === 'LINK' ? (
-                                            <select className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" onChange={(e) => { const file = driveFiles.find(f => f.id === e.target.value); if (file) { setSelectedDriveFile({ title: file.name, url: file.webViewLink! }); setMetaTitle(file.name); } }}>
-                                                <option value="">Selecciona un archivo...</option>
-                                                {driveFiles.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                            </select>
-                                        ) : (
-                                            <input type="file" name="file" required className="w-full text-xs" />
-                                        )}
-                                        <input type="hidden" name="url" value={selectedDriveFile?.url || metaUrl} />
-                                        <input type="hidden" name="driveTitle" value={selectedDriveFile?.title || ''} />
-                                    </div>
-                                )}
-
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre</label>
-                                    <input name="title" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} required placeholder="Ej: Guía de Introducción" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Presentación</label>
-                                    <textarea name="presentation" value={metaPresentation} onChange={(e) => setMetaPresentation(e.target.value)} rows={2} placeholder="¿Qué es este material?" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Utilidad</label>
-                                    <textarea name="utility" value={metaUtility} onChange={(e) => setMetaUtility(e.target.value)} rows={2} placeholder="¿Para qué sirve?" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" />
-                                </div>
-
-                                <button disabled={isUploading} className="w-full bg-slate-900 border border-slate-800 text-white font-bold py-2.5 rounded-lg disabled:opacity-50">
-                                    {isUploading ? 'Guardando...' : 'Publicar Recurso'}
-                                </button>
-                            </form>
+                <div className="animate-in fade-in duration-500 space-y-12">
+                    {/* Sección 1: Crear Nuevo Recurso (Full Width & Spacious) */}
+                    <section className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm max-w-4xl mx-auto">
+                        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
+                            <div className="p-3 bg-blue-50 rounded-xl">
+                                <Plus className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">Añadir Nuevo Material</h3>
+                                <p className="text-slate-500 text-sm">Sube archivos, enlaces o videos para enriquecer el proyecto.</p>
+                            </div>
                         </div>
 
-                        {/* Lista */}
-                        <div className="md:col-span-2 space-y-8">
-                            {learningObjects.length > 0 && (
-                                <section>
-                                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 italic">Contenido Sugerido</h3>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {learningObjects.map((oa) => (
-                                            <Link key={oa.id} href={`/dashboard/learning/object/${oa.id}`} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
-                                                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100"><BookOpen className="w-5 h-5 text-indigo-600" /></div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-slate-800 leading-tight">{oa.title}</h4>
-                                                    <p className="text-xs text-slate-500 line-clamp-1">{oa.description}</p>
-                                                </div>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </section>
-                            )}
+                        <form action={async (formData) => {
+                            setIsUploading(true);
+                            try {
+                                let result;
+                                if (resourceType === 'DRIVE' && driveMode === 'UPLOAD') {
+                                    result = await uploadProjectFileToDriveAction(formData);
+                                } else {
+                                    result = await addResourceToProjectAction(formData);
+                                }
+                                if (result?.success === false) {
+                                    alert(`Error: ${result.error}`);
+                                } else {
+                                    setMetaTitle(''); setMetaPresentation(''); setMetaUtility(''); setMetaUrl(''); setSelectedDriveFile(null);
+                                }
+                            } catch (e: any) {
+                                alert(`Crash crítico: ${e.message || 'Error desconocido'}`);
+                            } finally {
+                                setIsUploading(false);
+                            }
+                        }} className="space-y-8">
+                            <input type="hidden" name="projectId" value={project.id} />
 
-                            <section>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold text-slate-800 flex items-center gap-2 italic">
-                                        Material de Apoyo
-                                    </h3>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Curaduría OA</span>
-                                </div>
-                                <div className="space-y-3">
-                                    {resources.length === 0 ? (
-                                        <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
-                                            <BookOpen className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                                            <p className="text-xs text-slate-400 font-medium tracking-tight">No hay materiales publicados.</p>
+                            {/* Grid de Configuración Principal */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Columna Izquierda: Tipo y Fuente */}
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tipo de Recurso</label>
+                                        <div className="relative">
+                                            <select name="type" value={resourceType} onChange={(e) => { setResourceType(e.target.value); if (e.target.value === 'DRIVE' && driveFiles.length === 0) handleFetchDriveFiles(); }}
+                                                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none cursor-pointer hover:bg-slate-100"
+                                            >
+                                                <option value="ARTICLE">📖 Artículo / Blog</option>
+                                                <option value="VIDEO">▶️ Video (YouTube/Vimeo)</option>
+                                                <option value="EMBED">✨ Embebido (Iframe)</option>
+                                                <option value="DRIVE">📁 Google Drive</option>
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">▼</div>
                                         </div>
-                                    ) : resources.map((r) => (
-                                        <div key={r.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-3 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition-colors">
+                                    </div>
+
+                                    <div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                                {resourceType === 'DRIVE' ? 'Contexto para IA' : 'Enlace / Fuente'}
+                                            </label>
+                                            <button
+                                                type="button"
+                                                disabled={isExtracting || (resourceType !== 'DRIVE' && !metaUrl && resourceType !== 'EMBED') || (resourceType === 'DRIVE' && !selectedDriveFile && !metaTitle)}
+                                                onClick={async () => {
+                                                    setIsExtracting(true);
+                                                    try {
+                                                        const context = resourceType === 'DRIVE' ? (selectedDriveFile?.title || metaTitle) : metaUrl;
+                                                        const result = await extractResourceMetadataAction(context, resourceType);
+                                                        if (result.success && result.data) {
+                                                            setMetaTitle(result.data.title);
+                                                            setMetaPresentation(result.data.presentation);
+                                                            setMetaUtility(result.data.utility);
+                                                        } else {
+                                                            alert(result.error || "No se pudo extraer metadatos");
+                                                        }
+                                                    } finally {
+                                                        setIsExtracting(false);
+                                                    }
+                                                }}
+                                                className="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-lg font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <Wand2 className="w-3.5 h-3.5" />
+                                                {isExtracting ? 'Analizando...' : 'Autocompletar con IA'}
+                                            </button>
+                                        </div>
+
+                                        {resourceType !== 'DRIVE' && (
+                                            <div className="relative">
+                                                {resourceType === 'EMBED' ? (
+                                                    <textarea name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required rows={4} placeholder="<iframe src='...'></iframe>" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                                ) : (
+                                                    <>
+                                                        <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                        <input name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required type="url" placeholder="https://ejemplo.com/recurso" className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {resourceType === 'DRIVE' && project.googleDriveFolderId && (
+                                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                                                <div className="flex p-1 bg-white rounded-lg border border-slate-100 shadow-sm">
+                                                    <button type="button" onClick={() => setDriveMode('LINK')} className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${driveMode === 'LINK' ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>Vincular Existente</button>
+                                                    <button type="button" onClick={() => setDriveMode('UPLOAD')} className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${driveMode === 'UPLOAD' ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>Subir Nuevo</button>
+                                                </div>
+                                                {driveMode === 'LINK' ? (
+                                                    <select className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-300" onChange={(e) => { const file = driveFiles.find(f => f.id === e.target.value); if (file) { setSelectedDriveFile({ title: file.name, url: file.webViewLink! }); setMetaTitle(file.name); } }}>
+                                                        <option value="">Selecciona un archivo del Drive...</option>
+                                                        {driveFiles.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                                    </select>
+                                                ) : (
+                                                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-white transition-colors cursor-pointer relative">
+                                                        <input type="file" name="file" required className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                        <div className="pointer-events-none">
+                                                            <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2" />
+                                                            <span className="text-xs text-slate-500 font-medium">Haz clic o arrastra un archivo aquí</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <input type="hidden" name="url" value={selectedDriveFile?.url || metaUrl} />
+                                                <input type="hidden" name="driveTitle" value={selectedDriveFile?.title || ''} />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Columna Derecha: Metadatos */}
+                                <div className="space-y-5">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nombre del Recurso</label>
+                                        <input name="title" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} required placeholder="Ej: Guía completa de..." className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Presentación</label>
+                                            <textarea name="presentation" value={metaPresentation} onChange={(e) => setMetaPresentation(e.target.value)} rows={3} placeholder="Breve intro..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Utilidad Pedagógica</label>
+                                            <textarea name="utility" value={metaUtility} onChange={(e) => setMetaUtility(e.target.value)} rows={3} placeholder="¿Para qué sirve?" className="w-full px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-xl text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100 flex justify-end">
+                                <button disabled={isUploading} className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg shadow-slate-200 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:transform-none flex items-center gap-2">
+                                    {isUploading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</> : 'Publicar Recurso'}
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+
+                    {/* Sección 2: Listados (Grid de Cards) */}
+                    <div className="space-y-10">
+
+                        {/* Lista de Recursos del Profesor */}
+                        <section>
+                            <div className="flex items-center gap-3 mb-6">
+                                <h3 className="text-xl font-extrabold text-slate-800 tracking-tight">Material de Apoyo</h3>
+                                <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-wider rounded-full">Curaduría</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                                {resources.length === 0 ? (
+                                    <div className="col-span-full py-16 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                            <BookOpen className="w-8 h-8 text-slate-300" />
+                                        </div>
+                                        <h4 className="text-slate-900 font-bold mb-1">Tu biblioteca está vacía</h4>
+                                        <p className="text-slate-500 text-sm">Añade los primeros recursos arriba.</p>
+                                    </div>
+                                ) : resources.map((r) => (
+                                    <div key={r.id} className="group bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300 flex flex-col justify-between h-48 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-50 to-transparent rounded-bl-full z-0 opacity-50 transition-opacity group-hover:opacity-100 group-hover:from-blue-50" />
+
+                                        <div className="relative z-10 flex flex-col h-full">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="p-3 bg-slate-50 rounded-xl group-hover:bg-white group-hover:shadow-sm transition-all">
                                                     <ResourceIcon type={r.type} />
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{r.title}</h4>
-                                                    <div className="flex items-center gap-3 mt-1">
-                                                        <button onClick={() => setViewerResource(r)} className="text-[10px] flex items-center gap-1 text-blue-600 font-bold hover:underline">
-                                                            <Play className="w-2.5 h-2.5" /> Ver en visor
-                                                        </button>
-                                                        {r.type !== 'EMBED' && (
-                                                            <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] flex items-center gap-1 text-slate-400 font-bold hover:text-slate-600 transition-colors">
-                                                                <Maximize2 className="w-2.5 h-2.5" /> Original
-                                                            </a>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-full">{new Date(r.createdAt).toLocaleDateString()}</span>
                                             </div>
-                                            <div className="text-[10px] font-bold text-slate-300 pr-2">
-                                                {new Date(r.createdAt).toLocaleDateString()}
+
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-slate-800 leading-snug line-clamp-2 group-hover:text-blue-700 transition-colors mb-1">{r.title}</h4>
+                                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{r.type}</p>
+                                            </div>
+
+                                            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-50">
+                                                <button onClick={() => setViewerResource(r)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
+                                                    <Play className="w-3 h-3 fill-current" /> Ver
+                                                </button>
+                                                {r.type !== 'EMBED' && (
+                                                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" title="Abrir original">
+                                                        <Maximize2 className="w-4 h-4" />
+                                                    </a>
+                                                )}
                                             </div>
                                         </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Contenido Sugerido (Learning Objects) */}
+                        {learningObjects.length > 0 && (
+                            <section className="pt-8 border-t border-slate-100">
+                                <h3 className="font-bold text-slate-400 text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4" /> Contenido Sugerido
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {learningObjects.map((oa) => (
+                                        <Link key={oa.id} href={`/dashboard/learning/object/${oa.id}`} className="bg-slate-50 p-4 rounded-xl border border-slate-200/50 flex items-center gap-4 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all group">
+                                            <div className="p-3 bg-white rounded-lg border border-slate-100 group-hover:border-slate-200"><BookOpen className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" /></div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-bold text-slate-700 text-sm truncate group-hover:text-slate-900">{oa.title}</h4>
+                                                <p className="text-xs text-slate-500 line-clamp-1">{oa.description}</p>
+                                            </div>
+                                        </Link>
                                     ))}
                                 </div>
                             </section>
-                        </div>
+                        )}
                     </div>
                 </div>
             )}
