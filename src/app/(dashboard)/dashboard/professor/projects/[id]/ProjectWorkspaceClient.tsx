@@ -387,7 +387,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
 
             {/* Otras pestañas (Placeholders) */}
             {activeTab === 'KANBAN' && <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm animate-in fade-in duration-300"><Kanban className="w-12 h-12 text-slate-200 mx-auto mb-4" /><p className="text-slate-400 font-medium">Módulo Kanban en construcción...</p></div>}
-            {activeTab === 'MENTORSHIP' && <div className="animate-in fade-in duration-300"><BookingList projectId={project.id} /></div>}
+            {activeTab === 'MENTORSHIP' && <div className="animate-in fade-in duration-300"><BookingList defaultProjectId={project.id} /></div>}
             {activeTab === 'ASSIGNMENTS' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">
                     <div className="lg:col-span-1"><CreateAssignmentForm projectId={project.id} /></div>
