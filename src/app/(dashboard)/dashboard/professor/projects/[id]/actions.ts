@@ -457,3 +457,65 @@ export async function extractResourceMetadataAction(url: string, type: string) {
         return { success: false, error: error.message || 'Error desconocido al procesar con IA' };
     }
 }
+
+export async function getAvailableLearningObjectsAction(projectId: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session) return [];
+
+        // Fetch OAs created by the user (or all if admin) that are NOT yet linked to this project
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const whereClause: any = {
+            projects: {
+                none: { id: projectId }
+            }
+        };
+
+        if (session.user.role !== 'ADMIN') {
+            whereClause.authorId = session.user.id;
+        }
+
+        const oas = await prisma.learningObject.findMany({
+            where: whereClause,
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                subject: true,
+                items: {
+                    select: { type: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        return oas;
+    } catch (error) {
+        console.error('Error in getAvailableLearningObjectsAction:', error);
+        return [];
+    }
+}
+
+export async function linkLearningObjectToProjectAction(projectId: string, oaId: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) {
+            return { success: false, error: 'No autorizado' };
+        }
+
+        await prisma.project.update({
+            where: { id: projectId },
+            data: {
+                learningObjects: {
+                    connect: { id: oaId }
+                }
+            }
+        });
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error in linkLearningObjectToProjectAction:', error);
+        return { success: false, error: 'Error al vincular el OA' };
+    }
+}

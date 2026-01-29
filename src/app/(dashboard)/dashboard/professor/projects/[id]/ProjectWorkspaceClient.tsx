@@ -7,6 +7,7 @@ import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFi
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
 import { SubmissionCard } from '@/components/SubmissionCard';
+import { OAPickerModal } from '@/components/OAPickerModal';
 
 // Tipos basados en nuestro esquema Prisma actualizado
 type Resource = {
@@ -43,6 +44,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [showContext, setShowContext] = useState(false);
     const [resourceType, setResourceType] = useState('ARTICLE');
     const [driveFiles, setDriveFiles] = useState<any[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isLoadingDrive, setIsLoadingDrive] = useState(false);
     const [selectedDriveFile, setSelectedDriveFile] = useState<{ title: string, url: string } | null>(null);
     const [driveMode, setDriveMode] = useState<'LINK' | 'UPLOAD'>('LINK');
@@ -55,6 +57,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [metaUtility, setMetaUtility] = useState('');
     const [metaUrl, setMetaUrl] = useState('');
     const [editingResource, setEditingResource] = useState<Resource | null>(null);
+    const [isOAModalOpen, setIsOAModalOpen] = useState(false);
 
     // Fetch drive files if configured
     const handleFetchDriveFiles = async () => {
@@ -405,24 +408,40 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                         </section>
 
                         {/* Contenido Sugerido (Learning Objects) */}
-                        {learningObjects.length > 0 && (
-                            <section className="pt-8 border-t border-slate-100">
-                                <h3 className="font-bold text-slate-400 text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4" /> Contenido Sugerido
+                        <section className="pt-8 border-t border-slate-100">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-bold text-slate-400 text-sm uppercase tracking-widest flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4" /> Objetos de Aprendizaje (OAs)
                                 </h3>
+                                <button
+                                    onClick={() => setIsOAModalOpen(true)}
+                                    className="text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> Vincular OA
+                                </button>
+                            </div>
+
+                            {learningObjects.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {learningObjects.map((oa) => (
                                         <Link key={oa.id} href={`/dashboard/learning/object/${oa.id}`} className="bg-slate-50 p-4 rounded-xl border border-slate-200/50 flex items-center gap-4 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all group">
                                             <div className="p-3 bg-white rounded-lg border border-slate-100 group-hover:border-slate-200"><BookOpen className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" /></div>
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="font-bold text-slate-700 text-sm truncate group-hover:text-slate-900">{oa.title}</h4>
+                                                <div className="flex justify-between items-start">
+                                                    <h4 className="font-bold text-slate-700 text-sm truncate group-hover:text-slate-900">{oa.title}</h4>
+                                                </div>
                                                 <p className="text-xs text-slate-500 line-clamp-1">{oa.description}</p>
                                             </div>
                                         </Link>
                                     ))}
                                 </div>
-                            </section>
-                        )}
+                            ) : (
+                                <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                    <p className="text-xs text-slate-400 italic">No hay objetos de aprendizaje vinculados.</p>
+                                    <button onClick={() => setIsOAModalOpen(true)} className="mt-2 text-xs font-bold text-indigo-500 hover:underline">Vincular uno ahora</button>
+                                </div>
+                            )}
+                        </section>
                     </div>
                 </div>
             )}
@@ -478,6 +497,12 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                     </div>
                 </div>
             )}
+
+            <OAPickerModal
+                isOpen={isOAModalOpen}
+                onClose={() => setIsOAModalOpen(false)}
+                projectId={project.id}
+            />
         </div>
     );
 }
