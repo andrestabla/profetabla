@@ -143,15 +143,22 @@ export async function extractResourceMetadataAction(url: string, type: string) {
         const model = genAI.getGenerativeModel({ model: config?.geminiModel || "gemini-1.5-flash" });
 
         const prompt = `
-            Analiza este recurso (${type}): ${url}
-            Extrae o sugiere metadatos pedagógicos.
+            Analiza este recurso. 
+            Tipo: ${type}
+            Identificador (URL o Código): ${url}
+
+            Extrae o sugiere metadatos pedagógicos de alta calidad para un entorno educativo universitario.
             Responde ÚNICAMENTE con un JSON con esta estructura:
             {
-              "title": "Nombre claro del recurso",
-              "presentation": "Breve descripción de qué es este recurso (2-3 líneas)",
-              "utility": "Explicación de para qué sirve este recurso en un contexto de aprendizaje (2-3 líneas)"
+              "title": "Nombre claro y profesional del recurso",
+              "presentation": "Qué es este material (formato, autor, fuente si es visible) y contenido principal (2-3 líneas marcadas)",
+              "utility": "Para qué le sirve específicamente al estudiante en su proceso de aprendizaje o proyecto (2-3 líneas)"
             }
-            Si no puedes acceder al contenido, sugiere basándote en la URL o el título.
+            
+            IMPORTANTE:
+            - Si es un VIDEO, sugiere basándote en el título/canal si la URL es de YouTube.
+            - Si es un EMBED (código), analiza las etiquetas title, src o el contenido del texto dentro del código.
+            - Si es una URL de Artículo, sugiere basándote en el dominio y el slug.
         `;
 
         const result = await model.generateContent(prompt);

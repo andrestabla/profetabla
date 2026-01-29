@@ -2,11 +2,6 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notFound, redirect } from 'next/navigation';
-import {
-    Calendar, DollarSign, BarChart, ClipboardCheck,
-    BookOpen, User, Briefcase, Clock, ChevronLeft, CheckSquare, Layers, Search
-} from 'lucide-react';
-import Link from 'next/link';
 import ProjectDetailClient from './ProjectDetailClient';
 
 type Props = {
@@ -28,11 +23,10 @@ export default async function ProjectDetailPage(props: Props) {
                     email: true
                 }
             },
-            learningObjects: true
+            learningObjects: true,
+            resources: true
         }
     });
-
-
 
     if (!project) notFound();
 
@@ -48,15 +42,6 @@ export default async function ProjectDetailPage(props: Props) {
 
     // Determine current status: 'NONE' | 'PENDING' | 'ACCEPTED' | 'REJECTED'
     const applicationStatus = existingApplication ? existingApplication.status : 'NONE';
-
-    // Mapping icons/colors based on type
-    const typeConfig = {
-        PROJECT: { label: "Proyecto", icon: Layers, color: "text-blue-600", bg: "bg-blue-50" },
-        CHALLENGE: { label: "Reto", icon: CheckSquare, color: "text-orange-600", bg: "bg-orange-50" },
-        PROBLEM: { label: "Problema", icon: Search, color: "text-red-600", bg: "bg-red-50" }
-    };
-
-    const config = typeConfig[project.type as keyof typeof typeConfig] || typeConfig.PROJECT;
 
     return <ProjectDetailClient project={project} initialStatus={applicationStatus} />;
 }

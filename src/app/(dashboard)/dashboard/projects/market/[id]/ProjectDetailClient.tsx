@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import {
     Calendar, DollarSign, BarChart, ClipboardCheck,
     BookOpen, Briefcase, ChevronLeft, CheckSquare, Layers, Search,
-    Clock3, Target, GraduationCap, Map, Layout
+    Clock3, Target, GraduationCap, Map, Layout, Video, FileText, Play, X, Maximize2
 } from 'lucide-react';
 import Link from 'next/link';
 import { Project } from '@prisma/client';
@@ -12,21 +12,31 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { applyToProjectAction } from '@/app/actions/project-actions';
 
-// Extend Project type to include teacher
+interface Resource {
+    id: string;
+    title: string;
+    type: string;
+    url: string;
+    presentation?: string | null;
+    utility?: string | null;
+    createdAt: Date | string;
+}
+
 type ProjectWithRelations = Project & {
     teacher: {
         name: string | null;
         avatarUrl: string | null;
         email: string | null;
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    learningObjects: any[];
+    learningObjects: { id: string; title: string }[];
+    resources: Resource[];
 };
 
 export default function ProjectDetailClient({ project, initialStatus }: { project: ProjectWithRelations, initialStatus: string }) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'methodology' | 'logistics'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'methodology' | 'logistics' | 'resources'>('overview');
     const [isPending, startTransition] = useTransition();
     const [applicationStatus, setApplicationStatus] = useState(initialStatus);
+    const [viewerResource, setViewerResource] = useState<Resource | null>(null);
 
     // Sync state with server prop updates (from revalidatePath)
     useEffect(() => {
@@ -78,6 +88,16 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
                 </ReactMarkdown>
             </div>
         );
+    };
+
+    const ResourceIcon = ({ type }: { type: string }) => {
+        switch (type) {
+            case 'VIDEO': return <Video className="w-5 h-5 text-red-500" />;
+            case 'ARTICLE': return <FileText className="w-5 h-5 text-blue-500" />;
+            case 'EMBED': return <Layers className="w-5 h-5 text-purple-500" />;
+            case 'DRIVE': return <BookOpen className="w-5 h-5 text-emerald-500" />;
+            default: return <BookOpen className="w-5 h-5 text-slate-400" />;
+        }
     };
 
     return (
@@ -325,7 +345,122 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
                     </div>
                 )}
 
+                {/* TAB: RESOURCES */}
+                {activeTab === 'resources' && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                <BookOpen className="w-6 h-6 text-blue-600" />
+                                Biblioteca del Proyecto
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {project.resources.length === 0 ? (
+                                    <div className="col-span-full py-20 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 italic">
+                                        No hay materiales de apoyo publicados todavía.
+                                    </div>
+                                ) : project.resources.map((r: Resource) => (
+                                    <div key={r.id} className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-3 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition-colors">
+                                                <ResourceIcon type={r.type} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2">{r.title}</h4>
+                                                <p className="text-[10px] text-slate-400 uppercase mt-1">Recurso {r.type}</p>
+                                            </div>
+                                        </div>
+
+                                        {(r.presentation || r.utility) && (
+                                            <div className="space-y-3 pt-3 border-t border-slate-50">
+                                                {r.presentation && (
+                                                    <div>
+                                                        <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Presentación</h5>
+                                                        <p className="text-xs text-slate-600 line-clamp-2 italic leading-relaxed">&ldquo;{r.presentation}&rdquo;</p>
+                                                    </div>
+                                                )}
+                                                {r.utility && (
+                                                    <div>
+                                                        <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Utilidad</h5>
+                                                        <p className="text-xs text-slate-700 font-medium leading-relaxed">{r.utility}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-3 pt-2">
+                                            <button
+                                                onClick={() => setViewerResource(r)}
+                                                className="flex-1 py-2 px-4 bg-slate-900 text-white text-[11px] font-bold rounded-xl hover:bg-black transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Play className="w-3 h-3" /> Ver ahora
+                                            </button>
+                                            {r.type !== 'EMBED' && (
+                                                <a
+                                                    href={r.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400 transition-all hover:text-slate-600"
+                                                    title="Abrir original"
+                                                >
+                                                    <Maximize2 className="w-4 h-4" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
             </div>
+
+            {/* VIEWER MODAL */}
+            {viewerResource && (
+                <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-10 animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white w-full max-w-6xl h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
+                            <div className="flex items-center gap-3">
+                                <ResourceIcon type={viewerResource.type} />
+                                <div>
+                                    <h3 className="font-bold text-slate-900 text-sm leading-none">{viewerResource.title}</h3>
+                                    <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest">{viewerResource.type} • Publicado el {new Date(viewerResource.createdAt).toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setViewerResource(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5 text-slate-400" /></button>
+                        </div>
+                        <div className="flex-1 bg-black relative">
+                            {viewerResource.type === 'VIDEO' ? (
+                                <iframe src={viewerResource.url.replace('watch?v=', 'embed/').split('&')[0]} className="w-full h-full" allowFullScreen allow="autoplay; encrypted-media" />
+                            ) : viewerResource.type === 'EMBED' ? (
+                                <div className="w-full h-full bg-white p-4 overflow-auto items-center justify-center flex" dangerouslySetInnerHTML={{ __html: viewerResource.url }} />
+                            ) : (
+                                <iframe
+                                    src={viewerResource.url.includes('drive.google.com')
+                                        ? viewerResource.url.replace(/\/(view|edit).*$/, '/preview')
+                                        : viewerResource.url}
+                                    className="w-full h-full border-0 bg-white"
+                                    title={viewerResource.title}
+                                />
+                            )}
+                        </div>
+                        {viewerResource.presentation && (
+                            <div className="p-6 bg-white border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[150px] overflow-auto">
+                                <div>
+                                    <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Presentación</h5>
+                                    <p className="text-xs text-slate-600 italic leading-relaxed">&ldquo;{viewerResource.presentation}&rdquo;</p>
+                                </div>
+                                {viewerResource.utility && (
+                                    <div>
+                                        <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 text-blue-600">Por qué es relevante para tu aprendizaje</h5>
+                                        <p className="text-xs text-slate-700 font-medium leading-relaxed">{viewerResource.utility}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

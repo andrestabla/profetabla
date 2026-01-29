@@ -201,7 +201,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                         <label className="block text-xs font-bold text-slate-500 uppercase">Enlace</label>
                                         <button
                                             type="button"
-                                            disabled={isExtracting || (!metaUrl && resourceType !== 'EMBED')}
+                                            disabled={isExtracting || !metaUrl}
                                             onClick={async () => {
                                                 setIsExtracting(true);
                                                 try {
