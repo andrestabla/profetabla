@@ -140,35 +140,51 @@ export async function extractResourceMetadataAction(url: string, type: string) {
         if (!apiKey) return { success: false, error: 'API Key de Gemini no configurada' };
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: config?.geminiModel || "gemini-1.5-flash" });
+        // Habilitar herramienta de búsqueda para enriquecer el contexto si es una URL
+        const model = genAI.getGenerativeModel({
+            model: config?.geminiModel || "gemini-1.5-flash",
+            tools: [{ googleSearchRetrieval: {} }]
+        });
 
         const prompt = `
-            Analiza este recurso. 
-            Tipo: ${type}
-            Identificador (URL o Código): ${url}
+            Actúa como un asistente pedagógico experto.
+            Tu tarea es analizar el siguiente recurso educativo y generar metadatos útiles para un estudiante.
 
-            Extrae o sugiere metadatos pedagógicos de alta calidad para un entorno educativo universitario.
-            Responde ÚNICAMENTE con un JSON con esta estructura:
+            Tipo de Recurso: ${type}
+            Identificador (URL, Título o Código): ${url}
+
+            INSTRUCCIONES:
+            1. Si es una URL o un Video, USA LA HERRAMIENTA DE BÚSQUEDA DE GOOGLE para obtener información real sobre el contenido (título, autor, resumen). No alucines.
+            2. Si es un archivo de Drive (basado en título) o un Embed code, analiza el texto proporcionado.
+            3. Genera un título profesional, una presentación descriptiva y una utilidad pedagógica clara.
+
+            Responde ÚNICAMENTE con un JSON válido con esta estructura:
             {
-              "title": "Nombre claro y profesional del recurso",
-              "presentation": "Qué es este material (formato, autor, fuente si es visible) y contenido principal (2-3 líneas marcadas)",
-              "utility": "Para qué le sirve específicamente al estudiante en su proceso de aprendizaje o proyecto (2-3 líneas)"
+              "title": "Nombre claro y profesional del recurso (Ej: 'Introducción a React Hooks')",
+              "presentation": "Descripción concisa: qué es, quién lo crea y qué temas principales aborda. (Máx 250 caracteres)",
+              "utility": "Directo al grano: para qué le sirve al estudiante en su proyecto. (Ej: 'Útil para implementar la autenticación...'). (Máx 250 caracteres)"
             }
-            
-            IMPORTANTE:
-            - Si es un VIDEO, sugiere basándote en el título/canal si la URL es de YouTube.
-            - Si es un EMBED (código), analiza las etiquetas title, src o el contenido del texto dentro del código.
-            - Si es una URL de Artículo, sugiere basándote en el dominio y el slug.
         `;
 
         const result = await model.generateContent(prompt);
         const text = result.response.text();
+        // Limpieza de JSON más robusta
         const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        const data = JSON.parse(jsonString);
+
+        let data;
+        try {
+            data = JSON.parse(jsonString);
+        } catch (parseError) {
+            console.error("Error al parsear JSON de Gemini:", text);
+            console.error(parseError);
+            throw new Error(`La IA no devolvió un formato válido. Respuesta: ${text.substring(0, 50)}...`);
+        }
 
         return { success: true, data };
     } catch (e: unknown) {
-        console.error('Error en extractResourceMetadataAction:', e);
-        return { success: false, error: 'No se pudo extraer metadatos automáticamente' };
+        const error = e as Error;
+        console.error('Error en extractResourceMetadataAction:', error);
+        // Devolver el mensaje real del error para depuración
+        return { success: false, error: error.message || 'Error desconocido al procesar con IA' };
     }
 }
