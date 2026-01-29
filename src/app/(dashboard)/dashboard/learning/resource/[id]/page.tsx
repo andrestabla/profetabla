@@ -27,16 +27,24 @@ export default async function ResourceViewerPage({ params }: { params: { id: str
         return notFound();
     }
 
-    // Build a complete resource object for the client
+    // Build a complete resource object for the client with serialized dates
     const safeResource = {
-        ...resource,
+        id: resource.id,
+        title: resource.title,
+        type: resource.type,
+        url: resource.url,
+        presentation: resource.presentation,
+        utility: resource.utility,
+        categoryId: resource.categoryId,
+        category: resource.category,
         project: resource.project ? {
             title: resource.project.title,
-            studentName: resource.project.student?.name
+            studentName: resource.project.student?.name || null
         } : {
             title: 'Recurso General',
             studentName: null
-        }
+        },
+        createdAt: resource.createdAt.toISOString() // Serialize Date
     };
 
     return <ResourceViewerClient resource={safeResource} />;

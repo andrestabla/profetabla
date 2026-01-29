@@ -16,7 +16,7 @@ type Resource = {
     categoryId: string;
     category: { name: string; color: string; };
     project: { title: string; studentName?: string | null };
-    createdAt: Date;
+    createdAt: string;
 };
 
 export default function ResourceViewerClient({ resource }: { resource: Resource }) {
