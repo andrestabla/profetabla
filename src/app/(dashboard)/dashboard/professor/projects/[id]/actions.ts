@@ -142,7 +142,7 @@ export async function extractResourceMetadataAction(url: string, type: string) {
         const genAI = new GoogleGenerativeAI(apiKey);
         // Habilitar herramienta de búsqueda para enriquecer el contexto si es una URL
         const model = genAI.getGenerativeModel({
-            model: config?.geminiModel || "gemini-1.5-flash",
+            model: config?.geminiModel || "gemini-1.5-flash-001",
             tools: [{ googleSearchRetrieval: {} }]
         });
 
