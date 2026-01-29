@@ -20,7 +20,7 @@ export async function createLearningObjectAction(formData: FormData) {
 
     // Parse Items JSON
     const itemsJson = formData.get('itemsJson') as string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const items = itemsJson ? JSON.parse(itemsJson) : [];
 
     // Process Keywords (comma separated)
@@ -36,10 +36,13 @@ export async function createLearningObjectAction(formData: FormData) {
             keywords,
             authorId: session.user.id,
             items: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 create: items.map((item: any, index: number) => ({
                     title: item.title,
                     type: item.type,
                     url: item.url,
+                    presentation: item.presentation,
+                    utility: item.utility,
                     order: index // Maintain order from the frontend list
                 }))
             }
@@ -102,7 +105,7 @@ export async function updateLearningObjectAction(formData: FormData) {
     // For items, simplistic approach: Delete all and recreate (easiest for MVP editing)
     // A better approach would be to diff, but that's complex without ID tracking in frontend
     const itemsJson = formData.get('itemsJson') as string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const items = itemsJson ? JSON.parse(itemsJson) : [];
 
     await prisma.$transaction(async (tx) => {
@@ -128,6 +131,8 @@ export async function updateLearningObjectAction(formData: FormData) {
                     title: item.title,
                     type: item.type,
                     url: item.url,
+                    presentation: item.presentation,
+                    utility: item.utility,
                     order: index,
                     learningObjectId: id
                 }))

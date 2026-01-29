@@ -297,6 +297,8 @@ model ResourceItem {
   title            String
   type             ItemType          @default(LINK)
   url              String
+  presentation     String?
+  utility          String?
   order            Int               @default(0)
   learningObjectId String
   interactions     ItemInteraction[]
