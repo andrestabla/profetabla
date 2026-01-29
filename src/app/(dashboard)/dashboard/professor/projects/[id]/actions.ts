@@ -131,6 +131,50 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
 
 import OpenAI from 'openai';
 
+// YouTube Data API integration
+async function fetchYouTubeMetadata(url: string) {
+    try {
+        // Extract video ID from URL
+        const videoIdMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+        if (!videoIdMatch) return null;
+
+        const videoId = videoIdMatch[1];
+        const apiKey = process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY;
+
+        if (!apiKey) {
+            console.log('[YouTube API] No API key found, skipping YouTube fetch');
+            return null;
+        }
+
+        const response = await fetch(
+            `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
+        );
+
+        if (!response.ok) {
+            console.error('[YouTube API] Failed to fetch:', response.statusText);
+            return null;
+        }
+
+        const data = await response.json();
+
+        if (!data.items || data.items.length === 0) {
+            console.log('[YouTube API] Video not found');
+            return null;
+        }
+
+        const video = data.items[0].snippet;
+
+        return {
+            title: video.title,
+            presentation: video.description.substring(0, 250) || `Video educativo de YouTube sobre ${video.title}`,
+            utility: `Recurso audiovisual que explica conceptos clave sobre ${video.title.toLowerCase()}`
+        };
+    } catch (error) {
+        console.error('[YouTube API] Error:', error);
+        return null;
+    }
+}
+
 // OpenAI extraction function
 async function extractWithOpenAI(apiKey: string, model: string, url: string, type: string) {
     const openai = new OpenAI({ apiKey });
@@ -253,6 +297,15 @@ export async function extractResourceMetadataAction(url: string, type: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const safeConfig = config as any;
         const aiProvider = safeConfig?.aiProvider || 'GEMINI';
+
+        // For YouTube videos, try to fetch real metadata first
+        if (type === 'VIDEO' && url.includes('youtube.com') || url.includes('youtu.be')) {
+            const youtubeData = await fetchYouTubeMetadata(url);
+            if (youtubeData) {
+                console.log('[AI Extraction] Using YouTube API data');
+                return { success: true, data: youtubeData };
+            }
+        }
 
         // Try OpenAI if configured as provider
         if (aiProvider === 'OPENAI' && safeConfig?.openaiApiKey) {
