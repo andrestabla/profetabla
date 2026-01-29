@@ -49,5 +49,29 @@ export default async function ResourceViewerPage({ params }: { params: Promise<{
         createdAt: resource.createdAt.toISOString() // Serialize Date
     };
 
-    return <ResourceViewerClient resource={safeResource} />;
+    const comments = await prisma.comment.findMany({
+        where: { resourceId: id },
+        include: {
+            author: {
+                select: {
+                    id: true,
+                    name: true,
+                    avatarUrl: true,
+                    role: true
+                }
+            }
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+
+    const safeComments = comments.map(c => ({
+        ...c,
+        createdAt: c.createdAt.toISOString()
+    }));
+
+    return <ResourceViewerClient
+        resource={safeResource}
+        comments={safeComments}
+        currentUserId={session?.user?.id || ''}
+    />;
 }

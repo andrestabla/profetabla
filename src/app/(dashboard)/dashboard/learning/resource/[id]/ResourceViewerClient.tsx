@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Info, BookOpen, Video, FileText, Globe, Sparkles, Cloud } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Info, BookOpen, Video, FileText, Globe, Sparkles, Cloud, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ResourceComments } from './ResourceComments';
 
 // Tipos
 type Resource = {
@@ -19,8 +20,29 @@ type Resource = {
     createdAt: string;
 };
 
-export default function ResourceViewerClient({ resource }: { resource: Resource }) {
-    const [showInfo, setShowInfo] = useState(true);
+type Comment = {
+    id: string;
+    content: string;
+    createdAt: string;
+    author: {
+        id: string;
+        name: string | null;
+        avatarUrl: string | null;
+        role: string;
+    };
+};
+
+export default function ResourceViewerClient({
+    resource,
+    comments,
+    currentUserId
+}: {
+    resource: Resource;
+    comments: Comment[];
+    currentUserId: string;
+}) {
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [activeTab, setActiveTab] = useState<'info' | 'comments'>('info');
 
     const getIcon = () => {
         switch (resource.type) {
@@ -58,13 +80,36 @@ export default function ResourceViewerClient({ resource }: { resource: Resource 
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => setShowInfo(!showInfo)}
-                        className={cn("p-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium", showInfo ? "bg-blue-50 text-blue-600" : "hover:bg-slate-50 text-slate-500")}
-                    >
-                        <Info className="w-5 h-5" />
-                        <span className="hidden md:inline">Detalles</span>
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                if (sidebarOpen && activeTab === 'comments') {
+                                    setSidebarOpen(false);
+                                } else {
+                                    setSidebarOpen(true);
+                                    setActiveTab('comments');
+                                }
+                            }}
+                            className={cn("p-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium", sidebarOpen && activeTab === 'comments' ? "bg-blue-50 text-blue-600" : "hover:bg-slate-50 text-slate-500")}
+                        >
+                            <MessageSquare className="w-5 h-5" />
+                            <span className="hidden md:inline">Comentarios</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (sidebarOpen && activeTab === 'info') {
+                                    setSidebarOpen(false);
+                                } else {
+                                    setSidebarOpen(true);
+                                    setActiveTab('info');
+                                }
+                            }}
+                            className={cn("p-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium", sidebarOpen && activeTab === 'info' ? "bg-blue-50 text-blue-600" : "hover:bg-slate-50 text-slate-500")}
+                        >
+                            <Info className="w-5 h-5" />
+                            <span className="hidden md:inline">Detalles</span>
+                        </button>
+                    </div>
                 </header>
 
                 <div className="flex-1 overflow-y-auto bg-slate-50 p-4 flex items-center justify-center">
@@ -72,50 +117,62 @@ export default function ResourceViewerClient({ resource }: { resource: Resource 
                 </div>
             </div>
 
-            {/* Sidebar de Detalles */}
-            {showInfo && (
-                <aside className="w-full md:w-80 bg-white border-l border-slate-200 overflow-y-auto shrink-0 animate-in slide-in-from-right duration-300 absolute md:relative right-0 h-full z-20 shadow-2xl md:shadow-none">
-                    <div className="p-6 space-y-8">
-                        <div>
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Presentación</h3>
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600 leading-relaxed italic">
-                                &ldquo;{resource.presentation || 'Sin descripción disponible.'}&rdquo;
+            {/* Sidebar */}
+            {sidebarOpen && (
+                <aside className="w-full md:w-96 bg-white border-l border-slate-200 overflow-hidden shrink-0 animate-in slide-in-from-right duration-300 absolute md:relative right-0 h-full z-20 shadow-2xl md:shadow-none flex flex-col">
+                    {/* Tabs Header inside Sidebar? No, controlled by main header. */}
+
+                    {activeTab === 'info' && (
+                        <div className="p-6 space-y-8 overflow-y-auto h-full">
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Presentación</h3>
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600 leading-relaxed italic">
+                                    &ldquo;{resource.presentation || 'Sin descripción disponible.'}&rdquo;
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Sparkles className="w-3 h-3 text-amber-500" /> Utilidad Pedagógica
+                                </h3>
+                                <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-100/50 text-sm text-slate-700 leading-relaxed font-medium">
+                                    {resource.utility || 'No especificada.'}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Detalles</h3>
+                                <ul className="space-y-3">
+                                    <li className="flex justify-between text-xs">
+                                        <span className="text-slate-500">Categoría</span>
+                                        <span className="font-bold text-slate-700">{resource.category.name}</span>
+                                    </li>
+                                    <li className="flex justify-between text-xs">
+                                        <span className="text-slate-500">Fecha</span>
+                                        <span className="font-bold text-slate-700">{new Date(resource.createdAt).toLocaleDateString()}</span>
+                                    </li>
+                                    <li className="pt-4 mt-4 border-t border-slate-100">
+                                        <a
+                                            href={resource.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
+                                        >
+                                            <ExternalLink className="w-4 h-4" /> Abrir Fuente Original
+                                        </a>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
+                    )}
 
-                        <div>
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <Sparkles className="w-3 h-3 text-amber-500" /> Utilidad Pedagógica
-                            </h3>
-                            <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-100/50 text-sm text-slate-700 leading-relaxed font-medium">
-                                {resource.utility || 'No especificada.'}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Detalles</h3>
-                            <ul className="space-y-3">
-                                <li className="flex justify-between text-xs">
-                                    <span className="text-slate-500">Categoría</span>
-                                    <span className="font-bold text-slate-700">{resource.category.name}</span>
-                                </li>
-                                <li className="flex justify-between text-xs">
-                                    <span className="text-slate-500">Fecha</span>
-                                    <span className="font-bold text-slate-700">{new Date(resource.createdAt).toLocaleDateString()}</span>
-                                </li>
-                                <li className="pt-4 mt-4 border-t border-slate-100">
-                                    <a
-                                        href={resource.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
-                                    >
-                                        <ExternalLink className="w-4 h-4" /> Abrir Fuente Original
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+                    {activeTab === 'comments' && (
+                        <ResourceComments
+                            resourceId={resource.id}
+                            initialComments={comments}
+                            currentUserId={currentUserId}
+                        />
+                    )}
                 </aside>
             )}
         </div>

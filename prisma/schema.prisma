@@ -123,6 +123,7 @@ model Resource {
   project      Project?              @relation("ProjectResources", fields: [projectId], references: [id], onDelete: Cascade)
   interactions ResourceInteraction[]
   tasks        Task[]                @relation("TaskResources")
+  comments     Comment[]             @relation("ResourceComments")
 
   @@index([projectId])
   @@index([categoryId])
@@ -219,6 +220,8 @@ model Comment {
   author           User            @relation(fields: [authorId], references: [id])
   learningObject   LearningObject? @relation(fields: [learningObjectId], references: [id], onDelete: Cascade)
   task             Task?           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  resourceId       String?
+  resource         Resource?       @relation("ResourceComments", fields: [resourceId], references: [id], onDelete: Cascade)
 }
 
 model Tag {
