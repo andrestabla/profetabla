@@ -398,6 +398,13 @@ model PlatformConfig {
   aiTone                        String   @default("ACADEMIC")
   googleDriveServiceAccountJson String?
   googleDriveAdminEmail         String?
+  
+  // Cloudflare R2 Integration
+  r2AccountId                   String?
+  r2AccessKeyId                 String?
+  r2SecretAccessKey             String?
+  r2BucketName                  String?
+  
   loadingUrl                    String?  @default("https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif")
 }
 

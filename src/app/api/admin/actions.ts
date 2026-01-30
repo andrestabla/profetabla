@@ -45,6 +45,12 @@ export async function updatePlatformConfigAction(formData: FormData) {
             googleDriveFolderId: formData.get('googleDriveFolderId') as string,
             googleDriveAdminEmail: formData.get('googleDriveAdminEmail') as string,
 
+            // Cloudflare R2
+            r2AccountId: formData.get('r2AccountId') as string,
+            r2BucketName: formData.get('r2BucketName') as string,
+            r2AccessKeyId: formData.get('r2AccessKeyId') as string,
+            r2SecretAccessKey: formData.get('r2SecretAccessKey') as string,
+
             smtpHost: formData.get('smtpHost') as string,
             smtpPort: smtpPort,
             smtpUser: formData.get('smtpUser') as string,

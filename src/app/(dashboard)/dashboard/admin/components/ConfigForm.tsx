@@ -249,7 +249,34 @@ export function ConfigForm({ config }: { config: any }) {
                 </div>
             </div>
 
-            {/* 2. Asistente SSO Google */}
+            {/* 1.5. Cloudflare R2 / S3 Storage */}
+            <div className="space-y-4 mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="flex items-center justify-between border-b pb-2">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        <Cloud className="w-5 h-5 text-orange-600" /> Cloudflare R2 Storage (Plan C)
+                    </h3>
+                    <StatusBadge isConfigured={!!config?.r2AccountId && !!config?.r2AccessKeyId} />
+                </div>
+                <p className="text-xs text-slate-500">
+                    Almacenamiento de archivos escalable y compatible con S3. Reemplaza a Google Drive si este falla.
+                </p>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Account ID</label>
+                    <input type="text" name="r2AccountId" defaultValue={config?.r2AccountId || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="..." />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Bucket Name</label>
+                    <input type="text" name="r2BucketName" defaultValue={config?.r2BucketName || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="profetabla" />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Access Key ID</label>
+                    <input type="text" name="r2AccessKeyId" defaultValue={config?.r2AccessKeyId || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="..." />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Secret Access Key</label>
+                    <input type="password" name="r2SecretAccessKey" defaultValue={config?.r2SecretAccessKey || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="..." />
+                </div>
+            </div>
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">
                     <h3 className="font-bold text-slate-800 flex items-center gap-2">

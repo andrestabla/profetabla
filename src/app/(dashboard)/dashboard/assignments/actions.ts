@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { createFolder, listProjectFiles, uploadFileToDrive } from '@/lib/google-drive';
+import { uploadFileToR2 } from '@/lib/r2';
 import { Readable } from 'stream';
 
 
@@ -49,24 +50,19 @@ export async function submitAssignmentAction(formData: FormData) {
 
         if (!submissionsFolder?.id) return { success: false, error: 'No se pudo crear (ID nulo)' };
 
-        // Upload
+        // Create buffer
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const stream = Readable.from(buffer);
 
-        // Rename file to StudentName_AssignmentTitle_Filename
-        const safeName = `${session.user.name || 'Estudiante'}_${assignment.title}_${file.name}`.replace(/[^a-zA-Z0-9._-]/g, '_');
-
-        const uploaded = await uploadFileToDrive(submissionsFolder.id, safeName, file.type, stream);
-
-        if (!uploaded?.webViewLink) return { success: false, error: 'Error al subir a Drive' };
+        // Upload to R2 (Plan C)
+        const { url, key } = await uploadFileToR2(buffer, file.name, file.type, 'submissions');
 
         // Save to DB
         await prisma.submission.create({
             data: {
                 assignmentId,
                 studentId: session.user.id,
-                fileUrl: uploaded.webViewLink,
+                fileUrl: url, // Storing key/url
                 fileName: file.name,
                 fileType: file.type,
                 fileSize: file.size
