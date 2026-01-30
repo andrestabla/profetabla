@@ -70,10 +70,10 @@ export default function StudentViewerClient({ learningObject, comments, currentU
         }
     };
 
-    if (!activeItem) {
+    if (sortedItems.length === 0) {
         return (
             <div className="p-8 text-center text-slate-500">
-                Este objeto de aprendizaje no tiene contenido.
+                Este objeto de aprendizaje aún no tiene recursos educativos.
             </div>
         )
     }

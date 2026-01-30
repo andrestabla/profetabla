@@ -61,8 +61,8 @@ export function DesignEditor({ config }: { config: any }) {
                         <input name="logoUrl" defaultValue={config?.logoUrl || ''} className="w-full px-4 py-2 border rounded-lg" placeholder="https://ejemplo.com/logo.png" />
                     </div>
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-bold text-slate-700 mb-2">URL del Favicon</label>
-                        <input name="faviconUrl" defaultValue={config?.faviconUrl || ''} className="w-full px-4 py-2 border rounded-lg" placeholder="https://ejemplo.com/favicon.ico" />
+                        <label className="block text-sm font-bold text-slate-700 mb-2">URL del Favicon (Icono de pestaña)</label>
+                        <input name="faviconUrl" defaultValue={config?.faviconUrl || ''} className="w-full px-4 py-2 border rounded-lg" placeholder="https://img.icons8.com/fluency/48/education.png" />
                     </div>
                 </div>
             </div>
