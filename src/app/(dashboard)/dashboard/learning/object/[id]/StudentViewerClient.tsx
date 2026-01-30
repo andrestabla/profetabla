@@ -14,6 +14,11 @@ type ResourceItem = {
     type: ItemType;
     url: string;
     order: number;
+    presentation?: string | null;
+    utility?: string | null;
+    subject?: string | null;
+    competency?: string | null;
+    keywords?: string[];
 };
 
 type LearningObject = {
@@ -33,8 +38,10 @@ import { deleteLearningObjectAction } from '../../actions';
 export default function StudentViewerClient({ learningObject, comments, currentUserId, currentUserRole }: { learningObject: LearningObject, comments: any[], currentUserId?: string, currentUserRole?: string }) {
     // Ordenar los items y definir el estado inicial
     const sortedItems = [...learningObject.items].sort((a, b) => a.order - b.order);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const activeItem = sortedItems[currentIndex];
+    const [currentIndex, setCurrentIndex] = useState(-1); // -1 means no item selected (List view)
+    const [viewMode, setViewMode] = useState<'LIST' | 'CONTENT'>('LIST');
+    const activeItem = currentIndex >= 0 ? sortedItems[currentIndex] : null;
+
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -171,33 +178,11 @@ export default function StudentViewerClient({ learningObject, comments, currentU
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">
-                        Contenido del Módulo
+                        Resumen del Módulo
                     </h3>
-                    {sortedItems.map((item, index) => {
-                        const isActive = index === currentIndex;
-                        // TODO: Integrar lógica de "isViewed" de la base de datos
-                        const isCompleted = index < currentIndex;
-
-                        return (
-                            <button
-                                key={item.id}
-                                onClick={() => setCurrentIndex(index)}
-                                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-medium text-sm text-left ${isActive
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : isCompleted
-                                        ? 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                                        : 'text-slate-600 hover:bg-slate-50'
-                                    }`}
-                            >
-                                {isCompleted ? (
-                                    <CheckCircle2 className={`w-5 h-5 ${isActive ? 'text-blue-200' : 'text-emerald-500'}`} />
-                                ) : (
-                                    getItemIcon(item.type, isActive)
-                                )}
-                                <span className="flex-1 line-clamp-2">{index + 1}. {item.title}</span>
-                            </button>
-                        );
-                    })}
+                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-slate-600 text-sm italic">
+                        Selecciona un recurso del panel derecho para comenzar a estudiar.
+                    </div>
                 </div>
             </aside>
 
@@ -214,10 +199,25 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                             {isSidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                         </button>
 
-                        <span className="bg-slate-800 text-slate-300 text-xs font-bold px-2 py-1 rounded">
-                            {activeItem.type}
-                        </span>
-                        <h2 className="text-lg font-bold truncate max-w-[200px] md:max-w-md">{activeItem.title}</h2>
+                        {viewMode === 'CONTENT' && activeItem && (
+                            <button
+                                onClick={() => setViewMode('LIST')}
+                                className="flex items-center gap-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-blue-400 transition-all"
+                            >
+                                <ChevronLeft className="w-3 h-3" /> Volver al Índice
+                            </button>
+                        )}
+
+                        {activeItem ? (
+                            <>
+                                <span className="bg-slate-800 text-slate-300 text-xs font-bold px-2 py-1 rounded">
+                                    {activeItem.type}
+                                </span>
+                                <h2 className="text-lg font-bold truncate max-w-[200px] md:max-w-md">{activeItem.title}</h2>
+                            </>
+                        ) : (
+                            <h2 className="text-lg font-bold">Contenidos Disponibles</h2>
+                        )}
                     </div>
                     <div className="flex items-center gap-4">
                         <span className="text-sm font-medium text-slate-400 hidden md:inline">
@@ -239,8 +239,106 @@ export default function StudentViewerClient({ learningObject, comments, currentU
 
                 <div className="flex flex-1 overflow-hidden">
                     {/* CONTENEDOR DE RENDERIZADO DINÁMICO */}
-                    <div className="flex-1 relative bg-black flex items-center justify-center p-4 overflow-y-auto">
-                        <ResourceRenderer item={activeItem} />
+                    <div className="flex-1 relative bg-white flex flex-col overflow-y-auto">
+                        {viewMode === 'LIST' ? (
+                            <div className="p-8 space-y-4">
+                                <p className="text-slate-500 font-medium mb-6">Explora los recursos de este objeto de aprendizaje:</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {sortedItems.map((item, index) => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => {
+                                                setCurrentIndex(index);
+                                                setViewMode('CONTENT');
+                                            }}
+                                            className="flex items-center gap-4 p-5 bg-slate-50 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 hover:shadow-md transition-all group text-left"
+                                        >
+                                            <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center group-hover:border-blue-200 group-hover:bg-blue-100 transition-colors">
+                                                {getItemIcon(item.type, false)}
+                                            </div>
+                                            <div className="flex-1">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.type}</span>
+                                                <h3 className="font-bold text-slate-800 line-clamp-1">{index + 1}. {item.title}</h3>
+                                                <p className="text-xs text-slate-500 line-clamp-1">{item.subject || 'Sin materia'}</p>
+                                            </div>
+                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col h-full bg-slate-50">
+                                {/* Visor de Recurso (Top) */}
+                                <div className="flex-[3] bg-black min-h-[400px] flex items-center justify-center p-4">
+                                    {activeItem && <ResourceRenderer item={activeItem} />}
+                                </div>
+
+                                {/* Metadatos del Recurso (Bottom) */}
+                                <div className="flex-[2] bg-white border-t border-slate-200 overflow-y-auto p-8">
+                                    {activeItem && (
+                                        <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                                            <div className="flex flex-wrap items-center gap-4">
+                                                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
+                                                    {getItemIcon(activeItem.type, false)}
+                                                    <span className="text-xs font-bold uppercase">{activeItem.type}</span>
+                                                </div>
+                                                {activeItem.subject && (
+                                                    <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
+                                                        {activeItem.subject}
+                                                    </span>
+                                                )}
+                                                {activeItem.competency && (
+                                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                                                        {activeItem.competency}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                <div className="space-y-6">
+                                                    {activeItem.presentation && (
+                                                        <div className="space-y-2">
+                                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                                <FileText className="w-4 h-4" /> Presentación del Recurso
+                                                            </h4>
+                                                            <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 text-slate-700 leading-relaxed">
+                                                                {activeItem.presentation}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {activeItem.keywords && activeItem.keywords.length > 0 && (
+                                                        <div className="space-y-2">
+                                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Palabras Clave</h4>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {activeItem.keywords.map((kw, i) => (
+                                                                    <span key={i} className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600">
+                                                                        #{kw}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="space-y-6">
+                                                    {activeItem.utility && (
+                                                        <div className="space-y-2">
+                                                            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-2">
+                                                                <Sparkles className="w-4 h-4" /> Utilidad Pedagógica
+                                                            </h4>
+                                                            <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100 text-slate-700 leading-relaxed">
+                                                                {activeItem.utility}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* COMMENTS SIDEBAR (Right side, collapsible) */}
@@ -308,6 +406,20 @@ function ResourceRenderer({ item }: { item: ResourceItem }) {
 
     // 2. DOCUMENTOS PDF, DRIVE o iFRAMES GENERALES y EMBEDS RAW HTML
     if (item.type === 'PDF' || item.type === 'DRIVE' || item.type === 'EMBED' || item.type === 'S3') {
+        let finalUrl = item.url;
+
+        // Transform Google Drive links for better embedding
+        if (item.type === 'DRIVE' || item.url.includes('drive.google.com')) {
+            if (item.url.includes('/view')) {
+                finalUrl = item.url.replace('/view', '/preview');
+            } else if (!item.url.includes('/preview') && item.url.includes('id=')) {
+                // If it's a direct ID link but not formatted as /preview
+                const idMatch = item.url.match(/id=([^&]+)/);
+                if (idMatch) {
+                    finalUrl = `https://docs.google.com/viewer?srcid=${idMatch[1]}&pid=explorer&efp=explorer_feedout&embedded=true`;
+                }
+            }
+        }
 
         // Special case for Raw HTML/Embed Codes
         if (item.type === 'EMBED' && item.url.trim().startsWith('<')) {
@@ -321,7 +433,7 @@ function ResourceRenderer({ item }: { item: ResourceItem }) {
 
         return (
             <iframe
-                src={item.url}
+                src={finalUrl}
                 className="w-full h-full bg-white rounded-lg"
                 title={item.title}
                 allowFullScreen
