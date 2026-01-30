@@ -191,31 +191,38 @@ export async function createLearningObjectAction(formData: FormData) {
 
     const items = itemsJson ? JSON.parse(itemsJson) : [];
 
-    await prisma.learningObject.create({
-        data: {
-            title,
-            subject,
-            competency,
-            description,
-            keywords,
-            authorId: userId,
-            items: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                create: items.map((item: any, idx: number) => ({
-                    title: item.title,
-                    type: item.type,
-                    url: item.url,
-                    order: idx,
-                    metadata: {
-                        presentation: item.presentation,
-                        utility: item.utility
-                    }
-                }))
+    try {
+        await prisma.learningObject.create({
+            data: {
+                title,
+                subject,
+                competency,
+                description,
+                keywords,
+                authorId: userId,
+                items: {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    create: items.map((item: any, idx: number) => ({
+                        title: item.title,
+                        type: item.type,
+                        url: item.url,
+                        order: idx,
+                        metadata: {
+                            presentation: item.presentation,
+                            utility: item.utility
+                        }
+                    }))
+                }
             }
-        }
-    });
+        });
 
-    revalidatePath('/dashboard/learning');
+        revalidatePath('/dashboard/learning');
+    } catch (e: unknown) {
+        console.error("Error creating OA:", e);
+        const error = e as Error;
+        return { success: false, error: error.message || 'Error al crear el objeto de aprendizaje' };
+    }
+
     redirect('/dashboard/learning');
 }
 
@@ -323,11 +330,11 @@ export async function createGlobalResourceAction(formData: FormData) {
             revalidatePath(`/dashboard/professor/projects/${projectId}`);
         }
 
-        redirect('/dashboard/learning');
-
     } catch (e: unknown) {
         console.error("Error creating global resource:", e);
         const error = e as Error;
         return { success: false, error: error.message || 'Error al crear el recurso' };
     }
+
+    redirect('/dashboard/learning');
 }

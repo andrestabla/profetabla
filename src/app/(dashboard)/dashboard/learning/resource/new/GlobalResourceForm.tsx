@@ -44,17 +44,12 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
 
     const handleSubmit = async (formData: FormData) => {
         setIsSaving(true);
-        try {
-            const res = await createGlobalResourceAction(formData);
-            if (res && !res.success) {
-                alert(res.error || "Error al crear el recurso");
-                setIsSaving(false);
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Error desconocido");
+        const res = await createGlobalResourceAction(formData);
+        if (res && !res.success) {
+            alert(res.error || "Error al crear el recurso");
             setIsSaving(false);
         }
+        // No catch block here to avoid catching NEXT_REDIRECT
     };
 
     return (

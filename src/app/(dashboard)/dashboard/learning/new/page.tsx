@@ -75,6 +75,16 @@ export default function NewLearningObjectPage() {
         }
     };
 
+    const handleSubmit = async (formData: FormData) => {
+        setIsSaving(true);
+        const res = await createLearningObjectAction(formData);
+        if (res && !res.success) {
+            alert(res.error || "Error al crear el objeto de aprendizaje");
+            setIsSaving(false);
+        }
+        // If success, server redirects
+    };
+
     return (
         <div className="max-w-5xl mx-auto p-6">
             <Link href="/dashboard/learning" className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-6 transition-colors">
@@ -90,7 +100,7 @@ export default function NewLearningObjectPage() {
                 </p>
             </header>
 
-            <form action={async (fd) => { setIsSaving(true); await createLearningObjectAction(fd); }} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <form action={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* LEFT COLUMN: Metadata */}
                 <div className="lg:col-span-1 space-y-6">
