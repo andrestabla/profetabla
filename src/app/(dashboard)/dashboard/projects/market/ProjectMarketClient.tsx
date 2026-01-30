@@ -21,10 +21,7 @@ type ProjectWithTeacher = {
     teacher: { name: string | null; avatarUrl: string | null };
 };
 
-export default function ProjectMarketClient({ availableProjects }: { availableProjects: ProjectWithTeacher[] }) {
-    const { data: session } = useSession();
-    const canCreate = session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN';
-
+export default function ProjectMarketClient({ availableProjects, currentFilter }: { availableProjects: ProjectWithTeacher[], currentFilter?: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' }) {
     // Mapping icons/colors based on type
     const typeConfig = {
         PROJECT: { label: "Proyecto", icon: Layers, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
@@ -34,20 +31,38 @@ export default function ProjectMarketClient({ availableProjects }: { availablePr
 
     return (
         <div className="p-6 space-y-8">
-            <header className="mb-8 flex justify-between items-start">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Mercado de Proyectos</h1>
-                    <p className="text-slate-500">Explora y postúlate a retos reales diseñados por tus profesores.</p>
-                </div>
-                {canCreate && (
-                    <Link
-                        href="/dashboard/professor/projects/new"
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition-all flex items-center gap-2 text-sm"
-                    >
-                        <Plus className="w-4 h-4" /> Nuevo Proyecto
-                    </Link>
-                )}
+            <header className="mb-0">
+                <h1 className="text-2xl font-bold text-slate-800">Mercado de Proyectos</h1>
+                <p className="text-slate-500">Explora y postúlate a retos reales diseñados por tus profesores.</p>
             </header>
+
+            {/* FIlter Tabs */}
+            <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
+                <Link
+                    href="/dashboard/projects/market"
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${!currentFilter ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                >
+                    Todos
+                </Link>
+                <Link
+                    href="/dashboard/projects/market?type=PROJECT"
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${currentFilter === 'PROJECT' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                >
+                    Proyectos
+                </Link>
+                <Link
+                    href="/dashboard/projects/market?type=CHALLENGE"
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${currentFilter === 'CHALLENGE' ? 'border-orange-600 text-orange-600 bg-orange-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                >
+                    Retos
+                </Link>
+                <Link
+                    href="/dashboard/projects/market?type=PROBLEM"
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${currentFilter === 'PROBLEM' ? 'border-red-600 text-red-600 bg-red-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                >
+                    Problemas
+                </Link>
+            </div>
 
             {/* Grid de Proyectos */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -107,8 +122,9 @@ export default function ProjectMarketClient({ availableProjects }: { availablePr
                 })}
 
                 {availableProjects.length === 0 && (
-                    <div className="col-span-full py-12 text-center text-slate-400">
-                        No hay proyectos disponibles en este momento.
+                    <div className="col-span-full py-20 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <p className="font-medium text-lg text-slate-600 mb-1">No hay {currentFilter === 'PROJECT' ? 'proyectos' : currentFilter === 'CHALLENGE' ? 'retos' : currentFilter === 'PROBLEM' ? 'problemas' : 'experiencias'} disponibles.</p>
+                        <p className="text-sm">Intenta cambiar el filtro o vuelve más tarde.</p>
                     </div>
                 )}
             </div>
