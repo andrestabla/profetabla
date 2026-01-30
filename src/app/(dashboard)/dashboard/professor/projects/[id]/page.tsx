@@ -46,7 +46,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             submissions: {
                 where: project.studentId ? { studentId: project.studentId } : { studentId: 'NONE' },
                 orderBy: { createdAt: 'desc' },
-                // @ts-expect-error - generated client relation mismatch
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 include: { rubricScores: true }
             },
             rubricItems: {

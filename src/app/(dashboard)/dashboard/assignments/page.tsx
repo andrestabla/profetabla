@@ -26,7 +26,8 @@ export default async function AssignmentsPage() {
             project: { select: { id: true, title: true } },
             submissions: {
                 where: { studentId: session.user.id }, // Only show own submissions even for teacher in this view? Or maybe all? For now, stick to simple valid query.
-                // @ts-expect-error - generated client relation mismatch
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 include: { rubricScores: true }
             },
             task: {
