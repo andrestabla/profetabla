@@ -38,8 +38,7 @@ import { deleteLearningObjectAction } from '../../actions';
 export default function StudentViewerClient({ learningObject, comments, currentUserId, currentUserRole }: { learningObject: LearningObject, comments: any[], currentUserId?: string, currentUserRole?: string }) {
     // Ordenar los items y definir el estado inicial
     const sortedItems = [...learningObject.items].sort((a, b) => a.order - b.order);
-    const [currentIndex, setCurrentIndex] = useState(-1); // -1 means no item selected (List view)
-    const [viewMode, setViewMode] = useState<'LIST' | 'CONTENT'>('LIST');
+    const [currentIndex, setCurrentIndex] = useState(-1); // -1 is Intro
     const activeItem = currentIndex >= 0 ? sortedItems[currentIndex] : null;
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -121,67 +120,73 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                 </div>
             )}
 
-            {/* BARRA LATERAL: Índice del Paquete SCORM */}
-            <aside className="w-80 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
-                <div className="p-6 border-b border-slate-100">
-                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md uppercase tracking-wider mb-2 inline-block">
-                        {learningObject.subject}
-                    </span>
-                    <h1 className="text-lg font-bold text-slate-800 leading-tight mb-2">
-                        {learningObject.title}
-                    </h1>
-                    <p className="text-xs text-slate-500 font-medium mb-4">Competencia: {learningObject.competency || 'General'}</p>
-
-                    {/* EDIT & DELETE ACTIONS */}
+            {/* BARRA LATERAL: Índice de Contenidos */}
+            <aside className="w-80 bg-white border-r border-slate-200 flex flex-col hidden md:flex shrink-0">
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-sm font-bold text-slate-800 truncate px-1">Índice del Curso</h2>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest px-1">{learningObject.subject}</p>
+                    </div>
                     {(currentUserRole === 'ADMIN' || currentUserRole === 'TEACHER') && (
-                        <div className="flex gap-2 mb-4">
-                            <a href={`/dashboard/learning/${learningObject.id}/edit`} className="flex-1 text-center block text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 rounded-lg transition-colors">
-                                Editar
+                        <div className="flex gap-1">
+                            <a href={`/dashboard/learning/${learningObject.id}/edit`} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors" title="Editar">
+                                <Sparkles className="w-4 h-4" />
                             </a>
-                            <button
-                                onClick={() => setShowDeleteModal(true)}
-                                className="px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-                                title="Eliminar Objeto"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
                         </div>
                     )}
+                </div>
 
-                    {/* OA METADATA */}
-                    <div className="space-y-3 pt-4 border-t border-slate-100">
-                        {learningObject.presentation && (
-                            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-1">Presentación</h4>
-                                <p className="text-xs text-slate-600 leading-relaxed line-clamp-4 hover:line-clamp-none transition-all">{learningObject.presentation}</p>
+                <div className="flex-1 overflow-y-auto py-4">
+                    <div className="space-y-1 px-3">
+                        {/* Botón de Inicio/Intro */}
+                        <button
+                            onClick={() => setCurrentIndex(-1)}
+                            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group ${currentIndex === -1 ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
+                        >
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors ${currentIndex === -1 ? 'bg-blue-500 border-blue-400' : 'bg-white border-slate-200'}`}>
+                                <BookOpen className={`w-4 h-4 ${currentIndex === -1 ? 'text-white' : 'text-slate-400'}`} />
                             </div>
-                        )}
-                        {learningObject.utility && (
-                            <div className="bg-amber-50 p-2.5 rounded-lg border border-amber-100">
-                                <h4 className="text-[10px] font-bold text-amber-600 uppercase mb-1 flex items-center gap-1">
-                                    <Sparkles className="w-3 h-3" /> Utilidad Pedagógica
-                                </h4>
-                                <p className="text-xs text-slate-600 leading-relaxed line-clamp-4 hover:line-clamp-none transition-all">{learningObject.utility}</p>
+                            <div className="flex-1 min-w-0">
+                                <h4 className="text-xs font-bold truncate">Inicio del OA</h4>
+                                <p className={`text-[10px] font-medium ${currentIndex === -1 ? 'text-blue-100' : 'text-slate-400'}`}>Generalidades</p>
                             </div>
-                        )}
-                        {learningObject.keywords && learningObject.keywords.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                                {learningObject.keywords.map((kw, i) => (
-                                    <span key={i} className="text-[8px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">
-                                        {kw}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
+                        </button>
+
+                        <div className="my-4 px-2">
+                            <div className="h-px bg-slate-100 w-full" />
+                        </div>
+
+                        {sortedItems.map((item, index) => {
+                            const isActive = currentIndex === index;
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setCurrentIndex(index)}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group ${isActive ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
+                                >
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors ${isActive ? 'bg-blue-500 border-blue-400' : 'bg-white border-slate-200'}`}>
+                                        <div className={isActive ? 'text-white' : 'text-slate-400'}>
+                                            {getItemIcon(item.type, isActive)}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-xs font-bold truncate">{index + 1}. {item.title}</h4>
+                                        <p className={`text-[10px] font-medium ${isActive ? 'text-blue-100' : 'text-slate-400 uppercase'}`}>{item.type}</p>
+                                    </div>
+                                    {isActive && <ChevronRight className="w-4 h-4 text-blue-200 shrink-0" />}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">
-                        Guía de Estudio
-                    </h3>
-                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-slate-600 text-sm italic leading-relaxed">
-                        Explora los contenidos disponibles en la <strong>lista central</strong> y selecciona uno para comenzar tu aprendizaje.
+                <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">Progreso</p>
+                    <div className="mt-2 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-blue-600 transition-all duration-1000"
+                            style={{ width: `${((currentIndex + 1) / sortedItems.length) * 100}%` }}
+                        />
                     </div>
                 </div>
             </aside>
@@ -193,38 +198,26 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors"
-                            title={isSidebarOpen ? "Ocultar Menú" : "Mostrar Menú"}
+                            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors md:hidden"
                         >
-                            {isSidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+                            <Menu className="w-4 h-4" />
                         </button>
 
-                        {viewMode === 'CONTENT' && activeItem && (
-                            <button
-                                onClick={() => setViewMode('LIST')}
-                                className="flex items-center gap-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-blue-400 transition-all"
-                            >
-                                <ChevronLeft className="w-3 h-3" /> Volver al Índice
-                            </button>
-                        )}
-
-                        {activeItem ? (
+                        {currentIndex === -1 ? (
+                            <h2 className="text-lg font-bold">Introducción al Objeto de Aprendizaje</h2>
+                        ) : activeItem && (
                             <>
-                                <span className="bg-slate-800 text-slate-300 text-xs font-bold px-2 py-1 rounded">
+                                <span className="bg-slate-800 text-slate-300 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
                                     {activeItem.type}
                                 </span>
                                 <h2 className="text-lg font-bold truncate max-w-[200px] md:max-w-md">{activeItem.title}</h2>
                             </>
-                        ) : (
-                            <h2 className="text-lg font-bold">Contenidos Disponibles</h2>
                         )}
                     </div>
                     <div className="flex items-center gap-4">
-                        {viewMode === 'CONTENT' && (
-                            <span className="text-sm font-medium text-slate-400 hidden md:inline">
-                                Paso {currentIndex + 1} de {sortedItems.length}
-                            </span>
-                        )}
+                        <span className="text-sm font-medium text-slate-400 hidden lg:inline">
+                            {currentIndex === -1 ? 'Bienvenida' : `Recurso ${currentIndex + 1} de ${sortedItems.length}`}
+                        </span>
 
                         <div className="h-6 w-px bg-slate-700 mx-2 hidden md:block"></div>
 
@@ -239,82 +232,125 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                     </div>
                 </header>
 
-                <div className="flex flex-1 overflow-hidden">
+                <div className="flex flex-1 overflow-hidden relative">
                     {/* CONTENEDOR DE RENDERIZADO DINÁMICO */}
                     <div className="flex-1 relative bg-white flex flex-col overflow-y-auto">
-                        {viewMode === 'LIST' ? (
-                            <div className="p-8 space-y-4">
-                                <p className="text-slate-500 font-medium mb-6">Explora los recursos de este objeto de aprendizaje:</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {sortedItems.map((item, index) => (
+                        {currentIndex === -1 ? (
+                            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">
+                                <div className="max-w-3xl w-full space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                                    {/* Cabecera Hero */}
+                                    <div className="text-center space-y-4">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-black uppercase tracking-widest">
+                                            <Sparkles className="w-3 h-3" /> Objeto de Aprendizaje
+                                        </div>
+                                        <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                                            {learningObject.title}
+                                        </h1>
+                                        <p className="text-lg text-slate-500 font-medium">
+                                            {learningObject.subject} • {learningObject.competency || 'Competencia General'}
+                                        </p>
+                                    </div>
+
+                                    {/* Grid de Metadatos */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow space-y-4">
+                                            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                                                <FileText className="w-6 h-6" />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-800">Presentación</h3>
+                                            <p className="text-slate-600 leading-relaxed">
+                                                {learningObject.presentation || "Este objeto de aprendizaje ha sido diseñado para fortalecer tus competencias en la materia de manera interactiva y práctica."}
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow space-y-4 text-left">
+                                            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
+                                                <Sparkles className="w-6 h-6" />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-800">Utilidad Pedagógica</h3>
+                                            <p className="text-slate-600 leading-relaxed">
+                                                {learningObject.utility || "Al finalizar este recurso, habrás adquirido herramientas clave y conocimientos aplicables a situaciones reales del entorno educativo."}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Botón Central */}
+                                    <div className="flex flex-col items-center gap-6">
                                         <button
-                                            key={item.id}
-                                            onClick={() => {
-                                                setCurrentIndex(index);
-                                                setViewMode('CONTENT');
-                                            }}
-                                            className="flex items-center gap-4 p-5 bg-slate-50 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 hover:shadow-md transition-all group text-left"
+                                            onClick={() => setCurrentIndex(0)}
+                                            className="group relative flex items-center gap-4 bg-slate-900 hover:bg-blue-600 text-white px-10 py-5 rounded-2xl font-black text-xl transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-blue-500/20"
                                         >
-                                            <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center group-hover:border-blue-200 group-hover:bg-blue-100 transition-colors">
-                                                {getItemIcon(item.type, false)}
-                                            </div>
-                                            <div className="flex-1">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.type}</span>
-                                                <h3 className="font-bold text-slate-800 line-clamp-1">{index + 1}. {item.title}</h3>
-                                                <p className="text-xs text-slate-500 line-clamp-1">{item.subject || 'Sin materia'}</p>
-                                            </div>
-                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                                            <PlayCircle className="w-8 h-8" />
+                                            Empezar Curso
+                                            <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                                         </button>
-                                    ))}
+                                        <div className="flex flex-wrap justify-center gap-2">
+                                            {learningObject.keywords.map((kw, i) => (
+                                                <span key={i} className="text-[10px] font-bold bg-slate-200 text-slate-500 px-2 py-1 rounded-lg uppercase">
+                                                    #{kw}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex flex-col h-full bg-slate-50">
-                                {/* Visor de Recurso (Top) */}
-                                <div className="flex-[3] bg-black min-h-[400px] flex items-center justify-center p-4">
+                            <div className="flex flex-col h-full bg-slate-900">
+                                {/* Visor de Recurso (Top) - Fixed Flex height */}
+                                <div className="flex-[3] relative flex items-center justify-center p-4 min-h-[400px]">
                                     {activeItem && <ResourceRenderer item={activeItem} />}
                                 </div>
 
-                                {/* Metadatos del Recurso (Bottom) */}
-                                <div className="flex-[2] bg-white border-t border-slate-200 overflow-y-auto p-8">
+                                {/* Metadatos del Recurso (Bottom) - Unified Scroll Container */}
+                                <div className="flex-[2] bg-white border-t border-slate-200 overflow-y-auto custom-scrollbar shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
                                     {activeItem && (
-                                        <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                                            <div className="flex flex-wrap items-center gap-4">
-                                                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
-                                                    {getItemIcon(activeItem.type, false)}
-                                                    <span className="text-xs font-bold uppercase">{activeItem.type}</span>
+                                        <div className="max-w-5xl mx-auto p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
+                                            <div className="flex flex-wrap items-center justify-between gap-6 border-b border-slate-100 pb-8">
+                                                <div className="space-y-1">
+                                                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                                                        {activeItem.title}
+                                                    </h2>
+                                                    <div className="flex items-center gap-4 text-slate-500 text-sm font-medium">
+                                                        <span className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 rounded-md">
+                                                            {getItemIcon(activeItem.type, false)}
+                                                            {activeItem.type}
+                                                        </span>
+                                                        {activeItem.subject && (
+                                                            <>
+                                                                <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                                                                <span>{activeItem.subject}</span>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                {activeItem.subject && (
-                                                    <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
-                                                        {activeItem.subject}
-                                                    </span>
-                                                )}
+
                                                 {activeItem.competency && (
-                                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                                                    <div className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 flex items-center gap-2 text-sm font-bold">
+                                                        <CheckCircle2 className="w-4 h-4" />
                                                         {activeItem.competency}
-                                                    </span>
+                                                    </div>
                                                 )}
                                             </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                <div className="space-y-6">
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                                                <div className="space-y-8">
                                                     {activeItem.presentation && (
-                                                        <div className="space-y-2">
-                                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                                                <FileText className="w-4 h-4" /> Presentación del Recurso
+                                                        <div className="space-y-3">
+                                                            <h4 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                                <div className="w-6 h-px bg-blue-600/30" /> Presentación
                                                             </h4>
-                                                            <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 text-slate-700 leading-relaxed">
+                                                            <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 text-slate-700 leading-relaxed text-lg shadow-sm">
                                                                 {activeItem.presentation}
                                                             </div>
                                                         </div>
                                                     )}
 
                                                     {activeItem.keywords && activeItem.keywords.length > 0 && (
-                                                        <div className="space-y-2">
-                                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Palabras Clave</h4>
+                                                        <div className="space-y-4 pt-4">
+                                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conceptos Clave</h4>
                                                             <div className="flex flex-wrap gap-2">
                                                                 {activeItem.keywords.map((kw, i) => (
-                                                                    <span key={i} className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600">
+                                                                    <span key={i} className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:border-blue-300 hover:text-blue-600 transition-colors cursor-default">
                                                                         #{kw}
                                                                     </span>
                                                                 ))}
@@ -323,14 +359,14 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                                                     )}
                                                 </div>
 
-                                                <div className="space-y-6">
+                                                <div className="space-y-8">
                                                     {activeItem.utility && (
-                                                        <div className="space-y-2">
-                                                            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-2">
-                                                                <Sparkles className="w-4 h-4" /> Utilidad Pedagógica
+                                                        <div className="space-y-3">
+                                                            <h4 className="text-xs font-black text-amber-600 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                                <div className="w-6 h-px bg-amber-600/30" /> Utilidad Pedagógica
                                                             </h4>
-                                                            <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100 text-slate-700 leading-relaxed">
-                                                                {activeItem.utility}
+                                                            <div className="p-8 bg-amber-50/50 rounded-[2.5rem] border border-amber-100 text-slate-700 leading-relaxed italic text-lg shadow-inner">
+                                                                &quot;{activeItem.utility}&quot;
                                                             </div>
                                                         </div>
                                                     )}
@@ -359,26 +395,24 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                     )}
                 </div>
 
-                {/* Controles de Navegación Inferior */}
-                {viewMode === 'CONTENT' && (
-                    <footer className="bg-slate-900 border-t border-slate-800 p-4 flex justify-between items-center shrink-0">
-                        <button
-                            onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-                            disabled={currentIndex === 0}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronLeft className="w-5 h-5" /> Anterior
-                        </button>
+                {/* Controles de Navegación Inferior - Persistentes */}
+                <footer className="bg-slate-900 border-t border-slate-800 p-4 flex justify-between items-center shrink-0">
+                    <button
+                        onClick={() => setCurrentIndex(prev => prev - 1)}
+                        disabled={currentIndex === -1}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronLeft className="w-5 h-5" /> Anterior
+                    </button>
 
-                        <button
-                            onClick={() => setCurrentIndex(prev => Math.min(sortedItems.length - 1, prev + 1))}
-                            disabled={currentIndex === sortedItems.length - 1}
-                            className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        >
-                            Siguiente <ChevronRight className="w-5 h-5" />
-                        </button>
-                    </footer>
-                )}
+                    <button
+                        onClick={() => setCurrentIndex(prev => Math.min(sortedItems.length - 1, prev + 1))}
+                        disabled={currentIndex === sortedItems.length - 1}
+                        className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {currentIndex === -1 ? 'Empezar' : 'Siguiente'} <ChevronRight className="w-5 h-5" />
+                    </button>
+                </footer>
             </main>
         </div>
     );
