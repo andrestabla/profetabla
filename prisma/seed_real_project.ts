@@ -21,7 +21,7 @@ async function main() {
             objectives: '1. Dominar Next.js App Router.\n2. Implementar bases de datos relacionales (PostgreSQL).\n3. Integrar APIs de Inteligencia Artificial (OpenAI).\n4. Desplegar una aplicación escalable en Vercel.',
             deliverables: '- Repositorio GitHub documentado.\n- Despliegue funcional en Vercel.\n- Video demo de 3 minutos.\n- Documentación técnica de la API.',
             status: 'OPEN',
-            teacherId: teacher.id
+            teachers: { connect: { id: teacher.id } }
         }
     });
 
