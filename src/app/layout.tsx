@@ -13,11 +13,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Profe Tabla | Gestión de Proyectos Educativos",
-  description: "Plataforma integral para educación basada en proyectos. Kanban, Entregas y Mentorías.",
-  metadataBase: new URL('https://profetabla.com'),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
+
+  return {
+    title: config?.institutionName ? `${config.institutionName} | Gestión Educativa` : "Profe Tabla | Gestión de Proyectos Educativos",
+    description: "Plataforma integral para educación basada en proyectos. Kanban, Entregas y Mentorías.",
+    metadataBase: new URL('https://profetabla.com'),
+    icons: {
+      icon: config?.faviconUrl || '/favicon.ico',
+      apple: '/apple-icon.png', // Optional: Add if we have one, or remove
+    }
+  };
+}
 
 export const dynamic = 'force-dynamic'; // Ensure config is fetched fresh
 
@@ -51,7 +59,7 @@ export default async function RootLayout({
     <html lang="es">
       <head>
         <link href={`https://fonts.googleapis.com/css2?family=${font.replace(' ', '+')}:wght@400;500;700&display=swap`} rel="stylesheet" />
-        {config?.faviconUrl && <link rel="icon" href={config.faviconUrl} />}
+        <link href={`https://fonts.googleapis.com/css2?family=${font.replace(' ', '+')}:wght@400;500;700&display=swap`} rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: dynamicStyles }} />
       </head>
       <body
