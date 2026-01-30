@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { submitAssignmentAction } from './actions';
 import { Upload, X, FileText, CheckCircle, Clock, Paperclip, Loader2 } from 'lucide-react';
+import StatusModal from '@/components/StatusModal';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Assignment = {
@@ -27,6 +28,7 @@ export default function AssignmentsTimelineClient({ assignments }: { assignments
     const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [file, setFile] = useState<File | null>(null);
+    const [statusModal, setStatusModal] = useState<{ type: 'success' | 'error', title: string, message: string } | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,11 +42,20 @@ export default function AssignmentsTimelineClient({ assignments }: { assignments
         const res = await submitAssignmentAction(formData);
 
         if (res.success) {
-            alert("¡Tarea enviada con éxito!");
+            setStatusModal({
+                type: 'success',
+                title: '¡Tarea Enviada!',
+                message: 'Tu archivo se ha subido correctamente a la plataforma.'
+            });
             setSelectedAssignment(null);
             setFile(null);
         } else {
-            alert(`Error: ${res.error}`);
+            console.error(res.error);
+            setStatusModal({
+                type: 'error',
+                title: 'Error de Envío',
+                message: res.error || 'Ocurrió un error inesperado al subir el archivo.'
+            });
         }
         setIsSubmitting(false);
     };
@@ -201,6 +212,15 @@ export default function AssignmentsTimelineClient({ assignments }: { assignments
                     </div>
                 </div>
             )}
+
+            {/* Status Modal for Success/Error */}
+            <StatusModal
+                isOpen={!!statusModal}
+                onClose={() => setStatusModal(null)}
+                type={statusModal?.type || 'success'}
+                title={statusModal?.title || ''}
+                message={statusModal?.message || ''}
+            />
         </div>
     );
 }
