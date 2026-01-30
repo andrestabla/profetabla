@@ -157,33 +157,34 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
         setNewItemTitle(file.name);
         setNewItemUrl(file.webViewLink);
 
-        // AI Extraction
+        // AI Extraction (Only for the item)
         setIsExtractingMetadata(true);
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const aiData = await processDriveFileForOAAction(file.id, file.mimeType) as any;
             if (aiData) {
-                // Pre-fill main form if empty!
-                if (!title) setTitle(aiData.title);
-                if (!subject) setSubject(aiData.subject);
-                if (!competency && aiData.competency) setCompetency(aiData.competency);
-                if (!keywords) setKeywords(aiData.keywords.join(', '));
-                if (!presentation) setPresentation(aiData.presentation);
-                if (!utility) setUtility(aiData.utility);
-
-                // Also update the item title to be more specific if AI suggests something better
-                setNewItemTitle(aiData.title);
-                setNewItemSubject(aiData.subject);
+                // Update ONLY the item fields
+                setNewItemTitle(aiData.title || file.name);
+                setNewItemSubject(aiData.subject || '');
                 setNewItemCompetency(aiData.competency || '');
-                setNewItemKeywords(aiData.keywords.join(', '));
-                setNewItemPresentation(aiData.presentation);
-                setNewItemUtility(aiData.utility);
+                setNewItemKeywords(aiData.keywords?.join(', ') || '');
+                setNewItemPresentation(aiData.presentation || '');
+                setNewItemUtility(aiData.utility || '');
             }
         } catch (e) {
             console.error("AI Extraction failed", e);
         } finally {
             setIsExtractingMetadata(false);
         }
+    };
+
+    const copyResourceMetadataToOA = () => {
+        if (newItemTitle) setTitle(newItemTitle);
+        if (newItemSubject) setSubject(newItemSubject);
+        if (newItemCompetency) setCompetency(newItemCompetency);
+        if (newItemKeywords) setKeywords(newItemKeywords);
+        if (newItemPresentation) setPresentation(newItemPresentation);
+        if (newItemUtility) setUtility(newItemUtility);
     };
 
     return (
@@ -194,7 +195,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
             <div className="lg:col-span-1 space-y-6">
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div className="flex justify-between items-center mb-4 border-b pb-2">
-                        <h2 className="font-bold text-slate-800">1. Configuración</h2>
+                        <h2 className="font-bold text-slate-800">1. Datos del OA Completo</h2>
                         <button
                             type="button"
                             onClick={handleAIAutoFillMain}
@@ -248,14 +249,14 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
             <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
                     <h2 className="font-bold text-slate-800 mb-4 border-b pb-2 flex justify-between items-center">
-                        <span>2. Contenido (Items)</span>
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{items.length} Recursos</span>
+                        <span>2. Recursos Contenidos</span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{items.length} Archivos</span>
                     </h2>
 
                     {/* ADD ITEM FORM */}
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6">
                         <h3 className="text-sm font-bold text-slate-600 mb-3 flex items-center gap-2">
-                            <Plus className="w-4 h-4" /> Agregar Nuevo Recurso
+                            <Plus className="w-4 h-4" /> Detalles del Recurso
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                             <div className="md:col-span-2">
@@ -309,7 +310,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
 
                             {/* Item Metadata */}
                             <div className="md:col-span-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Materia</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Materia del Recurso</label>
                                 <input
                                     value={newItemSubject} onChange={(e) => setNewItemSubject(e.target.value)}
                                     placeholder="Ej: Matemáticas"
@@ -317,7 +318,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                                 />
                             </div>
                             <div className="md:col-span-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Competencia</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Competencia del Recurso</label>
                                 <input
                                     value={newItemCompetency} onChange={(e) => setNewItemCompetency(e.target.value)}
                                     placeholder="Ej: Resolución de problemas"
@@ -325,7 +326,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                                 />
                             </div>
                             <div className="md:col-span-4">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Keywords</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Keywords del Recurso</label>
                                 <input
                                     value={newItemKeywords} onChange={(e) => setNewItemKeywords(e.target.value)}
                                     placeholder="React, Hooks, State"
@@ -333,7 +334,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                                 />
                             </div>
                             <div className="md:col-span-4">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Presentación / Contexto</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Presentación / Contexto del Recurso</label>
                                 <textarea
                                     value={newItemPresentation} onChange={(e) => setNewItemPresentation(e.target.value)}
                                     placeholder="Contexto del recurso..."
@@ -342,7 +343,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                                 />
                             </div>
                             <div className="md:col-span-4">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Utilidad Pedagógica</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Utilidad del Recurso</label>
                                 <textarea
                                     value={newItemUtility} onChange={(e) => setNewItemUtility(e.target.value)}
                                     placeholder="¿Para qué sirve?"
@@ -357,15 +358,27 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                                 </div>
                             )}
                         </div>
-                        <div className="flex justify-end gap-2">
-                            {editingItemId && (
-                                <button type="button" onClick={cancelEdit} className="bg-slate-200 text-slate-700 text-sm font-bold py-2 px-4 rounded-lg hover:bg-slate-300">
-                                    Cancelar
+                        <div className="flex justify-between items-center gap-2">
+                            {newItemTitle && (
+                                <button
+                                    type="button"
+                                    onClick={copyResourceMetadataToOA}
+                                    className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1"
+                                    title="Copiar estos datos al encabezado del OA"
+                                >
+                                    <Sparkles className="w-3 h-3" /> Usar datos para el OA
                                 </button>
                             )}
-                            <button type="button" onClick={handleAddItem} className="bg-blue-600 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
-                                {editingItemId ? 'Actualizar Recurso' : 'Agregar a la Lista'}
-                            </button>
+                            <div className="flex gap-2">
+                                {editingItemId && (
+                                    <button type="button" onClick={cancelEdit} className="bg-slate-200 text-slate-700 text-sm font-bold py-2 px-4 rounded-lg hover:bg-slate-300">
+                                        Cancelar
+                                    </button>
+                                )}
+                                <button type="button" onClick={handleAddItem} className="bg-blue-600 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
+                                    {editingItemId ? 'Actualizar Recurso' : 'Agregar a la Lista'}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
