@@ -52,6 +52,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
             type: newItemType,
             url: newItemUrl,
             subject: newItemSubject,
+            competency: newItemCompetency,
             keywords: newItemKeywords ? newItemKeywords.split(',').map(s => s.trim()) : [],
             presentation: newItemPresentation,
             utility: newItemUtility

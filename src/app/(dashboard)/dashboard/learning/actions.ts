@@ -59,8 +59,8 @@ export async function updateResourceAction(id: string, data: {
         where: { id },
         data: {
             title: data.title,
-            description: data.description,
-            presentation: data.presentation,
+            description: data.presentation || data.description,
+            presentation: data.presentation || data.description,
             utility: data.utility,
             subject: data.subject,
             competency: data.competency,
@@ -348,6 +348,7 @@ export async function createGlobalResourceAction(formData: FormData) {
                 type,
                 url: finalUrl,
                 presentation,
+                description: presentation,
                 utility,
                 subject,
                 competency,

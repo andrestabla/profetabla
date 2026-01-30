@@ -36,6 +36,12 @@ export default async function ResourceViewerPage({ params }: { params: Promise<{
         type: resource.type,
         url: resource.url,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        presentation: (resource as any).presentation || (resource as any).description,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        description: (resource as any).description || (resource as any).presentation,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        utility: (resource as any).utility,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         subject: (resource as any).subject,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         competency: (resource as any).competency,
