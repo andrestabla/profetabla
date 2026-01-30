@@ -6,7 +6,7 @@ import { ArrowLeft, ExternalLink, Info, BookOpen, Video, FileText, Globe, Sparkl
 import { cn } from '@/lib/utils';
 import { ResourceComments } from './ResourceComments';
 
-// Tipos
+// Types
 type Resource = {
     id: string;
     title: string;
@@ -20,43 +20,34 @@ type Resource = {
     createdAt: string;
 };
 
-type Comment = {
-    id: string;
-    content: string;
-    createdAt: string;
-    author: {
-        id: string;
-        name: string | null;
-        avatarUrl: string | null;
-        role: string;
-    };
-};
+// ... Comment type ...
 
-export default function ResourceViewerClient({
-    resource,
-    comments,
-    currentUserId
-}: {
+import { DrivePickerModal } from '@/components/DrivePickerModal';
+
+export default function ResourceViewerClient({ resource, currentUserId, comments: initialComments }: {
     resource: Resource;
-    comments: Comment[];
     currentUserId: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    comments: any[];
 }) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isExtracting, setIsExtracting] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [comments, setComments] = useState(initialComments);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeTab, setActiveTab] = useState<'info' | 'comments'>('info');
 
-    // Form State
+    // ... State ...
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isExtracting, setIsExtracting] = useState(false);
+    const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+
+    // ... Form State ...
+     
     const [formData, setFormData] = useState({
         title: resource.title,
         url: resource.url,
-        type: resource.type, // Add type
+        type: resource.type,
         description: resource.presentation || '',
-        // Wait, DB has description, presentation, utility. 
-        // Resource type here has presentation/utility.
-        // Let's verify updateResourceAction signature. 
-        // It likely takes title, description. Presentation/Utility might be in metadata or separate fields.
         presentation: resource.presentation || '',
         utility: resource.utility || ''
     });
@@ -65,6 +56,32 @@ export default function ResourceViewerClient({
     const getDriveId = (url: string) => {
         const match = url.match(/[-\w]{25,}/);
         return match ? match[0] : null;
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleDriveFileSelected = async (file: any) => {
+        setIsDriveModalOpen(false);
+        setFormData(prev => ({ ...prev, url: file.webViewLink, title: file.name }));
+
+        // Auto-trigger AI for new file
+        setIsExtracting(true);
+        try {
+            const { processDriveFileForOAAction } = await import('@/app/actions/oa-actions');
+            const aiData = await processDriveFileForOAAction(file.id, file.mimeType);
+
+            if (aiData) {
+                setFormData(prev => ({
+                    ...prev,
+                    title: aiData.title || prev.title,
+                    presentation: aiData.description || prev.presentation,
+                    utility: aiData.competency ? `Competencia: ${aiData.competency}` : prev.utility
+                }));
+            }
+        } catch (e) {
+            console.error("AI Error", e);
+        } finally {
+            setIsExtracting(false);
+        }
     };
 
     const handleAIImprovement = async () => {
@@ -106,26 +123,15 @@ export default function ResourceViewerClient({
         setIsSaving(true);
         try {
             const { updateResourceAction } = await import('@/app/(dashboard)/dashboard/learning/actions');
-            // Update action likely needs specific fields. 
-            // IMPORTANT: Resources in DB have `description`. Presentation/Utility are often stored in `metadata` JSON or separate cols.
-            // Looking at `Resource` type in line 10, it has direct props.
-            // Let's assume updateResourceAction handles these or we need to check it.
-            // Verification: updateResourceAction signature in previous steps showed { title, description, projectId, url }. 
-            // It might NOT support presentation/utility yet. 
-            // I will update the action as well if needed, but for now let's save what we can.
 
             await updateResourceAction(resource.id, {
                 title: formData.title,
-                description: formData.presentation, // Mapping presentation to description based on typical usage
+                description: formData.presentation,
                 url: formData.url,
                 type: formData.type
-                // If we need custom metadata, we might need to update the action.
-                // For now, let's map presentation -> description.
             });
 
             setIsEditing(false);
-            // Verify: To update the UI immediately without reload, we update local resource state or rely on revalidatePath
-            // Ideally we reload or update local state.
             window.location.reload();
         } catch (e) {
             console.error(e);
@@ -185,12 +191,38 @@ export default function ResourceViewerClient({
                                         <option value="EMBED">EMBED</option>
                                         <option value="WEBSITE">WEBSITE</option>
                                     </select>
-                                    <input
-                                        value={formData.url}
-                                        onChange={e => setFormData({ ...formData, url: e.target.value })}
-                                        className="flex-1 text-xs text-slate-500 border-b border-slate-200 focus:border-blue-500 outline-none px-1 font-mono"
-                                        placeholder={getTypeLabel(formData.type)}
-                                    />
+
+                                    {formData.type === 'DRIVE' ? (
+                                        <div className="flex-1 flex gap-2">
+                                            <input
+                                                value={formData.url}
+                                                readOnly
+                                                className="flex-1 text-xs text-slate-500 border-b border-slate-200 bg-slate-50 px-1 font-mono truncate"
+                                                placeholder="Selecciona un archivo..."
+                                            />
+                                            <button
+                                                onClick={() => setIsDriveModalOpen(true)}
+                                                className="flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold hover:bg-blue-200 transition-colors whitespace-nowrap"
+                                            >
+                                                <Cloud className="w-3 h-3" /> Seleccionar
+                                            </button>
+                                        </div>
+                                    ) : formData.type === 'EMBED' ? (
+                                        <textarea
+                                            value={formData.url}
+                                            onChange={e => setFormData({ ...formData, url: e.target.value })}
+                                            className="flex-1 text-xs text-slate-500 border border-slate-200 rounded p-1 font-mono focus:border-blue-500 outline-none h-16 resize-none"
+                                            placeholder="<iframe src='...'></iframe>"
+                                            rows={2}
+                                        />
+                                    ) : (
+                                        <input
+                                            value={formData.url}
+                                            onChange={e => setFormData({ ...formData, url: e.target.value })}
+                                            className="flex-1 text-xs text-slate-500 border-b border-slate-200 focus:border-blue-500 outline-none px-1 font-mono"
+                                            placeholder={getTypeLabel(formData.type)}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -362,6 +394,12 @@ export default function ResourceViewerClient({
                     )}
                 </aside>
             )}
+
+            <DrivePickerModal
+                isOpen={isDriveModalOpen}
+                onClose={() => setIsDriveModalOpen(false)}
+                onSelect={handleDriveFileSelected}
+            />
         </div>
     );
 }
