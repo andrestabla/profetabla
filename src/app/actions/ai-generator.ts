@@ -284,19 +284,24 @@ export async function extractOAMetadata(content: string): Promise<{
   const model = genAI.getGenerativeModel({ model: config?.geminiModel || "gemini-1.5-flash" });
 
   const prompt = `
-    Analiza el siguiente contenido extraído de un documento y genera los metadatos para un "Objeto de Aprendizaje" (OA).
-    IMPORTANTE: Responde SIEMPRE EN ESPAÑOL.
-    Responde ÚNICAMENTE con un JSON con esta estructura:
-    {
-      "title": "Título sugerido",
-      "subject": "Materia o área de conocimiento",
-      "competency": "Competencia que desarrolla (opcional)",
-      "keywords": ["palabra1", "palabra2"],
-      "description": "Descripción resumida y clara"
-    }
+    Actúa como un experto pedagogo. Tu tarea suferir metadatos para un Objeto de Aprendizaje (OA) basándote en la información proporcionada.
+    
+    INFORMACIÓN DE ENTRADA (Puede ser contenido de un documento o metadatos básicos como URL/Título):
+    ${content.substring(0, 15000)}
 
-    CONTENIDO:
-    ${content.substring(0, 10000)}
+    INSTRUCCIONES:
+    1. Si es un texto extenso, analízalo.
+    2. Si es una URL (ej. YouTube) o título, INFIERE el contenido basándote en el título y la estructura del enlace. NO digas "no puedo ver el video", simplemente sugiere lo mejor posible basado en el título.
+    3. Responde SIEMPRE EN ESPAÑOL.
+
+    FORMATO DE RESPUESTA (JSON PURO):
+    {
+      "title": "Título mejorado y atractivo",
+      "subject": "Materia o área de conocimiento",
+      "competency": "Competencia sugerida que desarrolla",
+      "keywords": ["palabra1", "palabra2", "palabra3", "palabra4"],
+      "description": "Descripción pedagógica clara y motivadora (2-3 frases)"
+    }
     `;
 
   try {
