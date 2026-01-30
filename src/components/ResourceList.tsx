@@ -94,29 +94,29 @@ export function ResourceList({ projectId, availableProjects = [], userRole }: { 
     return (
         <div>
             {/* Search & Filter Bar */}
-            <div className="flex flex-col gap-4 mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <div className="flex flex-col md:flex-row gap-4">
+            <div className="bg-white p-2 md:p-3 rounded-2xl shadow-sm border border-slate-100 mb-8">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-3">
                     {/* Search */}
-                    <div className="relative flex-1">
+                    <div className="relative flex-1 w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Buscar recursos..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm font-medium transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-transparent bg-slate-50 focus:bg-white focus:border-blue-200 focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-sm font-medium transition-all"
                         />
                     </div>
 
-                    {/* Filters Group */}
-                    <div className="flex flex-wrap gap-2">
+                    {/* Filters & Actions */}
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
                         {/* Project Filter (Admin/Teacher only) */}
                         {canEdit && (
-                            <div className="relative min-w-[180px]">
+                            <div className="relative">
                                 <select
                                     value={selectedProjectFilter}
                                     onChange={(e) => setSelectedProjectFilter(e.target.value)}
-                                    className="w-full appearance-none px-4 py-2.5 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer hover:bg-slate-100 transition-colors"
+                                    className="w-full md:w-48 appearance-none px-4 py-2.5 pr-8 rounded-xl border border-transparent bg-slate-50 focus:bg-white focus:border-blue-200 text-slate-600 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer hover:bg-slate-100 transition-colors"
                                 >
                                     <option value="ALL">Todos los Proyectos</option>
                                     <option value="GLOBAL">🌐 Globales</option>
@@ -128,11 +128,11 @@ export function ResourceList({ projectId, availableProjects = [], userRole }: { 
                         )}
 
                         {/* Topic Filter */}
-                        <div className="relative min-w-[160px]">
+                        <div className="relative">
                             <select
                                 value={selectedTopic}
                                 onChange={(e) => setSelectedTopic(e.target.value)}
-                                className="w-full appearance-none px-4 py-2.5 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer hover:bg-slate-100 transition-colors"
+                                className="w-full md:w-40 appearance-none px-4 py-2.5 pr-8 rounded-xl border border-transparent bg-slate-50 focus:bg-white focus:border-blue-200 text-slate-600 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer hover:bg-slate-100 transition-colors"
                             >
                                 <option value="ALL">Todos los Temas</option>
                                 {uniqueTopics.map(topic => (
@@ -140,24 +140,27 @@ export function ResourceList({ projectId, availableProjects = [], userRole }: { 
                                 ))}
                             </select>
                         </div>
-                    </div>
-                </div>
 
-                <div className="flex gap-2 border-t border-slate-50 pt-3 mt-1">
-                    <button
-                        onClick={() => setFilter('ALL')}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${filter === 'ALL' ? 'bg-slate-900 text-white shadow-md' : 'bg-transparent text-slate-500 hover:bg-slate-50'
-                            }`}
-                    >
-                        Todos
-                    </button>
-                    <button
-                        onClick={() => setFilter('FAVORITES')}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${filter === 'FAVORITES' ? 'bg-pink-100 text-pink-600 shadow-sm' : 'bg-transparent text-slate-500 hover:bg-pink-50 hover:text-pink-500'
-                            }`}
-                    >
-                        <HeartIcon filled={filter === 'FAVORITES'} /> Favoritos
-                    </button>
+                        <div className="h-8 w-px bg-slate-200 mx-1 hidden lg:block"></div>
+
+                        {/* Toggles */}
+                        <div className="flex bg-slate-50 p-1 rounded-xl">
+                            <button
+                                onClick={() => setFilter('ALL')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filter === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                                    }`}
+                            >
+                                Todos
+                            </button>
+                            <button
+                                onClick={() => setFilter('FAVORITES')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${filter === 'FAVORITES' ? 'bg-white text-pink-600 shadow-sm' : 'text-slate-500 hover:text-pink-500'
+                                    }`}
+                            >
+                                <HeartIcon filled={filter === 'FAVORITES'} /> Favoritos
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
