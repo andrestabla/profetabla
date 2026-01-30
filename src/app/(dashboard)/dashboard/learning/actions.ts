@@ -243,6 +243,91 @@ export async function addCommentToOAAction(learningObjectId: string, content: st
             // Resource relation optional, linking to OA here
         }
     });
-
     revalidatePath(`/dashboard/learning/object/${learningObjectId}`);
+}
+
+// --- Create Single Global/Project Resource ---
+export async function createGlobalResourceAction(formData: FormData) {
+    await requireTeacherOrAdmin();
+    const projectId = formData.get('projectId') as string;
+    const driveTitle = formData.get('driveTitle') as string;
+    const title = driveTitle || (formData.get('title') as string);
+    const type = formData.get('type') as string;
+    const url = formData.get('url') as string;
+    const presentation = formData.get('presentation') as string;
+    const utility = formData.get('utility') as string;
+    const file = formData.get('file') as File;
+
+    if (!title) {
+        return { success: false, error: 'El título es obligatorio' };
+    }
+
+    try {
+        let finalUrl = url;
+        let finalTitle = title;
+
+        // Handle Drive Upload if file is present
+        if (type === 'DRIVE' && file && file.size > 0) {
+            // Determine target folder: Project's folder OR Global Config folder
+            let targetFolderId = '';
+
+            if (projectId && projectId !== 'GLOBAL') {
+                const project = await prisma.project.findUnique({ where: { id: projectId } });
+                targetFolderId = project?.googleDriveFolderId || '';
+            }
+
+            if (!targetFolderId) {
+                const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
+                targetFolderId = config?.googleDriveFolderId || '';
+            }
+
+            if (!targetFolderId) {
+                return { success: false, error: 'No se ha configurado una carpeta de Drive (ni en el proyecto ni global).' };
+            }
+
+            const arrayBuffer = await file.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const { uploadFileToDrive } = await import('@/lib/google-drive'); // Dynamic import
+            // Readable stream for upload
+            const { Readable } = await import('stream');
+            const stream = Readable.from(buffer);
+
+            const uploaded = await uploadFileToDrive(targetFolderId, file.name, file.type, stream);
+            if (!uploaded || !uploaded.webViewLink) {
+                return { success: false, error: 'Falló la subida a Drive' };
+            }
+            finalUrl = uploaded.webViewLink;
+            finalTitle = file.name;
+        } else if (!finalUrl) {
+            return { success: false, error: 'La URL es obligatoria si no subes un archivo' };
+        }
+
+        // Get or Create Category
+        const category = await prisma.resourceCategory.findFirst();
+        const categoryId = category?.id || (await prisma.resourceCategory.create({ data: { name: 'General' } })).id;
+
+        await prisma.resource.create({
+            data: {
+                title: finalTitle,
+                type,
+                url: finalUrl,
+                presentation,
+                utility,
+                categoryId,
+                projectId: (projectId && projectId !== 'GLOBAL') ? projectId : null
+            }
+        });
+
+        revalidatePath('/dashboard/learning');
+        if (projectId && projectId !== 'GLOBAL') {
+            revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        }
+
+        redirect('/dashboard/learning');
+
+    } catch (e: unknown) {
+        console.error("Error creating global resource:", e);
+        const error = e as Error;
+        return { success: false, error: error.message || 'Error al crear el recurso' };
+    }
 }
