@@ -50,6 +50,8 @@ export default async function RootLayout({
   const primaryRgb = hexToRgb(config?.primaryColor || "#2563EB");
   const font = config?.fontFamily || 'Inter';
   const radius = config?.borderRadius || '0.5rem';
+  const fallbackFavicon = 'https://img.icons8.com/fluency/48/education.png';
+  const favicon = config?.faviconUrl || fallbackFavicon;
 
   // 3. Construct Style
   const dynamicStyles = `

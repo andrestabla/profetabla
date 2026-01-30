@@ -178,10 +178,10 @@ export default function StudentViewerClient({ learningObject, comments, currentU
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">
-                        Resumen del Módulo
+                        Guía de Estudio
                     </h3>
-                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-slate-600 text-sm italic">
-                        Selecciona un recurso del panel derecho para comenzar a estudiar.
+                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-slate-600 text-sm italic leading-relaxed">
+                        Explora los contenidos disponibles en la <strong>lista central</strong> y selecciona uno para comenzar tu aprendizaje.
                     </div>
                 </div>
             </aside>
@@ -220,9 +220,11 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                         )}
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm font-medium text-slate-400 hidden md:inline">
-                            Paso {currentIndex + 1} de {sortedItems.length}
-                        </span>
+                        {viewMode === 'CONTENT' && (
+                            <span className="text-sm font-medium text-slate-400 hidden md:inline">
+                                Paso {currentIndex + 1} de {sortedItems.length}
+                            </span>
+                        )}
 
                         <div className="h-6 w-px bg-slate-700 mx-2 hidden md:block"></div>
 
@@ -358,23 +360,25 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                 </div>
 
                 {/* Controles de Navegación Inferior */}
-                <footer className="bg-slate-900 border-t border-slate-800 p-4 flex justify-between items-center shrink-0">
-                    <button
-                        onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-                        disabled={currentIndex === 0}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                        <ChevronLeft className="w-5 h-5" /> Anterior
-                    </button>
+                {viewMode === 'CONTENT' && (
+                    <footer className="bg-slate-900 border-t border-slate-800 p-4 flex justify-between items-center shrink-0">
+                        <button
+                            onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+                            disabled={currentIndex === 0}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft className="w-5 h-5" /> Anterior
+                        </button>
 
-                    <button
-                        onClick={() => setCurrentIndex(prev => Math.min(sortedItems.length - 1, prev + 1))}
-                        disabled={currentIndex === sortedItems.length - 1}
-                        className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                        Siguiente <ChevronRight className="w-5 h-5" />
-                    </button>
-                </footer>
+                        <button
+                            onClick={() => setCurrentIndex(prev => Math.min(sortedItems.length - 1, prev + 1))}
+                            disabled={currentIndex === sortedItems.length - 1}
+                            className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Siguiente <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </footer>
+                )}
             </main>
         </div>
     );
