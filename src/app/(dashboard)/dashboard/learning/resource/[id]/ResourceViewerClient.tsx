@@ -78,6 +78,11 @@ export default function ResourceViewerClient({
                     // Mimetype guess or generic
                     aiData = await processDriveFileForOAAction(fileId, 'application/pdf'); // Defaulting to PDF/Doc assumption for extraction
                 }
+            } else {
+                // For other types (VIDEO, LINK), use the current metadata/url to generate improvements
+                const { improveTextWithAIAction } = await import('@/app/actions/oa-actions');
+                const context = `URL: ${resource.url}\nDescripción Actual: ${formData.presentation || ''}`;
+                aiData = await improveTextWithAIAction(formData.title, context);
             }
 
             if (aiData) {

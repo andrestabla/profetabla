@@ -17,3 +17,15 @@ export async function processDriveFileForOAAction(fileId: string, mimeType: stri
 
     return await extractOAMetadata(content);
 }
+
+export async function improveTextWithAIAction(title: string, context: string) {
+    const prompt = `
+    Analiza este recurso educativo y genera metadatos mejorados.
+    
+    TÍTULO ACTUAL: ${title}
+    CONTEXTO/URL: ${context}
+    
+    Genera un JSON con título mejorado, materia, competencia, keywords y una descripción pedagógica bien redactada.
+    `;
+    return await extractOAMetadata(prompt);
+}
