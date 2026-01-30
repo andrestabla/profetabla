@@ -22,16 +22,17 @@ export async function GET(request: Request) {
         const isAdminOrTeacher = userRole === 'ADMIN' || userRole === 'TEACHER';
 
         // --- 1. Determine Scope ---
-        // Students are restricted to their active project + global resources.
+        // Students are restricted to their linked projects + global resources.
         // Admins/Teachers see EVERYTHING by default, unless filtered.
 
-        let studentActiveProjectId: string | null = null;
+        let studentProjectIds: string[] = [];
 
         if (userRole === 'STUDENT') {
-            const activeProject = await prisma.project.findFirst({
-                where: { studentId: userId, status: 'IN_PROGRESS' }
+            const studentProjects = await prisma.project.findMany({
+                where: { studentId: userId },
+                select: { id: true }
             });
-            studentActiveProjectId = activeProject?.id || null;
+            studentProjectIds = studentProjects.map(p => p.id);
         }
 
         // --- 2. Build Query Filters for Resources ---
@@ -40,9 +41,9 @@ export async function GET(request: Request) {
 
         // A. Project Scope
         if (!isAdminOrTeacher) {
-            // Student: Active Project OR Global (projectId is null)
+            // Student: Active Projects OR Global (projectId is null)
             resourceWhere.OR = [
-                { projectId: studentActiveProjectId },
+                { projectId: { in: studentProjectIds } },
                 { projectId: null }
             ];
         } else {
@@ -79,22 +80,18 @@ export async function GET(request: Request) {
 
         // A. Project Scope (OAs are many-to-many)
         if (!isAdminOrTeacher) {
-            // Student: Must be linked to active project
-            if (studentActiveProjectId) {
-                oaWhere.projects = { some: { id: studentActiveProjectId } };
+            // Student: Must be linked to ANY of their projects
+            if (studentProjectIds.length > 0) {
+                oaWhere.projects = { some: { id: { in: studentProjectIds } } };
             } else {
-                // No active project -> No OAs for student? or maybe global OAs?
-                // Let's assume student only sees OAs if they have an active project for now based on previous logic.
-                // Effectively returning empty if no project.
+                // No projects -> No OAs (unless we decide global OAs exist and handled differently, but currently via relation)
                 oaWhere.projects = { some: { id: 'non-existent' } };
             }
         } else {
             // Admin/Teacher
             if (projectId) {
                 if (projectId === 'GLOBAL') {
-                    // OAs not linked to ANY project? Or strictly "Global" OAs?
-                    // Prisma doesn't easily support "none" in standard way for filtering relation emptiness directly in clean way without `none`.
-                    oaWhere.projects = { none: {} };
+                    oaWhere.projects = { none: {} }; // Approximation for "Global" (no projects)
                 } else {
                     oaWhere.projects = { some: { id: projectId } };
                 }

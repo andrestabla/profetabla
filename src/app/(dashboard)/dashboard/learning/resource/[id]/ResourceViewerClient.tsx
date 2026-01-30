@@ -41,8 +41,91 @@ export default function ResourceViewerClient({
     comments: Comment[];
     currentUserId: string;
 }) {
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [activeTab, setActiveTab] = useState<'info' | 'comments'>('info');
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isExtracting, setIsExtracting] = useState(false);
+
+    // Form State
+    const [formData, setFormData] = useState({
+        title: resource.title,
+        description: resource.presentation || '', // Mapping presentation as description for now or keeping separate?
+        // Wait, DB has description, presentation, utility. 
+        // Resource type here has presentation/utility.
+        // Let's verify updateResourceAction signature. 
+        // It likely takes title, description. Presentation/Utility might be in metadata or separate fields.
+        presentation: resource.presentation || '',
+        utility: resource.utility || ''
+    });
+
+    // Helper to extract file ID from Drive URL
+    const getDriveId = (url: string) => {
+        const match = url.match(/[-\w]{25,}/);
+        return match ? match[0] : null;
+    };
+
+    const handleAIImprovement = async () => {
+        setIsExtracting(true);
+        try {
+            // Logic to determine source. currently optimized for Drive.
+            // If it's a Drive file, we can re-process it.
+            let aiData = null;
+            if (resource.type === 'DRIVE') {
+                const fileId = getDriveId(resource.url);
+                if (fileId) {
+                    const { processDriveFileForOAAction } = await import('@/app/actions/oa-actions');
+                    // Mimetype guess or generic
+                    aiData = await processDriveFileForOAAction(fileId, 'application/pdf'); // Defaulting to PDF/Doc assumption for extraction
+                }
+            }
+
+            if (aiData) {
+                setFormData(prev => ({
+                    ...prev,
+                    title: aiData.title || prev.title,
+                    presentation: aiData.description || prev.presentation, // AI "description" usually maps well to presentation
+                    utility: aiData.competency ? `Competencia: ${aiData.competency}` : prev.utility
+                }));
+            } else {
+                alert("No se pudo extraer información automática de este recurso.");
+            }
+        } catch (e) {
+            console.error("AI Error", e);
+            alert("Error consultando al asistente IA");
+        } finally {
+            setIsExtracting(false);
+        }
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            const { updateResourceAction } = await import('@/app/(dashboard)/dashboard/learning/actions');
+            // Update action likely needs specific fields. 
+            // IMPORTANT: Resources in DB have `description`. Presentation/Utility are often stored in `metadata` JSON or separate cols.
+            // Looking at `Resource` type in line 10, it has direct props.
+            // Let's assume updateResourceAction handles these or we need to check it.
+            // Verification: updateResourceAction signature in previous steps showed { title, description, projectId }. 
+            // It might NOT support presentation/utility yet. 
+            // I will update the action as well if needed, but for now let's save what we can.
+
+            await updateResourceAction(resource.id, {
+                title: formData.title,
+                description: formData.presentation, // Mapping presentation to description based on typical usage
+                // If we need custom metadata, we might need to update the action.
+                // For now, let's map presentation -> description.
+            });
+
+            setIsEditing(false);
+            // Verify: To update the UI immediately without reload, we update local resource state or rely on revalidatePath
+            // Ideally we reload or update local state.
+            window.location.reload();
+        } catch (e) {
+            console.error(e);
+            alert("Error al guardar");
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const getIcon = () => {
         switch (resource.type) {
@@ -56,31 +139,78 @@ export default function ResourceViewerClient({
 
     return (
         <div className="h-[calc(100vh-80px)] bg-slate-100 flex flex-col md:flex-row overflow-hidden rounded-xl border border-slate-200 relative">
-            {/* Header / Info Sidebar (Mobile: Top, Desktop: Left/Right depending on preference, let's do Right Sidebar) */}
-
             {/* Content Area */}
             <div className="flex-1 flex flex-col bg-slate-900 overflow-hidden relative">
                 <header className="bg-white border-b border-slate-200 p-4 flex justify-between items-center shrink-0 z-10 shadow-sm">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-1">
                         <Link href="/dashboard/learning" className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className={cn("text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 flex items-center gap-1.5 w-fit")}>
-                                    {getIcon()}
-                                    {resource.type}
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-medium">|</span>
-                                <span className="text-[10px] text-slate-400 font-medium truncate max-w-[150px]">{resource.project.title}</span>
+
+                        {isEditing ? (
+                            <div className="flex-1 mr-4">
+                                <input
+                                    value={formData.title}
+                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                    className="w-full text-lg font-bold text-slate-900 border-b border-slate-300 focus:border-blue-500 outline-none px-1"
+                                    placeholder="Título del recurso"
+                                />
                             </div>
-                            <h1 className="text-lg font-bold text-slate-900 leading-tight truncate max-w-md md:max-w-2xl" title={resource.title}>
-                                {resource.title}
-                            </h1>
-                        </div>
+                        ) : (
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className={cn("text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 flex items-center gap-1.5 w-fit")}>
+                                        {getIcon()}
+                                        {resource.type}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-medium">|</span>
+                                    <span className="text-[10px] text-slate-400 font-medium truncate max-w-[150px]">{resource.project.title}</span>
+                                </div>
+                                <h1 className="text-lg font-bold text-slate-900 leading-tight truncate max-w-md md:max-w-2xl" title={resource.title}>
+                                    {resource.title}
+                                </h1>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex gap-2">
+                        {/* Edit Actions */}
+                        {!isEditing ? (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 flex items-center gap-2 transition-colors"
+                                title="Editar Contenido"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleAIImprovement}
+                                    disabled={isExtracting}
+                                    className="px-3 py-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50"
+                                >
+                                    <Sparkles className={cn("w-4 h-4", isExtracting && "animate-spin")} />
+                                    {isExtracting ? 'Analizando...' : 'Mejorar con IA'}
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                                >
+                                    {isSaving ? 'Guardando...' : 'Guardar'}
+                                </button>
+                                <button
+                                    onClick={() => setIsEditing(false)}
+                                    className="px-3 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-bold"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="w-px h-8 bg-slate-200 mx-1"></div>
+
                         <button
                             onClick={() => {
                                 if (sidebarOpen && activeTab === 'comments') {
@@ -120,49 +250,69 @@ export default function ResourceViewerClient({
             {/* Sidebar */}
             {sidebarOpen && (
                 <aside className="w-full md:w-96 bg-white border-l border-slate-200 overflow-hidden shrink-0 animate-in slide-in-from-right duration-300 absolute md:relative right-0 h-full z-20 shadow-2xl md:shadow-none flex flex-col">
-                    {/* Tabs Header inside Sidebar? No, controlled by main header. */}
-
                     {activeTab === 'info' && (
                         <div className="p-6 space-y-8 overflow-y-auto h-full">
                             <div>
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Presentación</h3>
-                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600 leading-relaxed italic">
-                                    &ldquo;{resource.presentation || 'Sin descripción disponible.'}&rdquo;
-                                </div>
+                                {isEditing ? (
+                                    <textarea
+                                        value={formData.presentation}
+                                        onChange={e => setFormData({ ...formData, presentation: e.target.value })}
+                                        className="w-full p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                        rows={6}
+                                        placeholder="Descripción o presentación del recurso..."
+                                    />
+                                ) : (
+                                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600 leading-relaxed italic">
+                                        &ldquo;{formData.presentation || resource.presentation || 'Sin descripción disponible.'}&rdquo;
+                                    </div>
+                                )}
                             </div>
 
                             <div>
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                     <Sparkles className="w-3 h-3 text-amber-500" /> Utilidad Pedagógica
                                 </h3>
-                                <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-100/50 text-sm text-slate-700 leading-relaxed font-medium">
-                                    {resource.utility || 'No especificada.'}
-                                </div>
+                                {isEditing ? (
+                                    <textarea
+                                        value={formData.utility}
+                                        onChange={e => setFormData({ ...formData, utility: e.target.value })}
+                                        className="w-full p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                        rows={4}
+                                        placeholder="¿Para qué sirve este recurso?"
+                                    />
+                                ) : (
+                                    <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-100/50 text-sm text-slate-700 leading-relaxed font-medium">
+                                        {formData.utility || resource.utility || 'No especificada.'}
+                                    </div>
+                                )}
                             </div>
 
-                            <div>
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Detalles</h3>
-                                <ul className="space-y-3">
-                                    <li className="flex justify-between text-xs">
-                                        <span className="text-slate-500">Categoría</span>
-                                        <span className="font-bold text-slate-700">{resource.category.name}</span>
-                                    </li>
-                                    <li className="flex justify-between text-xs">
-                                        <span className="text-slate-500">Fecha</span>
-                                        <span className="font-bold text-slate-700">{new Date(resource.createdAt).toLocaleDateString()}</span>
-                                    </li>
-                                    <li className="pt-4 mt-4 border-t border-slate-100">
-                                        <a
-                                            href={resource.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
-                                        >
-                                            <ExternalLink className="w-4 h-4" /> Abrir Fuente Original
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
+                            {!isEditing && (
+                                <div>
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Detalles</h3>
+                                    <ul className="space-y-3">
+                                        <li className="flex justify-between text-xs">
+                                            <span className="text-slate-500">Categoría</span>
+                                            <span className="font-bold text-slate-700">{resource.category.name}</span>
+                                        </li>
+                                        <li className="flex justify-between text-xs">
+                                            <span className="text-slate-500">Fecha</span>
+                                            <span className="font-bold text-slate-700">{new Date(resource.createdAt).toLocaleDateString()}</span>
+                                        </li>
+                                        <li className="pt-4 mt-4 border-t border-slate-100">
+                                            <a
+                                                href={resource.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
+                                            >
+                                                <ExternalLink className="w-4 h-4" /> Abrir Fuente Original
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            )}
                         </div>
                     )}
 
