@@ -220,6 +220,7 @@ export async function updateSystemConfigAction(formData: FormData) {
         loginLayout: getVal('loginLayout', 'SPLIT'),
         loginMessage: getVal('loginMessage', null),
         loginBgUrl: getVal('loginBgUrl', null), // Ensure this field exists in schema/form
+        loadingUrl: getVal('loadingUrl', 'https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif'),
         customCss: getVal('customCss', null),
 
         // Integrations

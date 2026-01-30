@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import Loading from '@/components/Loading';
 
 
 export function LoginForm() {
@@ -79,8 +80,7 @@ export function LoginForm() {
                 disabled={loading}
                 className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Iniciar Sesión
+                {loading ? <Loading variant="button" message="Iniciando Sesión..." /> : "Iniciar Sesión"}
             </button>
 
             <div className="relative my-6">

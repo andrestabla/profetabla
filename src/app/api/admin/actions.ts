@@ -55,6 +55,7 @@ export async function updatePlatformConfigAction(formData: FormData) {
             aiInstructions: formData.get('aiInstructions') as string,
             aiTone: formData.get('aiTone') as string,
             aiSearchEnabled: formData.get('aiSearchEnabled') === 'on',
+            loadingUrl: formData.get('loadingUrl') as string,
         };
 
         // Only update password if provided

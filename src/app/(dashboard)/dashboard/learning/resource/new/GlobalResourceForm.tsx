@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { createGlobalResourceAction } from '../../actions';
 import { extractResourceMetadataAction } from '@/app/(dashboard)/dashboard/professor/projects/[id]/actions';
-import { Save, Loader2, Sparkles, Youtube, FileText, Link as LinkIcon, Box, ArrowLeft, Cloud, Monitor, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Save, Sparkles, Youtube, FileText, Link as LinkIcon, Box, ArrowLeft, Cloud, Monitor, ExternalLink, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { DrivePickerModal } from '@/components/DrivePickerModal';
+import Loading from '@/components/Loading';
 
 
 export default function GlobalResourceForm({ projects }: { projects: { id: string, title: string, type: string }[] }) {
@@ -197,7 +198,7 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
                                             disabled={isThinking}
                                             className="flex-none flex items-center gap-1.5 px-2 py-1 bg-green-600 text-white rounded font-bold hover:bg-green-700 transition-colors disabled:opacity-50 ml-2"
                                         >
-                                            {isThinking ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                            {isThinking ? <Loading variant="button" message="" /> : <Sparkles className="w-3 h-3" />}
                                             Asistente IA
                                         </button>
                                     </div>
@@ -235,7 +236,7 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
                                         disabled={isThinking || (!url && type !== 'DRIVE')}
                                         className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-indigo-200 disabled:opacity-50 transition-colors"
                                     >
-                                        {isThinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-indigo-600" />}
+                                        {isThinking ? <Loading variant="button" message="" /> : <Sparkles className="w-4 h-4 text-indigo-600" />}
                                         <span className="hidden sm:inline">Asistente IA</span>
                                     </button>
                                 </div>
@@ -322,8 +323,7 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
                         disabled={isSaving || (!url && !driveFile)}
                         className="bg-slate-900 text-white font-bold py-3 px-8 rounded-xl hover:bg-black transition-all shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        {isSaving ? 'Guardando...' : 'Crear Recurso'}
+                        {isSaving ? <Loading variant="button" message="Guardando..." /> : <><Save className="w-5 h-5" />Crear Recurso</>}
                     </button>
                 </div>
 

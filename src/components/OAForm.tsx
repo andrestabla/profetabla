@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Plus, Trash2, FileText, Video, Link as LinkIcon, Box, Cloud, Loader2, Sparkles, Edit } from 'lucide-react';
+import { Save, Plus, Trash2, FileText, Video, Link as LinkIcon, Box, Cloud, Sparkles, Edit } from 'lucide-react';
+import Loading from './Loading';
 import { DrivePickerModal } from './DrivePickerModal';
 import { processDriveFileForOAAction } from '@/app/actions/oa-actions';
 import { extractResourceMetadataAction } from '@/app/(dashboard)/dashboard/professor/projects/[id]/actions';
@@ -200,7 +201,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                             disabled={isGlobalGenerating}
                             className="text-xs font-bold text-purple-600 hover:text-purple-700 flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
                         >
-                            {isGlobalGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                            {isGlobalGenerating ? <Loading variant="button" message="" /> : <Sparkles className="w-3 h-3" />}
                             IA Auto-completar
                         </button>
                     </div>
@@ -239,7 +240,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                     disabled={isSaving}
                     className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3 px-8 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                 >
-                    {isSaving ? 'Guardando...' : <><Save className="w-5 h-5" /> {initialData ? 'Actualizar' : 'Crear'} Objeto</>}
+                    {isSaving ? <Loading variant="button" message="Guardando..." /> : <><Save className="w-5 h-5" /> {initialData ? 'Actualizar' : 'Crear'} Objeto</>}
                 </button>
             </div>
 
@@ -300,7 +301,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                                         className="bg-purple-100 text-purple-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-purple-200 transition-colors disabled:opacity-50"
                                         title="Extraer metadatos con IA"
                                     >
-                                        {isExtractingMetadata ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        {isExtractingMetadata ? <Loading variant="button" message="" /> : <Sparkles className="w-4 h-4" />}
                                         Mágico
                                     </button>
                                 )}
@@ -352,8 +353,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
 
                             {isExtractingMetadata && (
                                 <div className="md:col-span-4 bg-purple-50 p-3 rounded-lg border border-purple-100 flex items-center gap-3 animate-pulse">
-                                    <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />
-                                    <span className="text-xs font-bold text-purple-700">Asistente IA está analizando el documento y extrayendo metadatos...</span>
+                                    <Loading variant="button" message="Asistente IA está analizando el documento y extrayendo metadatos..." />
                                 </div>
                             )}
                         </div>
@@ -426,6 +426,6 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                 onClose={() => setIsDriveModalOpen(false)}
                 onSelect={handleDriveFileSelected}
             />
-        </form>
+        </form >
     );
 }

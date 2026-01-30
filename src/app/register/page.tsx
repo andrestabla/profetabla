@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, AlertCircle, UserPlus, ArrowLeft } from 'lucide-react';
+import { AlertCircle, UserPlus, ArrowLeft } from 'lucide-react';
+import Loading from '@/components/Loading';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 
@@ -99,8 +100,7 @@ export default function RegisterPage() {
                         disabled={loading}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
-                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Registrarme
+                        {loading ? <Loading variant="button" message="Registrando..." /> : "Registrarme"}
                     </button>
                 </form>
 

@@ -364,6 +364,7 @@ model PlatformConfig {
   aiTone                        String   @default("ACADEMIC")
   googleDriveServiceAccountJson String?
   googleDriveAdminEmail         String?
+  loadingUrl                    String?  @default("https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif")
 }
 
 model WorkExperience {
