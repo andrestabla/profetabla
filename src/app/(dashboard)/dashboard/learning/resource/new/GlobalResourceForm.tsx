@@ -186,8 +186,20 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
                                     </div>
                                 </div>
                                 {url && url.includes('drive.google.com') && (
-                                    <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-medium border border-green-100">
-                                        <LinkIcon className="w-3 h-3" /> Archivo vinculado: {url.substring(0, 40)}...
+                                    <div className="flex items-center justify-between px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium border border-green-100">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <LinkIcon className="w-3 h-3 shrink-0" />
+                                            <span className="truncate">Archivo vinculado: {url.substring(0, 60)}...</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleAI}
+                                            disabled={isThinking}
+                                            className="flex-none flex items-center gap-1.5 px-2 py-1 bg-green-600 text-white rounded font-bold hover:bg-green-700 transition-colors disabled:opacity-50 ml-2"
+                                        >
+                                            {isThinking ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                            Asistente IA
+                                        </button>
                                     </div>
                                 )}
                                 <input type="hidden" name="url" value={url} />
