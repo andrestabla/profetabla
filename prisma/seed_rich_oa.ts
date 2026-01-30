@@ -10,7 +10,7 @@ async function main() {
     if (!teacher) return;
 
     // Try to find ANY project or create a dummy one if none exists (just for safety)
-    let project = await prisma.project.findFirst({ where: { teacherId: teacher.id } });
+    const project = await prisma.project.findFirst({ where: { teachers: { some: { id: teacher.id } } } });
     if (!project) {
         console.log('No project found to attach OA.');
         return;
