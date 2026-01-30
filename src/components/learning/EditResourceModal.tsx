@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Loader2, X } from 'lucide-react';
-import { updateResourceAction, updateLearningObjectAction } from '@/app/(dashboard)/dashboard/learning/actions';
+import { updateResourceAction, updateLearningObjectMetadataAction } from '@/app/(dashboard)/dashboard/learning/actions';
 import { useRouter } from 'next/navigation';
 
 interface Project {
@@ -47,7 +47,7 @@ export function EditResourceModal({ isOpen, onClose, resource, projects }: EditR
         setLoading(true);
         try {
             if (resource.isOA) {
-                await updateLearningObjectAction(resource.id, {
+                await updateLearningObjectMetadataAction(resource.id, {
                     title,
                     description,
                     projectIds: selectedProjectIds

@@ -61,8 +61,8 @@ export async function updateResourceAction(id: string, data: {
     return { success: true };
 }
 
-// --- Update Learning Object Link/Metadata (For Edit Modal) ---
-export async function updateLearningObjectAction(id: string, data: {
+// --- Update Learning Object Metadata (For Edit Modal) ---
+export async function updateLearningObjectMetadataAction(id: string, data: {
     title?: string;
     description?: string;
     projectIds?: string[]; // List of project IDs to link
@@ -84,6 +84,93 @@ export async function updateLearningObjectAction(id: string, data: {
     return { success: true };
 }
 
+// --- Update Learning Object Full Content (For Edit Page) ---
+export async function updateLearningObjectAction(formData: FormData) {
+    await requireTeacherOrAdmin();
+    const id = formData.get('id') as string;
+
+    if (!id) throw new Error("Missing ID");
+
+    const title = formData.get('title') as string;
+    const subject = formData.get('subject') as string;
+    const competency = formData.get('competency') as string;
+    const keywordsRaw = formData.get('keywords') as string;
+    const description = formData.get('description') as string;
+    const itemsJson = formData.get('itemsJson') as string;
+
+    const keywords = keywordsRaw ? keywordsRaw.split(',').map(s => s.trim()) : [];
+     
+    const items = itemsJson ? JSON.parse(itemsJson) : [];
+
+    // Transaction to update OA and replace items
+    await prisma.$transaction(async (tx) => {
+        // 1. Update OA basic info
+        await tx.learningObject.update({
+            where: { id },
+            data: {
+                title,
+                subject,
+                competency,
+                description,
+                keywords,
+            }
+        });
+
+        // 2. Delete existing items (simple replace strategy for now)
+        // Alternatively we could try to diff them, but full replace is safer for order handling
+        await tx.resource.deleteMany({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            where: { learningObjectId: id } as any
+        });
+
+        // 3. Create new items
+        if (items.length > 0) {
+            // We need to map items to createMany or create. 
+            // Since resource table structure might be complex, let's look at schema inference.
+            // Items are Resources linked to the OA.
+            // Wait, schema says LearningObject->items is separate or same resource?
+            // Assuming LearningObject has relation `items` which are Resources.
+            // Let's assume standard structure based on `createLearningObjectAction`.
+
+            /* 
+               Structure in createLearningObjectAction:
+                items: {
+                   create: items.map(...)
+               }
+            */
+
+            // Note: `deleteMany` works on the relation if it's One-to-Many.
+
+             
+            for (const [idx, item] of items.entries()) {
+                await tx.resource.create({
+                    data: {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        title: (item as any).title,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        type: (item as any).type,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        url: (item as any).url,
+                        order: idx,
+                        learningObjectId: id,
+                        metadata: {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            presentation: (item as any).presentation,
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            utility: (item as any).utility
+                        }
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    } as any
+                });
+            }
+        }
+    });
+
+    revalidatePath('/dashboard/learning');
+    revalidatePath(`/dashboard/learning/object/${id}`);
+    redirect(`/dashboard/learning/object/${id}`);
+}
+
 // --- Create Learning Object (From New Page) ---
 export async function createLearningObjectAction(formData: FormData) {
     const session = await requireTeacherOrAdmin();
@@ -97,7 +184,7 @@ export async function createLearningObjectAction(formData: FormData) {
     const itemsJson = formData.get('itemsJson') as string;
 
     const keywords = keywordsRaw ? keywordsRaw.split(',').map(s => s.trim()) : [];
-     
+
     const items = itemsJson ? JSON.parse(itemsJson) : [];
 
     await prisma.learningObject.create({
