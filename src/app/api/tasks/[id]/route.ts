@@ -27,6 +27,26 @@ export async function PATCH(
             },
         });
 
+        // Sync Assignment if deliverable is set
+        if (body.deliverable && typeof body.deliverable === 'string' && body.deliverable.trim().length > 0) {
+            await prisma.assignment.upsert({
+                where: { taskId: task.id },
+                create: {
+                    title: `Entrega: ${task.title}`,
+                    description: `Entrega asociada a la tarea: ${task.title}. ${task.description || ''}`,
+                    projectId: task.projectId,
+                    taskId: task.id,
+                    dueDate: task.dueDate,
+                    evaluationCriteria: task.evaluationCriteria
+                },
+                update: {
+                    title: `Entrega: ${task.title}`,
+                    dueDate: task.dueDate,
+                    evaluationCriteria: task.evaluationCriteria
+                }
+            });
+        }
+
         return NextResponse.json(task);
     } catch (error) {
         return NextResponse.json(

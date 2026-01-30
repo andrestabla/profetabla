@@ -1,50 +1,44 @@
 import { prisma } from '@/lib/prisma';
-import { SubmissionCard } from '@/components/SubmissionCard';
-import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
-import { FileText } from 'lucide-react';
+import AssignmentsTimelineClient from './AssignmentsTimelineClient';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-async function getAssignments() {
+export default async function AssignmentsPage() {
+    const session = await getServerSession(authOptions);
+    if (!session) redirect('/auth/login');
+
+    // Determine query based on role
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+    if (session.user.role === 'STUDENT') {
+        where.project = { studentId: session.user.id };
+    } else {
+        // Teachers see assignments for projects they own
+        where.project = { teacherId: session.user.id };
+    }
+
     const assignments = await prisma.assignment.findMany({
+        where,
         include: {
-            submissions: true // Including all for now, in reality filter by student session
+            project: { select: { id: true, title: true } },
+            submissions: {
+                where: { studentId: session.user.id }, // Only show own submissions even for teacher in this view? Or maybe all? For now, stick to simple valid query.
+                // @ts-expect-error - generated client relation mismatch
+                include: { rubricScores: true }
+            },
+            task: {
+                select: { status: true, priority: true }
+            },
+            rubricItems: {
+                orderBy: { order: 'asc' }
+            }
         },
         orderBy: { dueDate: 'asc' }
     });
-    return assignments;
-}
 
-export default async function AssignmentsPage() {
-    const assignments = await getAssignments();
-    const project = await prisma.project.findFirst();
-
-    // Mock checking if user is teacher (In real app, check session)
-    const isTeacher = true;
-
-    return (
-        <div>
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-800">Entregas y Evaluaciones</h1>
-                    <p className="text-slate-500">Sube tus avances y recibe feedback de tu tutor.</p>
-                </div>
-                {isTeacher && project && <CreateAssignmentForm projectId={project.id} />}
-            </div>
-
-            {assignments.length === 0 ? (
-                <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                    <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 font-medium">No hay buzones activos.</p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {assignments.map((assignment: any) => (
-                        <SubmissionCard key={assignment.id} assignment={assignment} />
-                    ))}
-                </div>
-            )}
-        </div>
-    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return <AssignmentsTimelineClient assignments={assignments as any} />;
 }

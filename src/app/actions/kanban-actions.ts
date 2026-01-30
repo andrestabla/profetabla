@@ -109,19 +109,31 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
         }
 
         // 5. Save Tasks to DB
-        await prisma.task.createMany({
-            data: aiTasks.map(t => ({
-                title: t.title,
-                description: t.description,
-                priority: t.priority,
-                deliverable: t.deliverable || null,
-                evaluationCriteria: t.evaluationCriteria || null,
-                status: 'TODO',
-                projectId: projectId,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            }))
-        });
+        // 5. Save Tasks to DB (Iterative to allow nested Assignment creation)
+        await Promise.all(aiTasks.map(t =>
+            prisma.task.create({
+                data: {
+                    title: t.title,
+                    description: t.description,
+                    priority: t.priority,
+                    deliverable: t.deliverable || null,
+                    evaluationCriteria: t.evaluationCriteria || null,
+                    status: 'TODO',
+                    projectId: projectId,
+                    // If deliverable exists, create assignment
+                    ...(t.deliverable ? {
+                        assignment: {
+                            create: {
+                                title: `Entrega: ${t.title}`,
+                                description: `Entrega generada por IA para: ${t.title}`,
+                                projectId: projectId,
+                                evaluationCriteria: t.evaluationCriteria || null
+                            }
+                        }
+                    } : {})
+                }
+            })
+        ));
 
         revalidatePath(`/dashboard/professor/projects/${projectId}/kanban`);
         return { success: true, count: aiTasks.length };

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { title, description, priority, dueDate, projectId, status } = body;
+        const { title, description, priority, dueDate, projectId, status, deliverable, evaluationCriteria } = body;
 
         let pid = projectId;
         if (!pid) {
@@ -57,7 +57,21 @@ export async function POST(request: Request) {
                 priority,
                 ...(dueDate && { dueDate: new Date(dueDate) }),
                 projectId: pid,
-                status: status || 'TODO'
+                status: status || 'TODO',
+                deliverable,
+                evaluationCriteria,
+                // If there is a deliverable, create the linked Assignment immediately
+                ...(deliverable ? {
+                    assignment: {
+                        create: {
+                            title: `Entrega: ${title}`,
+                            projectId: pid,
+                            dueDate: dueDate ? new Date(dueDate) : undefined,
+                            evaluationCriteria: evaluationCriteria,
+                            description: `Entrega asociada a la tarea: ${title}. ${description || ''}`
+                        }
+                    }
+                } : {})
             }
         });
 

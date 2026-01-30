@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { KanbanBoard } from '@/components/KanbanBoard';
 import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2 } from 'lucide-react';
 import Link from 'next/link';
 import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, extractResourceMetadataAction, updateProjectResourceAction } from './actions';
@@ -486,7 +487,21 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
             )}
 
             {/* Otras pestañas (Placeholders) */}
-            {activeTab === 'KANBAN' && <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm animate-in fade-in duration-300"><Kanban className="w-12 h-12 text-slate-200 mx-auto mb-4" /><p className="text-slate-400 font-medium">Módulo Kanban en construcción...</p></div>}
+            {/* Otras pestañas */}
+            {activeTab === 'KANBAN' && (
+                <div className="animate-in fade-in duration-300">
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+                        <div className="p-2 bg-amber-100 ring-1 ring-amber-200 rounded-lg"><Sparkles className="w-4 h-4 text-amber-600" /></div>
+                        <div>
+                            <h4 className="font-bold text-amber-800 text-sm">Automagía Activada</h4>
+                            <p className="text-xs text-amber-700 mt-1">
+                                Las tareas que crees aquí con un <strong>Entregable</strong> definido generarán automáticamente un buzón de entrega para el estudiante.
+                            </p>
+                        </div>
+                    </div>
+                    <KanbanBoard projectId={project.id} />
+                </div>
+            )}
             {activeTab === 'MENTORSHIP' && <div className="animate-in fade-in duration-300"><BookingList defaultProjectId={project.id} /></div>}
             {activeTab === 'ASSIGNMENTS' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">

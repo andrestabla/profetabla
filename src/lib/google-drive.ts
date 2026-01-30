@@ -60,6 +60,28 @@ export async function createProjectFolder(projectName: string) {
 }
 
 /**
+ * Creates a generic folder in Google Drive.
+ */
+export async function createFolder(name: string, parentId: string) {
+    try {
+        const drive = await getDriveClient();
+        const fileMetadata = {
+            name: name,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [parentId]
+        };
+        const response = await drive.files.create({
+            requestBody: fileMetadata,
+            fields: 'id',
+        });
+        return response.data.id;
+    } catch (error) {
+        console.error("Error creating folder:", error);
+        return null; // Return null on failure but don't crash
+    }
+}
+
+/**
  * Lists files in the project folder.
  */
 export async function listProjectFiles(folderId: string) {
