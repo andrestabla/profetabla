@@ -16,16 +16,18 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
 
+  const favicon = config?.faviconUrl || 'https://profetabla.s3.us-east-1.amazonaws.com/favicont.ico';
+
   return {
     title: config?.institutionName ? `${config.institutionName} | Gestión Educativa` : "Profe Tabla | Gestión de Proyectos Educativos",
     description: "Plataforma integral para educación basada en proyectos. Kanban, Entregas y Mentorías.",
     metadataBase: new URL('https://profetabla.com'),
     icons: {
       icon: [
-        { url: 'https://profetabla.s3.us-east-1.amazonaws.com/favicont.ico?v=2', sizes: 'any' }
+        { url: favicon, sizes: 'any' }
       ],
-      shortcut: ['https://profetabla.s3.us-east-1.amazonaws.com/favicont.ico?v=2'],
-      apple: ['https://profetabla.s3.us-east-1.amazonaws.com/favicont.ico?v=2'],
+      shortcut: [favicon],
+      apple: [favicon],
     }
   };
 }
