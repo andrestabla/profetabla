@@ -64,7 +64,8 @@ export default async function RootLayout({
   return (
     <html lang="es">
       <head>
-        <link href={`https://fonts.googleapis.com/css2?family=${font.replace(' ', '+')}:wght@400;500;700&display=swap`} rel="stylesheet" />
+        <link rel="icon" href={favicon} sizes="any" />
+        <link rel="apple-touch-icon" href={favicon} />
         <link href={`https://fonts.googleapis.com/css2?family=${font.replace(' ', '+')}:wght@400;500;700&display=swap`} rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: dynamicStyles }} />
       </head>
