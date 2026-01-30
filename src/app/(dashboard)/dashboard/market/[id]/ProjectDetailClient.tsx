@@ -104,8 +104,10 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
         <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-24 font-sans bg-slate-50/50 min-h-screen">
             {/* Navigation & Breadcrumbs */}
             <nav className="flex items-center gap-3 text-sm text-slate-500 mb-2">
-                <Link href="/dashboard/projects/market" className="hover:text-slate-900 transition-colors flex items-center gap-1">
-                    <ChevronLeft className="w-4 h-4" /> Volver al Mercado
+                <Link
+                    href="/dashboard/market"
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors mb-4 w-fit"
+                >    <ChevronLeft className="w-4 h-4" /> Volver al Mercado
                 </Link>
                 <span className="text-slate-300">/</span>
                 <span className="font-medium text-slate-900 truncate max-w-[200px]">{project.title}</span>

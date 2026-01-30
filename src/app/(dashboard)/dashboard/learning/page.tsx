@@ -24,6 +24,9 @@ export default async function LearningPage() {
         if (!activeProject) {
             return (
                 <div className="flex flex-col items-center justify-center h-[70vh] text-center p-6">
+                    <Link href="/dashboard/market" className="text-blue-600 hover:text-blue-800 font-bold mb-6 inline-block">
+                        ← Volver al Mercado
+                    </Link>
                     <div className="bg-blue-50 p-6 rounded-full mb-6">
                         <BookOpen className="w-12 h-12 text-blue-400" />
                     </div>

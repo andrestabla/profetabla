@@ -22,10 +22,10 @@ export default async function KanbanPage() {
                 <h1 className="text-3xl font-bold text-slate-800 mb-2">No tienes un proyecto activo</h1>
                 <p className="text-slate-500 max-w-md mb-8">Debes tener un proyecto en progreso para gestionar tareas.</p>
                 <Link
-                    href="/dashboard/projects/market"
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl"
+                    href="/dashboard/market"
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                 >
-                    <Search className="w-5 h-5" /> Explorar Proyectos
+                    Ir al Mercado →
                 </Link>
             </div>
         );

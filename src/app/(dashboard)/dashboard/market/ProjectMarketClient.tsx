@@ -73,7 +73,7 @@ export default function ProjectMarketClient({ availableProjects, currentFilter }
                     return (
                         <Link
                             key={project.id}
-                            href={`/dashboard/projects/market/${project.id}`}
+                            href={`/dashboard/market/${project.id}`}
                             className="block group h-full"
                         >
                             <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition-all duration-200 hover:border-slate-300 h-full flex flex-col">

@@ -15,7 +15,7 @@ export async function createProjectAction(formData: FormData) {
     }
 
     const title = formData.get('title') as string;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const type = (formData.get('type') as 'PROJECT' | 'CHALLENGE' | 'PROBLEM') || 'PROJECT';
     const description = formData.get('description') as string;
     const industry = formData.get('industry') as string;
@@ -54,6 +54,7 @@ export async function createProjectAction(formData: FormData) {
             budget,
             evaluation,
             kpis,
+            type, // Add the type field to the Prisma create call
             teacherId: session.user.id,
             status: 'OPEN',
             googleDriveFolderId: driveFolderId,
@@ -64,8 +65,8 @@ export async function createProjectAction(formData: FormData) {
     });
 
     revalidatePath('/dashboard/professor/projects');
-    revalidatePath('/dashboard/projects/market');
-    redirect('/dashboard/professor/projects');
+    revalidatePath('/dashboard/market'); // Update revalidate path
+    redirect('/dashboard/market'); // Update redirect to market
 }
 
 export async function updateProjectAction(formData: FormData) {
@@ -108,7 +109,7 @@ export async function updateProjectAction(formData: FormData) {
 
     revalidatePath(`/dashboard/professor/projects/${id}`);
     revalidatePath('/dashboard/professor/projects');
-    revalidatePath('/dashboard/projects/market');
+    revalidatePath('/dashboard/market');
     redirect(`/dashboard/professor/projects/${id}`);
 }
 
@@ -174,7 +175,7 @@ export async function applyToProjectAction(projectId: string) {
         // Don't fail the action if email fails
     }
 
-    revalidatePath(`/dashboard/projects/market/${projectId}`);
+    revalidatePath(`/dashboard/market/${projectId}`);
 }
 
 export async function deleteProjectAction(projectId: string) {
@@ -213,7 +214,7 @@ export async function deleteProjectAction(projectId: string) {
         console.log(`✅ [Delete Project] Deleted project ${projectId}`);
 
         revalidatePath('/dashboard/professor/projects');
-        revalidatePath('/dashboard/projects/market');
+        revalidatePath('/dashboard/market');
         return { success: true };
     } catch (e: unknown) {
         const error = e as Error;

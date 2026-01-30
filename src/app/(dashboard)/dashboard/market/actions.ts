@@ -60,8 +60,8 @@ export async function applyToProjectAction(formData: FormData) {
         });
 
         // 5. Revalidar rutas críticas
-        revalidatePath('/dashboard');
-        revalidatePath('/dashboard/projects/market');
+        revalidatePath('/dashboard/market');
+        revalidatePath('/dashboard/professor/projects');
 
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);

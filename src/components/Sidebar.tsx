@@ -46,7 +46,7 @@ export function Sidebar({ config }: { config?: any }) {
         { name: 'Entregas', href: '/dashboard/assignments', icon: FileText, roles: ['STUDENT'] },
         { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
-        { name: 'Proyectos', href: '/dashboard/projects/market', icon: ShoppingBag, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
+        { name: 'Mercado de Proyectos', href: '/dashboard/market', icon: ShoppingBag, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
     ];
 
     const adminItems = [
