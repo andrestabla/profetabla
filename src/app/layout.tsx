@@ -21,8 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
     description: "Plataforma integral para educación basada en proyectos. Kanban, Entregas y Mentorías.",
     metadataBase: new URL('https://profetabla.com'),
     icons: {
-      icon: config?.faviconUrl || '/favicon.ico',
-      apple: '/apple-icon.png', // Optional: Add if we have one, or remove
+      icon: config?.faviconUrl || 'https://profetabla.s3.us-east-1.amazonaws.com/favicont.ico',
+      apple: '/apple-icon.png',
     }
   };
 }
