@@ -18,9 +18,11 @@ async function getDriveClient() {
             email: credentials.client_email,
             key: credentials.private_key,
             scopes: ['https://www.googleapis.com/auth/drive'],
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            subject: (config as any).googleDriveAdminEmail || undefined
+             
+            subject: config.googleDriveAdminEmail || undefined
         });
+
+        console.log(`[GoogleDrive] Initializing client. Admin delegation email: ${config.googleDriveAdminEmail ? 'PRESENT' : 'MISSING'}.`);
 
         return google.drive({ version: 'v3', auth });
     } catch (error) {
@@ -50,6 +52,7 @@ export async function createProjectFolder(projectName: string) {
         const response = await drive.files.create({
             requestBody: fileMetadata,
             fields: 'id',
+            supportsAllDrives: true,
         });
 
         return response.data.id;
@@ -73,6 +76,7 @@ export async function createFolder(name: string, parentId: string) {
         const response = await drive.files.create({
             requestBody: fileMetadata,
             fields: 'id',
+            supportsAllDrives: true,
         });
         return response.data.id;
     } catch (error) {
@@ -90,6 +94,8 @@ export async function listProjectFiles(folderId: string) {
         const response = await drive.files.list({
             q: `'${folderId}' in parents and trashed = false`,
             fields: 'files(id, name, mimeType, webViewLink, iconLink)',
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true
         });
         return response.data.files || [];
     } catch (error) {
@@ -116,7 +122,8 @@ export async function getFileContent(fileId: string, mimeType: string) {
         // For other files, we just return the name for now if we can't parse content easily
         const file = await drive.files.get({
             fileId: fileId,
-            fields: 'name,description'
+            fields: 'name,description',
+            supportsAllDrives: true
         });
         return `Nombre del archivo: ${file.data.name}\nDescripción: ${file.data.description || 'Sin descripción'}`;
 
@@ -149,6 +156,7 @@ export async function uploadFileToDrive(folderId: string, fileName: string, mime
             requestBody: fileMetadata,
             media: media,
             fields: 'id, name, webViewLink',
+            supportsAllDrives: true,
         });
 
         console.log(`Archivo creado en Drive. ID: ${response.data.id}`);
@@ -160,6 +168,7 @@ export async function uploadFileToDrive(folderId: string, fileName: string, mime
                 role: 'reader',
                 type: 'anyone',
             },
+            supportsAllDrives: true,
         });
 
         console.log(`Permisos 'anyone' establecidos para ${response.data.id}`);
