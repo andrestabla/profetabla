@@ -274,6 +274,7 @@ export async function extractOAMetadata(content: string): Promise<{
   competency?: string;
   keywords: string[];
   description: string;
+  utility?: string; // Added for pedagogical utility
 } | null> {
   const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
   const apiKey = config?.geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
