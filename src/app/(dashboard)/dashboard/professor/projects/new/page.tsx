@@ -27,11 +27,15 @@ export default async function NewProjectPage({ searchParams }: Props) {
         category: { name: oa.subject, color: 'bg-slate-100' }
     }));
 
-    // Extract type from params (safe cast)
+    // Extract type from params (safe cast) or default to PROJECT
     const params = await searchParams;
     const rawType = params?.type;
     const typeStr = Array.isArray(rawType) ? rawType[0] : rawType;
+    // Allow override via query param if needed, but default strictly to PROJECT if typical flow
     const defaultType = (typeStr === 'CHALLENGE' || typeStr === 'PROBLEM') ? typeStr : 'PROJECT';
+    // If accessed via /projects/new, we assume Project, but if ?type is present we might want to respect it OR create redirects.
+    // Given the user request "Solo debe existir la opción para crear el tipo correspondiente", let's enforce based on URL context.
+    // But since this is the "Projects" root, let's default to PROJECT.
 
-    return <CreateProjectForm availableOAs={formattedOAs} defaultType={defaultType} />;
+    return <CreateProjectForm availableOAs={formattedOAs} defaultType={defaultType} enforceType={true} />;
 }

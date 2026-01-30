@@ -16,7 +16,7 @@ type SimpleOA = {
     category: { name: string; color: string };
 };
 
-export default function CreateProjectForm({ availableOAs, defaultType }: { availableOAs: SimpleOA[], defaultType?: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' }) {
+export default function CreateProjectForm({ availableOAs, defaultType, enforceType = false }: { availableOAs: SimpleOA[], defaultType?: 'PROJECT' | 'CHALLENGE' | 'PROBLEM', enforceType?: boolean }) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmAction, setConfirmAction] = useState<'DISCARD' | 'PUBLISH' | null>(null);
@@ -308,31 +308,35 @@ export default function CreateProjectForm({ availableOAs, defaultType }: { avail
             <form ref={formRef} action={onSubmit} className="space-y-8">
                 {/* Hidden submit button triggered programmatically */}
                 <button type="submit" ref={submitBtnRef} className="hidden" />
-                {/* SECCIÓN 0: TIPO DE INTERVENCIÓN */}
-                <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                    <h2 className="text-lg font-bold text-slate-800 mb-6">Selecciona el Tipo de Intervención</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {(Object.keys(typeConfig) as Array<keyof typeof typeConfig>).map((key) => {
-                            const config = typeConfig[key];
-                            const isSelected = type === key;
-                            return (
-                                <div
-                                    key={key}
-                                    onClick={() => setType(key)}
-                                    className={`cursor-pointer p-4 rounded-xl border-2 transition-all ${isSelected ? `${config.border} ${config.bg} ring-2 ring-offset-2 ring-blue-100` : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'}`}
-                                >
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <config.icon className={`w-5 h-5 ${config.color}`} />
-                                        <h3 className={`font-bold ${isSelected ? 'text-slate-800' : 'text-slate-600'}`}>{config.label}</h3>
+
+                {/* SECCIÓN 0: TIPO DE INTERVENCIÓN (Only shown if type is not enforced) */}
+                {!enforceType && (
+                    <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                        <h2 className="text-lg font-bold text-slate-800 mb-6">Selecciona el Tipo de Intervención</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {(Object.keys(typeConfig) as Array<keyof typeof typeConfig>).map((key) => {
+                                const config = typeConfig[key];
+                                const isSelected = type === key;
+                                return (
+                                    <div
+                                        key={key}
+                                        onClick={() => setType(key)}
+                                        className={`cursor-pointer p-4 rounded-xl border-2 transition-all ${isSelected ? `${config.border} ${config.bg} ring-2 ring-offset-2 ring-blue-100` : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'}`}
+                                    >
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <config.icon className={`w-5 h-5 ${config.color}`} />
+                                            <h3 className={`font-bold ${isSelected ? 'text-slate-800' : 'text-slate-600'}`}>{config.label}</h3>
+                                        </div>
+                                        <p className="text-xs text-slate-500 leading-relaxed">{config.description}</p>
                                     </div>
-                                    <p className="text-xs text-slate-500 leading-relaxed">{config.description}</p>
-                                </div>
-                            )
-                        })}
-                    </div>
-                    {/* Hidden Input for Server Action */}
-                    <input type="hidden" name="type" value={type} />
-                </section>
+                                )
+                            })}
+                        </div>
+                    </section>
+                )}
+
+                {/* Hidden Input for Server Action (Always needed) */}
+                <input type="hidden" name="type" value={type} />
 
                 {/* SECCIÓN 1: IDENTIFICACIÓN */}
                 <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
