@@ -24,7 +24,7 @@ export default function CreateProjectForm({ availableOAs, defaultType, enforceTy
     const submitBtnRef = useRef<HTMLButtonElement>(null);
     const [type, setType] = useState<'PROJECT' | 'CHALLENGE' | 'PROBLEM'>(defaultType || 'PROJECT');
 
-    // CONTEXTO PEDAGÓGICO
+    // CONTEXTO PEDAGÓGICO (Actualizado con definiciones estrictas)
     const typeConfig = {
         PROJECT: {
             label: "Proyecto (ABP)",
@@ -34,38 +34,38 @@ export default function CreateProjectForm({ availableOAs, defaultType, enforceTy
             bg: "bg-blue-50",
             border: "border-blue-200",
             placeholders: {
-                description: "Contexto real y significativo. Situación de la vida real (empresas, comunidad, entornos sociales). Permite planear, implementar y evaluar actividades con fines reales.",
-                objectives: "Pregunta guía desafiante (¿Cómo mejorar...?). Objetivos de investigación y planificación.",
-                methodology: "1. Investigación (Planificación)\n2. Implementación (Trabajo colaborativo)\n3. Presentación (Producto Final)\n4. Evaluación (Reflexión)",
-                deliverables: "Producto final tangible o servicio (Informe, presentación, prototipo, campaña)."
+                description: "Contexto real y significativo (empresas, comunidad). Situación que conecta contenidos con práctica.",
+                objectives: "Pregunta Guía: ¿Cómo mejorar...? (Tema central, estimulante y relevante).",
+                methodology: "FASES ABP:\n1. Investigación y planificación (Definición de objetivos y tareas)\n2. Ejecución (Desarrollo de soluciones/prototipos)\n3. Presentación y evaluación (Socialización y reflexión)",
+                deliverables: "Producto final tangible (Informe, Multimedia, Prototipo, Campaña)."
             }
         },
         CHALLENGE: {
             label: "Reto (ABR)",
-            description: "Desafío de alcance social o comunitario que se resuelve mediante acción concreta. Vinculado a la realidad del entorno.",
+            description: "Desafío de alcance social o comunitario que requiere una acción concreta. Tema amplio, realista y motivador.",
             icon: CheckSquare,
             color: "text-orange-600",
             bg: "bg-orange-50",
             border: "border-orange-200",
             placeholders: {
-                description: "Problema auténtico del entorno (centro educativo, comunidad). Implica agentes externos y propósito social claro.",
-                objectives: "Pregunta desafío (Pregunta troncal). Resolver un problema real mediante acción concreta.",
-                methodology: "1. Elección del reto\n2. Preguntas (Brainstorming)\n3. Desarrollo (Investigación)\n4. Comprobación en contexto (Implementación)\n5. Difusión",
-                deliverables: "Solución concreta al reto (Prototipo, propuesta de cambio, informe de acción, video divulgativo)."
+                description: "Contexto auténtico con propósito social claro (Inclusión, Sostenibilidad, Comunidad).",
+                objectives: "Pregunta Desafío. Reto inicial que requiere acción concreta.",
+                methodology: "FASES ABR:\n1. Elección del reto\n2. Generación de preguntas\n3. Desarrollo (Investigación y diseño)\n4. Comprobación en contexto (Implementación)\n5. Difusión",
+                deliverables: "Solución concreta con impacto (Prototipo funcional, Propuesta de cambio, Video divulgativo)."
             }
         },
         PROBLEM: {
             label: "Problema (ABP)",
-            description: "Escenario o problema real complejo que requiere aplicar conocimientos previos y búsqueda independiente.",
+            description: "Escenario o problema real, complejo y relevante que requiere aplicar conocimientos previos y desarrollar nuevos aprendizajes.",
             icon: Search,
             color: "text-red-600",
             bg: "bg-red-50",
             border: "border-red-200",
             placeholders: {
-                description: "Escenario clínico, dilema social o reto profesional. Relevante y vinculado al campo profesional.",
-                objectives: "Punto de partida para la indagación. Identificar lo que se sabe y lo que se desconoce.",
-                methodology: "1. Presentación del problema\n2. Lluvia de ideas y objetivos\n3. Investigación autónoma\n4. Síntesis y propuesta\n5. Evaluación",
-                deliverables: "Informe escrito o presentación con la solución propuesta. Esquemas, modelos o simulaciones."
+                description: "Escenario clínico, dilema social o reto profesional. Vinculado a situaciones reales.",
+                objectives: "Análisis del problema. Identificación de vacíos de información y objetivos de aprendizaje.",
+                methodology: "FASES ABP-Problemas:\n1. Presentación del problema\n2. Análisis y objetivos\n3. Investigación autónoma\n4. Síntesis y solución\n5. Evaluación y reflexión",
+                deliverables: "Producto de comprensión (Informe analítico, Presentación argumentada, Modelo/Simulación)."
             }
         }
     };

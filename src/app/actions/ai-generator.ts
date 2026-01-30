@@ -73,45 +73,58 @@ export async function generateProjectStructure(
 
   if (type === 'CHALLENGE') { // ABR
     specificInstructions = `
-        METODOLOGÍA: APRENDIZAJE BASADO EN RETOS (ABR)
+        METODOLOGÍA: APRENDIZAJE BASADO EN RETOS (ABR_retos)
         
-        DEFINICIÓN: Desafío de alcance social o comunitario que se resuelve mediante acción concreta.
-        CONTEXTO/CONEXIÓN REAL: El reto se sitúa en el contexto del entorno de aprendizaje (centro educativo, comunidad) e implica agentes externos. Busca resolver un problema auténtico.
+        DEFINICIÓN: Desafío de alcance social o comunitario que requiere una acción concreta. Tema amplio, realista y motivador.
+        CONTEXTO/CONEXIÓN REAL: Contexto auténtico que involucra comunidad, sector productivo o instituciones externas, con propósito social claro.
         
-        ESTRUCTURA DE RESPUESTA:
-        - "description": Enfócate en el problema del entorno y el propósito social.
-        - "objectives": Debe incluir la "Pregunta Desafío" (Pregunta troncal) y metas de acción concreta.
-        - "methodology": Describe estas fases: 1. Elección del reto, 2. Generación de preguntas (Brainstorming), 3. Desarrollo (Investigación), 4. Comprobación en contexto, 5. Difusión.
-        - "deliverables": Debe ser una solución concreta (Prototipo, campaña, acción real, video divulgativo).
-        - "phases": Genera fases que coincidan EXACTAMENTE con las descritas en "methodology".
+        ESTRUCTURA DE RESPUESTA REQUERIDA:
+        - "description": Describe el desafío social o comunitario y su conexión con el entorno.
+        - "objectives": Incluye la "Pregunta Desafío" como eje central.
+        - "methodology": Describe estas 5 FASES OBLIGATORIAS:
+             1. Elección del reto (Definición del tema general)
+             2. Generación de preguntas (Lluvia de ideas y formulación de preguntas)
+             3. Desarrollo del reto (Investigación y diseño de soluciones)
+             4. Comprobación en contexto (Implementación o simulación)
+             5. Difusión de resultados (Comunicación pública)
+        - "deliverables": Solución concreta (Ejemplos: Prototipo funcional, Propuesta de cambio, Campaña, Video).
+        - "evaluation": Formativa y colaborativa. Centrada en proceso e impacto.
         `;
   } else if (type === 'PROBLEM') { // ABP (Problemas)
     specificInstructions = `
-        METODOLOGÍA: APRENDIZAJE BASADO EN PROBLEMAS (ABP)
+        METODOLOGÍA: APRENDIZAJE BASADO EN PROBLEMAS (ABP_problemas)
         
-        DEFINICIÓN: Escenario o problema real complejo que requiere aplicar conocimientos previos y búsqueda independiente.
-        CONTEXTO: Vinculado al campo profesional o situaciones concretas de la vida real (casos clínicos, dilemas).
+        DEFINICIÓN: Escenario o problema real, complejo y relevante que requiere aplicar conocimientos previos y desarrollar nuevos aprendizajes.
+        CONTEXTO: Vinculado al campo profesional o a situaciones reales de la vida (casos clínicos, dilemas).
         
-        ESTRUCTURA DE RESPUESTA:
-        - "description": Presenta el escenario o caso problemático como punto de partida.
-        - "objectives": Enfócate en identificar lo conocido, lo desconocido y formular preguntas de investigación.
-        - "methodology": Describe estas fases: 1. Presentación del problema, 2. Lluvia de ideas y objetivos, 3. Investigación autónoma, 4. Síntesis y solución, 5. Evaluación.
-        - "deliverables": Informe escrito, presentación de solución, esquemas o modelos.
-        - "phases": Genera fases que coincidan EXACTAMENTE con las descritas en "methodology".
+        ESTRUCTURA DE RESPUESTA REQUERIDA:
+        - "description": Presenta el escenario o problema complejo.
+        - "objectives": Identificación de conocimientos previos y vacíos de información (Lo que se sabe vs lo que se ignora).
+        - "methodology": Describe estas 5 FASES OBLIGATORIAS:
+             1. Presentación del problema (Exposición del caso)
+             2. Análisis y objetivos de aprendizaje (Identificación de necesidades)
+             3. Investigación autónoma (Búsqueda de información)
+             4. Síntesis y solución (Integración de información)
+             5. Evaluación y reflexión (Retroalimentación)
+        - "deliverables": Producto de comprensión (Ejemplos: Informe analítico, Presentación argumentada, Modelo).
+        - "evaluation": Continua e integral. Evalúa análisis y calidad de la solución.
         `;
   } else { // PROJECT (ABP - Proyectos)
     specificInstructions = `
-        METODOLOGÍA: APRENDIZAJE BASADO EN PROYECTOS (ABP)
+        METODOLOGÍA: APRENDIZAJE BASADO EN PROYECTOS (ABP_proyectos)
         
-        DEFINICIÓN: Se formula un tema o problema central abierto que motiva la investigación. Reto estimulante conectado con el currículo.
-        CONTEXTO: Situaciones de la vida real o escenarios auténticos (empresas, comunidad). Permite planear, implementar y evaluar.
+        DEFINICIÓN: Se formula un tema o problema central abierto que motiva la investigación. Conectado con el currículo.
+        CONTEXTO: Contexto real y significativo (empresas, comunidad) que conecta contenidos con práctica.
         
-        ESTRUCTURA DE RESPUESTA:
-        - "description": Describe el proyecto y su conexión con el mundo real.
-        - "objectives": Incluye la "Pregunta Guía" desafiante.
-        - "methodology": Describe estas fases: 1. Investigación y planificación, 2. Implementación/Desarrollo, 3. Presentación de resultados, 4. Evaluación y reflexión.
-        - "deliverables": Producto final tangible o servicio (Informe, prototipo, campaña).
-        - "phases": Genera fases que coincidan EXACTAMENTE con las descritas en "methodology".
+        ESTRUCTURA DE RESPUESTA REQUERIDA:
+        - "description": Situación real y significativa que justifica el proyecto.
+        - "objectives": Debe centrarse en una "Pregunta Guía" (¿Cómo mejorar...?) estimulante.
+        - "methodology": Describe estas 3 FASES OBLIGATORIAS (pueden subdividirse):
+             1. Investigación y planificación (Presentación de pregunta guía, objetivos, recursos)
+             2. Ejecución del proyecto (Desarrollo de soluciones, prototipos, investigación)
+             3. Presentación y evaluación (Socialización de resultados, reflexión)
+        - "deliverables": Producto final tangible (Ejemplos: Informe escrito, Presentación multimedia, Prototipo, Campaña).
+        - "evaluation": Continua y formativa. Valorando producto y competencias.
         `;
   }
 
