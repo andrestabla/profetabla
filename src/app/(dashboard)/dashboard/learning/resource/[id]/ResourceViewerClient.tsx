@@ -51,7 +51,8 @@ export default function ResourceViewerClient({
     const [formData, setFormData] = useState({
         title: resource.title,
         url: resource.url,
-        description: resource.presentation || '', // Mapping presentation as description for now or keeping separate?
+        type: resource.type, // Add type
+        description: resource.presentation || '',
         // Wait, DB has description, presentation, utility. 
         // Resource type here has presentation/utility.
         // Let's verify updateResourceAction signature. 
@@ -69,20 +70,17 @@ export default function ResourceViewerClient({
     const handleAIImprovement = async () => {
         setIsExtracting(true);
         try {
-            // Logic to determine source. currently optimized for Drive.
-            // If it's a Drive file, we can re-process it.
             let aiData = null;
-            if (resource.type === 'DRIVE') {
-                const fileId = getDriveId(formData.url); // Use updated URL
+            // Use selected type logic
+            if (formData.type === 'DRIVE') {
+                const fileId = getDriveId(formData.url);
                 if (fileId) {
                     const { processDriveFileForOAAction } = await import('@/app/actions/oa-actions');
-                    // Mimetype guess or generic
-                    aiData = await processDriveFileForOAAction(fileId, 'application/pdf'); // Defaulting to PDF/Doc assumption for extraction
+                    aiData = await processDriveFileForOAAction(fileId, 'application/pdf');
                 }
             } else {
-                // For other types (VIDEO, LINK), use the current metadata/url to generate improvements
                 const { improveTextWithAIAction } = await import('@/app/actions/oa-actions');
-                const context = `URL: ${formData.url}\nDescripción Actual: ${formData.presentation || ''}`;
+                const context = `Tipo: ${formData.type}\nURL: ${formData.url}\nDescripción Actual: ${formData.presentation || ''}`;
                 aiData = await improveTextWithAIAction(formData.title, context);
             }
 
@@ -90,7 +88,7 @@ export default function ResourceViewerClient({
                 setFormData(prev => ({
                     ...prev,
                     title: aiData.title || prev.title,
-                    presentation: aiData.description || prev.presentation, // AI "description" usually maps well to presentation
+                    presentation: aiData.description || prev.presentation,
                     utility: aiData.competency ? `Competencia: ${aiData.competency}` : prev.utility
                 }));
             } else {
@@ -119,7 +117,8 @@ export default function ResourceViewerClient({
             await updateResourceAction(resource.id, {
                 title: formData.title,
                 description: formData.presentation, // Mapping presentation to description based on typical usage
-                url: formData.url
+                url: formData.url,
+                type: formData.type
                 // If we need custom metadata, we might need to update the action.
                 // For now, let's map presentation -> description.
             });
@@ -146,6 +145,16 @@ export default function ResourceViewerClient({
         }
     };
 
+    const getTypeLabel = (type: string) => {
+        switch (type) {
+            case 'VIDEO': return 'Enlace de Video (YouTube)';
+            case 'DRIVE': return 'Enlace de Drive';
+            case 'EMBED': return 'Código Embed / Iframe';
+            case 'ARTICLE': return 'Enlace de Artículo/Web';
+            default: return 'URL del Recurso';
+        }
+    };
+
     return (
         <div className="h-[calc(100vh-80px)] bg-slate-100 flex flex-col md:flex-row overflow-hidden rounded-xl border border-slate-200 relative">
             {/* Content Area */}
@@ -164,12 +173,25 @@ export default function ResourceViewerClient({
                                     className="w-full text-lg font-bold text-slate-900 border-b border-slate-300 focus:border-blue-500 outline-none px-1"
                                     placeholder="Título del recurso"
                                 />
-                                <input
-                                    value={formData.url}
-                                    onChange={e => setFormData({ ...formData, url: e.target.value })}
-                                    className="w-full text-xs text-slate-500 border-b border-slate-200 focus:border-blue-500 outline-none px-1 font-mono"
-                                    placeholder="URL del recurso (Youtube, Drive, Link...)"
-                                />
+                                <div className="flex gap-2">
+                                    <select
+                                        value={formData.type}
+                                        onChange={e => setFormData({ ...formData, type: e.target.value })}
+                                        className="text-xs border border-slate-200 rounded px-2 py-1 bg-slate-50 text-slate-700 focus:border-blue-500 outline-none font-bold uppercase"
+                                    >
+                                        <option value="VIDEO">VIDEO</option>
+                                        <option value="ARTICLE">ARTÍCULO</option>
+                                        <option value="DRIVE">DRIVE</option>
+                                        <option value="EMBED">EMBED</option>
+                                        <option value="WEBSITE">WEBSITE</option>
+                                    </select>
+                                    <input
+                                        value={formData.url}
+                                        onChange={e => setFormData({ ...formData, url: e.target.value })}
+                                        className="flex-1 text-xs text-slate-500 border-b border-slate-200 focus:border-blue-500 outline-none px-1 font-mono"
+                                        placeholder={getTypeLabel(formData.type)}
+                                    />
+                                </div>
                             </div>
                         ) : (
                             <div>

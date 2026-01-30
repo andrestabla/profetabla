@@ -46,6 +46,7 @@ export async function updateResourceAction(id: string, data: {
     description?: string;
     projectId?: string | null; // null to unassign
     url?: string;
+    type?: string;
 }) {
     await requireTeacherOrAdmin();
 
@@ -55,7 +56,8 @@ export async function updateResourceAction(id: string, data: {
             title: data.title,
             description: data.description,
             projectId: data.projectId === 'GLOBAL' ? null : data.projectId,
-            url: data.url
+            url: data.url,
+            type: data.type
         }
     });
 
