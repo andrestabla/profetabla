@@ -59,6 +59,7 @@ export default async function RootLayout({
       --primary: ${primaryRgb};
       --radius: ${radius};
       --font-main: '${font}', sans-serif;
+      --loading-url: url('${config?.loadingUrl || 'https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif'}');
     }
     ${config?.customCss || ''}
   `;

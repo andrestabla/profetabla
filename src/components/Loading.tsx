@@ -17,21 +17,20 @@ export default function Loading({
     className = "",
     variant = "inline"
 }: LoadingProps) {
-    // Default GIF provided by the user
-    const loaderUrl = "https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif";
+    // We use a CSS variable defined in layout.tsx to ensure it picks up the DB config
+    // without needing async data fetching in loading.tsx (which must be sync)
 
     if (variant === 'button') {
         return (
             <div className={`flex items-center gap-2 ${className}`}>
-                <div className="relative" style={{ width: 16, height: 16 }}>
-                    <Image
-                        src={loaderUrl}
-                        alt="Loading"
-                        fill
-                        className="object-contain"
-                        unoptimized
-                    />
-                </div>
+                <div
+                    className="relative bg-contain bg-center bg-no-repeat"
+                    style={{
+                        width: 16,
+                        height: 16,
+                        backgroundImage: 'var(--loading-url)'
+                    }}
+                />
                 <span>{message}</span>
             </div>
         );
@@ -40,15 +39,14 @@ export default function Loading({
     if (variant === 'fullscreen') {
         return (
             <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-                <div className="relative" style={{ width: size * 2.5, height: size * 2.5 }}>
-                    <Image
-                        src={loaderUrl}
-                        alt="Loading"
-                        fill
-                        className="object-contain"
-                        unoptimized
-                    />
-                </div>
+                <div
+                    className="relative bg-contain bg-center bg-no-repeat animate-pulse"
+                    style={{
+                        width: size * 2.5,
+                        height: size * 2.5,
+                        backgroundImage: 'var(--loading-url)'
+                    }}
+                />
                 {message && <p className="mt-4 text-slate-500 font-medium animate-pulse">{message}</p>}
             </div>
         );
@@ -56,15 +54,14 @@ export default function Loading({
 
     return (
         <div className={`flex flex-col items-center justify-center p-4 ${className}`}>
-            <div className="relative" style={{ width: size, height: size }}>
-                <Image
-                    src={loaderUrl}
-                    alt="Loading"
-                    fill
-                    className="object-contain"
-                    unoptimized
-                />
-            </div>
+            <div
+                className="relative bg-contain bg-center bg-no-repeat"
+                style={{
+                    width: size,
+                    height: size,
+                    backgroundImage: 'var(--loading-url)'
+                }}
+            />
             {message && <p className="mt-2 text-sm text-slate-400 font-medium">{message}</p>}
         </div>
     );
