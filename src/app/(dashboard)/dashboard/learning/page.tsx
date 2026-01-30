@@ -48,6 +48,18 @@ export default async function LearningPage() {
         activeProjectId = activeProject.id;
     }
 
+    // Logic for Admin/Teacher: Fetch all projects for filter dropdown
+    let availableProjects: { id: string, title: string }[] = [];
+    if (canCreate) {
+        availableProjects = await prisma.project.findMany({
+            where: {
+                status: { in: ['OPEN', 'IN_PROGRESS'] }
+            },
+            select: { id: true, title: true },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
     return (
         <div>
             <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -74,7 +86,11 @@ export default async function LearningPage() {
                 )}
             </div>
 
-            <ResourceList projectId={activeProjectId} />
+            <ResourceList
+                projectId={activeProjectId}
+                availableProjects={availableProjects}
+                userRole={session?.user?.role}
+            />
         </div>
     );
 }
