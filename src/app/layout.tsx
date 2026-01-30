@@ -16,7 +16,8 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
 
-  const favicon = config?.faviconUrl || 'https://profetabla.s3.us-east-1.amazonaws.com/favicont.ico';
+  const fallbackFavicon = 'https://img.icons8.com/fluency/48/education.png';
+  const favicon = config?.faviconUrl || fallbackFavicon;
 
   return {
     title: config?.institutionName ? `${config.institutionName} | Gestión Educativa` : "Profe Tabla | Gestión de Proyectos Educativos",
