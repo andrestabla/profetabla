@@ -7,19 +7,32 @@ export const dynamic = 'force-dynamic';
 export default async function Page({ params }: { params: Promise<{ id: string, bookingId: string }> }) {
     const { id, bookingId } = await params;
 
-    const booking = await prisma.mentorshipBooking.findUnique({
-        where: { id: bookingId },
-        include: { slot: true }
-    });
-
-    if (!booking) return notFound();
-
     const project = await prisma.project.findUnique({
         where: { id },
-        include: { student: true }
+        include: { students: true }
     });
 
-    if (!project || !project.student) return notFound();
+    if (!project || project.students.length === 0) return notFound();
 
-    return <MentorshipRoomClient booking={booking} student={project.student} project={project} />;
+    // For 1-on-1 mentorship, we might assume the student is the one in the booking?
+    // But bookings track 'studentId'.
+    // The client expects 'student' prop.
+    // Let's verify if the booking student is in the project.
+
+    // Actually, MentorshipRoomClient takes 'student' (User). 
+    // If the booking has studentId, we should probably fetch the student FROM THE BOOKING, or ensure we pass the correct one.
+    // The previous code used project.student, suggesting 1 student per project.
+    // Now we have many.
+    // However, the booking ITSELF has a studentId (MentorshipBooking model). 
+    // And we already fetched booking with `include: { slot: true }`. Let's add student to booking include.
+
+    // Changing approach slightly: Fetch student from Booking, not Project.
+    const bookingWithStudent = await prisma.mentorshipBooking.findUnique({
+        where: { id: bookingId },
+        include: { slot: true, student: true }
+    });
+
+    if (!bookingWithStudent) return notFound();
+
+    return <MentorshipRoomClient booking={bookingWithStudent} student={bookingWithStudent.student} project={project} />;
 }

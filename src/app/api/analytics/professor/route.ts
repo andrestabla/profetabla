@@ -22,8 +22,8 @@ export async function GET() {
         // Fetch projects. In real app, filter by teacher assignments.
         const projects = await prisma.project.findMany({
             include: {
-                student: true,
-                teacher: true,
+                students: true,
+                teachers: true,
                 tasks: true
             }
         });
@@ -41,8 +41,8 @@ export async function GET() {
             return {
                 id: p.id,
                 title: p.title,
-                studentName: p.student?.name || 'Sin Asignar',
-                teacherName: p.teacher?.name || 'Sistema',
+                studentName: p.students?.[0]?.name || 'Sin Asignar',
+                teacherName: p.teachers?.[0]?.name || 'Sistema',
                 progress,
                 risk,
                 type: p.type

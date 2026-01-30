@@ -23,7 +23,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
             ...(filterType ? { type: filterType } : {})
         },
         include: {
-            teacher: {
+            teachers: {
                 select: {
                     name: true,
                     avatarUrl: true

@@ -17,7 +17,7 @@ export default async function ResourceViewerPage({ params }: { params: Promise<{
             project: {
                 select: {
                     title: true,
-                    student: {
+                    students: {
                         select: { name: true }
                     }
                 }
@@ -52,7 +52,7 @@ export default async function ResourceViewerPage({ params }: { params: Promise<{
         category: resource.category,
         project: resource.project ? {
             title: resource.project.title,
-            studentName: resource.project.student?.name || null
+            studentName: resource.project.students?.[0]?.name || null
         } : {
             title: 'Recurso General',
             studentName: null

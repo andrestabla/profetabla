@@ -20,12 +20,15 @@ export default async function ProfessorProjectKanbanPage(props: Props) {
 
     const project = await prisma.project.findUnique({
         where: { id: params.id },
-        include: { student: true }
+        include: { students: true }
     });
 
     if (!project) {
         redirect('/dashboard/professor/projects');
     }
+
+    // Use first student for display, or show count
+    const student = project.students[0];
 
     return (
         <div className="max-w-7xl mx-auto p-6">
@@ -42,13 +45,15 @@ export default async function ProfessorProjectKanbanPage(props: Props) {
                         <h1 className="text-3xl font-bold text-slate-800">Tablero Kanban</h1>
                         <p className="text-slate-500">
                             Proyecto: <span className="font-bold text-slate-700">{project.title}</span>
-                            {project.student ? (
+                            {project.students.length > 0 ? (
                                 <span className="ml-2 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-xs font-bold">
-                                    Estudiante: {project.student.name}
+                                    {project.students.length === 1
+                                        ? `Estudiante: ${student.name}`
+                                        : `${project.students.length} Estudiantes`}
                                 </span>
                             ) : (
                                 <span className="ml-2 text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full text-xs font-bold italic">
-                                    Sin estudiante
+                                    Sin estudiantes
                                 </span>
                             )}
                         </p>

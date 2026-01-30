@@ -18,7 +18,7 @@ type ProjectWithTeacher = {
     evaluation: string | null;
     kpis: string | null;
     type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM';
-    teacher: { name: string | null; avatarUrl: string | null };
+    teachers: { name: string | null; avatarUrl: string | null }[];
 };
 
 export default function ProjectMarketClient({ availableProjects, currentFilter }: { availableProjects: ProjectWithTeacher[], currentFilter?: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' }) {
@@ -69,6 +69,7 @@ export default function ProjectMarketClient({ availableProjects, currentFilter }
                 {availableProjects.map((project) => {
                     const config = typeConfig[project.type] || typeConfig.PROJECT;
                     const Icon = config.icon;
+                    const teacher = project.teachers?.[0] || { name: 'Sin Asignar', avatarUrl: null };
 
                     return (
                         <Link
@@ -100,16 +101,16 @@ export default function ProjectMarketClient({ availableProjects, currentFilter }
                                 {/* Footer */}
                                 <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
                                     <div className="flex items-center gap-2">
-                                        {project.teacher.avatarUrl ? (
+                                        {teacher.avatarUrl ? (
                                             // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={project.teacher.avatarUrl} alt={project.teacher.name || "Profesor"} className="w-6 h-6 rounded-full object-cover" />
+                                            <img src={teacher.avatarUrl} alt={teacher.name || "Profesor"} className="w-6 h-6 rounded-full object-cover" />
                                         ) : (
                                             <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
-                                                {(project.teacher.name || "P")[0]}
+                                                {(teacher.name || "P")[0]}
                                             </div>
                                         )}
                                         <span className="text-xs text-slate-500 font-medium truncate max-w-[120px]">
-                                            {project.teacher.name}
+                                            {teacher.name}
                                         </span>
                                     </div>
                                     <span className="text-xs text-slate-400">
