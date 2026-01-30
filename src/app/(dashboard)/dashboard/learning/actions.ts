@@ -338,3 +338,34 @@ export async function createGlobalResourceAction(formData: FormData) {
 
     redirect('/dashboard/learning');
 }
+
+// --- Delete Resource ---
+export async function deleteResourceAction(id: string) {
+    await requireTeacherOrAdmin();
+
+    try {
+        const resource = await prisma.resource.findUnique({
+            where: { id },
+            select: { projectId: true }
+        });
+
+        if (!resource) {
+            return { success: false, error: "Recurso no encontrado" };
+        }
+
+        await prisma.resource.delete({
+            where: { id }
+        });
+
+        revalidatePath('/dashboard/learning');
+        if (resource.projectId) {
+            revalidatePath(`/dashboard/professor/projects/${resource.projectId}`);
+        }
+
+        return { success: true };
+    } catch (e: unknown) {
+        console.error("Error deleting resource:", e);
+        const error = e as Error;
+        return { success: false, error: error.message || "Error al eliminar el recurso" };
+    }
+}

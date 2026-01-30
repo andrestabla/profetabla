@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Info, BookOpen, Video, FileText, Globe, Sparkles, Cloud, MessageSquare } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Info, BookOpen, Video, FileText, Globe, Sparkles, Cloud, MessageSquare, Trash2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResourceComments } from './ResourceComments';
 
@@ -40,6 +40,8 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
     const [isSaving, setIsSaving] = useState(false);
     const [isExtracting, setIsExtracting] = useState(false);
     const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // ... Form State ...
 
@@ -145,6 +147,25 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
             alert("Error al guardar");
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        try {
+            const { deleteResourceAction } = await import('@/app/(dashboard)/dashboard/learning/actions');
+            const res = await deleteResourceAction(resource.id);
+            if (res.success) {
+                window.location.href = '/dashboard/learning';
+            } else {
+                alert(res.error || "Error al eliminar");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error al eliminar");
+        } finally {
+            setIsDeleting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -277,6 +298,14 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                                     {isSaving ? 'Guardando...' : 'Guardar'}
                                 </button>
                                 <button
+                                    type="button"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Eliminar Recurso"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </button>
+                                <button
                                     onClick={() => setIsEditing(false)}
                                     className="px-3 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-bold"
                                 >
@@ -407,6 +436,48 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                 onClose={() => setIsDriveModalOpen(false)}
                 onSelect={handleDriveFileSelected}
             />
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+                                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-900">¿Eliminar Recurso?</h3>
+                                    <p className="text-slate-500 text-sm">Esta acción no se puede deshacer y el recurso desaparecerá de proyectos y biblioteca.</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
+                                <p className="text-sm font-bold text-slate-700 truncate">{resource.title}</p>
+                                <p className="text-xs text-slate-500 mt-1">{resource.type} • {resource.category.name}</p>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    disabled={isDeleting}
+                                    className="flex-1 py-3 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors disabled:opacity-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={isDeleting}
+                                    className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {isDeleting ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> : null}
+                                    {isDeleting ? 'Eliminando...' : 'Sí, Eliminar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
