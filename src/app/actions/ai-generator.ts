@@ -302,8 +302,18 @@ export async function extractOAMetadata(content: string): Promise<{
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
+
+    // Robust cleanup similar to generateProjectStructure
     const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(jsonString);
+    const firstBrace = jsonString.indexOf('{');
+    const lastBrace = jsonString.lastIndexOf('}');
+
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error("No valid JSON found in response");
+    }
+
+    const cleanJson = jsonString.substring(firstBrace, lastBrace + 1);
+    return JSON.parse(cleanJson);
   } catch (e) {
     console.error("Error extracting OA metadata:", e);
     return null;
