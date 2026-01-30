@@ -52,11 +52,35 @@ export async function processDriveFileForOAAction(fileId: string, mimeType?: str
 }
 
 export async function improveTextWithAIAction(title: string, context: string) {
-    // Just provide the data, extractOAMetadata handles the instructions now
+    // 1. Check for YouTube URL in context
+    const youtubeMatch = context.match(/https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+/);
+    let extraContext = "";
+
+    if (youtubeMatch) {
+        try {
+            const { getVideoDetails } = await import('@/lib/youtube');
+            const details = await getVideoDetails(youtubeMatch[0]);
+
+            if (details) {
+                extraContext = `
+                \n--- METADATOS REALES DE YOUTUBE ---
+                Título del Video: ${details.title}
+                Descripción del Canal: ${details.description}
+                Etiquetas: ${details.tags.join(', ')}
+                Canal: ${details.channelTitle}
+                -------------------------------------
+                `;
+            }
+        } catch (e) {
+            console.error("Error enhancing with YouTube data:", e);
+        }
+    }
+
     const prompt = `
     DATOS DEL RECURSO:
     TÍTULO ACTUAL: ${title}
     CONTEXTO/URL/DESCRIPCIÓN: ${context}
+    ${extraContext}
     
     (Fin de los datos)
     `;

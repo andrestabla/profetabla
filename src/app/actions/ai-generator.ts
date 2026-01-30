@@ -291,7 +291,7 @@ export async function extractOAMetadata(content: string): Promise<{
 
     INSTRUCCIONES:
     1. Si es un texto extenso, analízalo.
-    2. Si es una URL (ej. YouTube) o título, INFIERE el contenido basándote en el título y la estructura del enlace. NO digas "no puedo ver el video", simplemente sugiere lo mejor posible basado en el título.
+    2. Si es una URL o Metadata de YouTube: ÚSALOS como fuente primaria de verdad.
     3. Responde SIEMPRE EN ESPAÑOL.
 
     FORMATO DE RESPUESTA (JSON PURO):
@@ -299,8 +299,9 @@ export async function extractOAMetadata(content: string): Promise<{
       "title": "Título mejorado y atractivo",
       "subject": "Materia o área de conocimiento",
       "competency": "Competencia sugerida que desarrolla",
-      "keywords": ["palabra1", "palabra2", "palabra3", "palabra4"],
-      "description": "Descripción pedagógica clara y motivadora (2-3 frases)"
+      "keywords": ["palabra1", "palabra2", "palabra3", "palabra4", "palabra5"],
+      "description": "Descripción pedagógica EXTENSA (mínimo 2-3 párrafos). Debe explicar el contenido, su contexto y por qué es valioso para el aprendizaje, usando un tono motivador.",
+      "utility": "Explicación detallada de cómo usar este recurso en clase (ej: para introducir tema, debate, cierre, etc)."
     }
     `;
 
