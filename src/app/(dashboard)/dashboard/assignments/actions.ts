@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import { createFolder, listProjectFiles, uploadFileToDrive } from '@/lib/google-drive';
 import { uploadFileToR2 } from '@/lib/r2';
 import { Readable } from 'stream';
 
@@ -26,29 +25,10 @@ export async function submitAssignmentAction(formData: FormData) {
 
         if (!assignment) return { success: false, error: 'Asignación no encontrada' };
 
-        const projectDriveId = assignment.project.googleDriveFolderId;
-        if (!projectDriveId) return { success: false, error: 'El proyecto no tiene carpeta de Drive' };
+        // LEGACY: We no longer create 'Entregas' folder in Drive because we use R2 (Plan C)
+        // and the Service Account might not have enough quota/permissions.
+        // const projectDriveId = assignment.project.googleDriveFolderId;
 
-        // Check for 'Entregas' folder
-        const files = await listProjectFiles(projectDriveId);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let submissionsFolder: any = files.find((f: any) => f.name === 'Entregas' && f.mimeType === 'application/vnd.google-apps.folder');
-
-        if (!submissionsFolder) {
-            try {
-                const newFolderId = await createFolder('Entregas', projectDriveId);
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                if (newFolderId) {
-                    submissionsFolder = { id: newFolderId, name: 'Entregas' };
-                }
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (err: any) {
-                return { success: false, error: `Error Drive: ${err.message || JSON.stringify(err)}` };
-            }
-        }
-
-        if (!submissionsFolder?.id) return { success: false, error: 'No se pudo crear (ID nulo)' };
 
         // Create buffer
         const arrayBuffer = await file.arrayBuffer();
