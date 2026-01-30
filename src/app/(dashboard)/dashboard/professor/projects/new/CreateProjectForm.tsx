@@ -16,56 +16,56 @@ type SimpleOA = {
     category: { name: string; color: string };
 };
 
-export default function CreateProjectForm({ availableOAs }: { availableOAs: SimpleOA[] }) {
+export default function CreateProjectForm({ availableOAs, defaultType }: { availableOAs: SimpleOA[], defaultType?: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' }) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmAction, setConfirmAction] = useState<'DISCARD' | 'PUBLISH' | null>(null);
     const formRef = useRef<HTMLFormElement>(null);
     const submitBtnRef = useRef<HTMLButtonElement>(null);
-    const [type, setType] = useState<'PROJECT' | 'CHALLENGE' | 'PROBLEM'>('PROJECT');
+    const [type, setType] = useState<'PROJECT' | 'CHALLENGE' | 'PROBLEM'>(defaultType || 'PROJECT');
 
     // CONTEXTO PEDAGÓGICO
     const typeConfig = {
         PROJECT: {
-            label: "Proyecto",
-            description: "Construir, transformar o implementar algo con impacto sostenido.",
+            label: "Proyecto (ABP)",
+            description: "Se formula un tema o problema central abierto que motiva la investigación. Conectado con el currículo y con sentido en el aprendizaje.",
             icon: Layers,
             color: "text-blue-600",
             bg: "bg-blue-50",
             border: "border-blue-200",
             placeholders: {
-                description: "Contexto organizacional amplio. Ej: Implementación de un sistema de gestión...",
-                objectives: "Objetivo General: Lograr un resultado complejo...\nEspecíficos: Diagnosticar, Diseñar, Validar...",
-                methodology: "### Fase 1: Diagnóstico\nDescripción...\n\n### Fase 2: Diseño\nDescripción...",
-                deliverables: "- **Documento** de Diagnóstico\n- **Prototipo** Funcional"
+                description: "Contexto real y significativo. Situación de la vida real (empresas, comunidad, entornos sociales). Permite planear, implementar y evaluar actividades con fines reales.",
+                objectives: "Pregunta guía desafiante (¿Cómo mejorar...?). Objetivos de investigación y planificación.",
+                methodology: "1. Investigación (Planificación)\n2. Implementación (Trabajo colaborativo)\n3. Presentación (Producto Final)\n4. Evaluación (Reflexión)",
+                deliverables: "Producto final tangible o servicio (Informe, presentación, prototipo, campaña)."
             }
         },
         CHALLENGE: {
-            label: "Reto",
-            description: "Resolver algo puntual bajo restricciones claras (tiempo, recursos).",
+            label: "Reto (ABR)",
+            description: "Desafío de alcance social o comunitario que se resuelve mediante acción concreta. Vinculado a la realidad del entorno.",
             icon: CheckSquare,
             color: "text-orange-600",
             bg: "bg-orange-50",
             border: "border-orange-200",
             placeholders: {
-                description: "Situación específica. Usa **negrillas** para resaltar restricciones...",
-                objectives: "Resolver el problema X reduciendo Y en Z tiempo.",
-                methodology: "1. **Comprender**:...\n2. **Idear**:...\n3. **Prototipar**:...",
-                deliverables: "- Pitch de Solución\n- Prototipo Rápido"
+                description: "Problema auténtico del entorno (centro educativo, comunidad). Implica agentes externos y propósito social claro.",
+                objectives: "Pregunta desafío (Pregunta troncal). Resolver un problema real mediante acción concreta.",
+                methodology: "1. Elección del reto\n2. Preguntas (Brainstorming)\n3. Desarrollo (Investigación)\n4. Comprobación en contexto (Implementación)\n5. Difusión",
+                deliverables: "Solución concreta al reto (Prototipo, propuesta de cambio, informe de acción, video divulgativo)."
             }
         },
         PROBLEM: {
-            label: "Problema",
-            description: "Analizar, comprender y explicar una situación crítica.",
+            label: "Problema (ABP)",
+            description: "Escenario o problema real complejo que requiere aplicar conocimientos previos y búsqueda independiente.",
             icon: Search,
             color: "text-red-600",
             bg: "bg-red-50",
             border: "border-red-200",
             placeholders: {
-                description: "Descripción basada en hechos. Puedes usar listas...",
-                objectives: "Comprender las causas raíz de X y proponer alternativas fundamentadas.",
-                methodology: "1. Recolección de Datos\n2. Análisis Causa-Efecto",
-                deliverables: "- Árbol de Problemas\n- Matriz de Hallazgos"
+                description: "Escenario clínico, dilema social o reto profesional. Relevante y vinculado al campo profesional.",
+                objectives: "Punto de partida para la indagación. Identificar lo que se sabe y lo que se desconoce.",
+                methodology: "1. Presentación del problema\n2. Lluvia de ideas y objetivos\n3. Investigación autónoma\n4. Síntesis y propuesta\n5. Evaluación",
+                deliverables: "Informe escrito o presentación con la solución propuesta. Esquemas, modelos o simulaciones."
             }
         }
     };

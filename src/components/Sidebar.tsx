@@ -19,7 +19,8 @@ import {
     FileText,
     Kanban,
     Terminal,
-    Database
+    Database,
+    AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -50,8 +51,9 @@ export function Sidebar({ config }: { config?: any }) {
 
     const adminItems = [
         { name: 'Panel Profesor', href: '/dashboard/professor', icon: LayoutDashboard, roles: ['TEACHER', 'ADMIN'] },
-        { name: 'Gestión Proyectos', href: '/dashboard/professor/projects', icon: Briefcase, roles: ['TEACHER', 'ADMIN'] },
-        { name: 'Crear Proyecto', href: '/dashboard/professor/projects/new', icon: Plus, roles: ['TEACHER', 'ADMIN'] },
+        { name: 'Proyectos', href: '/dashboard/professor/projects', icon: Briefcase, roles: ['TEACHER', 'ADMIN'] },
+        { name: 'Retos', href: '/dashboard/professor/challenges', icon: Trophy, roles: ['TEACHER', 'ADMIN'] },
+        { name: 'Problemas', href: '/dashboard/professor/problems', icon: AlertCircle, roles: ['TEACHER', 'ADMIN'] },
         { name: 'Solicitudes', href: '/dashboard/professor/applications', icon: UserCheck, roles: ['TEACHER', 'ADMIN'] },
         // Admin Group
         { name: 'Administración', href: '/dashboard/admin', icon: Settings, roles: ['ADMIN'] },

@@ -69,15 +69,63 @@ export async function generateProjectStructure(
   const searchEnabled = options?.useSearch !== undefined ? options.useSearch : safeConfig?.aiSearchEnabled;
   const searchPrompt = searchEnabled ? " (CONSIDERA TENDENCIAS ACTUALES Y DATOS REALES SI ES POSIBLE)" : "";
 
+  let specificInstructions = "";
+
+  if (type === 'CHALLENGE') { // ABR
+    specificInstructions = `
+        METODOLOGÍA: APRENDIZAJE BASADO EN RETOS (ABR)
+        
+        DEFINICIÓN: Desafío de alcance social o comunitario que se resuelve mediante acción concreta.
+        CONTEXTO/CONEXIÓN REAL: El reto se sitúa en el contexto del entorno de aprendizaje (centro educativo, comunidad) e implica agentes externos. Busca resolver un problema auténtico.
+        
+        ESTRUCTURA DE RESPUESTA:
+        - "description": Enfócate en el problema del entorno y el propósito social.
+        - "objectives": Debe incluir la "Pregunta Desafío" (Pregunta troncal) y metas de acción concreta.
+        - "methodology": Describe estas fases: 1. Elección del reto, 2. Generación de preguntas (Brainstorming), 3. Desarrollo (Investigación), 4. Comprobación en contexto, 5. Difusión.
+        - "deliverables": Debe ser una solución concreta (Prototipo, campaña, acción real, video divulgativo).
+        - "phases": Genera fases que coincidan EXACTAMENTE con las descritas en "methodology".
+        `;
+  } else if (type === 'PROBLEM') { // ABP (Problemas)
+    specificInstructions = `
+        METODOLOGÍA: APRENDIZAJE BASADO EN PROBLEMAS (ABP)
+        
+        DEFINICIÓN: Escenario o problema real complejo que requiere aplicar conocimientos previos y búsqueda independiente.
+        CONTEXTO: Vinculado al campo profesional o situaciones concretas de la vida real (casos clínicos, dilemas).
+        
+        ESTRUCTURA DE RESPUESTA:
+        - "description": Presenta el escenario o caso problemático como punto de partida.
+        - "objectives": Enfócate en identificar lo conocido, lo desconocido y formular preguntas de investigación.
+        - "methodology": Describe estas fases: 1. Presentación del problema, 2. Lluvia de ideas y objetivos, 3. Investigación autónoma, 4. Síntesis y solución, 5. Evaluación.
+        - "deliverables": Informe escrito, presentación de solución, esquemas o modelos.
+        - "phases": Genera fases que coincidan EXACTAMENTE con las descritas en "methodology".
+        `;
+  } else { // PROJECT (ABP - Proyectos)
+    specificInstructions = `
+        METODOLOGÍA: APRENDIZAJE BASADO EN PROYECTOS (ABP)
+        
+        DEFINICIÓN: Se formula un tema o problema central abierto que motiva la investigación. Reto estimulante conectado con el currículo.
+        CONTEXTO: Situaciones de la vida real o escenarios auténticos (empresas, comunidad). Permite planear, implementar y evaluar.
+        
+        ESTRUCTURA DE RESPUESTA:
+        - "description": Describe el proyecto y su conexión con el mundo real.
+        - "objectives": Incluye la "Pregunta Guía" desafiante.
+        - "methodology": Describe estas fases: 1. Investigación y planificación, 2. Implementación/Desarrollo, 3. Presentación de resultados, 4. Evaluación y reflexión.
+        - "deliverables": Producto final tangible o servicio (Informe, prototipo, campaña).
+        - "phases": Genera fases que coincidan EXACTAMENTE con las descritas en "methodology".
+        `;
+  }
+
   const prompt = `
     ${systemRole}
     
     ESTILO Y TONO: ${tone} ${searchPrompt}
     INSTRUCCIÓN CLAVE: SE EXHAUSTIVO, DETALLADO Y EXTENSO. NO DEJES CAMPOS VACÍOS.
     
+    ${specificInstructions}
+
     TAREA:
     Estructura una propuesta COMPLETA y DETALLADA para un **${type}** sobre: "${userIdea}"
-
+    
     IMPORTANTE: El idioma de respuesta debe ser EXCLUSIVAMENTE ESPAÑOL.
     
     FORMATO DE SALIDA (JSON ESTRICTO):
@@ -88,15 +136,15 @@ export async function generateProjectStructure(
       "industry": "Industria / Sector Específico",
       "description": "Descripción detallada (mínimo 3 párrafos). Usa **negritas** para conceptos clave.",
       "justification": "Fundamentación teórica. Usa referencias si es posible.",
-      "objectives": "Objetivo General: **[Verbo]...** \n\nObjetivos Específicos:\n- [Verbo]...\n- [Verbo]...",
-      "deliverables": "Lista detallada usando bullets:\n- **Producto 1:** Descripción\n- **Producto 2:** Descripción",
-      "schedule": "Usa una LISTA o TABLA Markdown:\n**Fase 1 (Semanas 1-2):** ... \n**Fase 2 (Semanas 3-4):** ...",
-      "budget": "GENERA UNA TABLA MARKDOWN:\n| Recurso | Tipo | Costo Est. |\n|---|---|---|\n| Personal | Humano | $... |\n| Licencias | Software | $... |",
-      "evaluation": "Estrategia de evaluación. Usa **negritas** para los criterios principales.",
-      "kpis": "Lista numerada con métricas:\n1. **Retención:** 90%...\n2. **Satisfacción:** 4.5/5...",
+      "objectives": "Objetivo General / Pregunta Guía: ... \\n\\nObjetivos Específicos: ...",
+      "methodology": "Descripción metodológica o fases resumidas",
+      "deliverables": "Lista detallada usando bullets de los productos esperados.",
+      "schedule": "Usa una LISTA o TABLA Markdown con el cronograma estimado.",
+      "budget": "GENERA UNA TABLA MARKDOWN con recursos y costos estimados.",
+      "evaluation": "Estrategia de evaluación (criterios claros, autoevaluación, coevaluación).",
+      "kpis": "Lista numerada con métricas de éxito.",
       "phases": [
-        { "title": "Fase 1: Diagnóstico", "description": "Descripción extensa de actividades...", "priority": "HIGH" },
-        { "title": "Fase 2: Diseño", "description": "Descripción extensa de actividades...", "priority": "HIGH" }
+        { "title": "Fase X: Nombre", "description": "Descripción extensa de actividades...", "priority": "HIGH" }
       ],
       "suggestedResources": [
         { "title": "Título del Recurso", "url": "https://...", "type": "ARTICLE" }

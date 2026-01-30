@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import CreateProjectForm from "./CreateProjectForm";
 
-export default async function NewProjectPage() {
+type Props = {
+    searchParams: { [key: string]: string | string[] | undefined }
+}
+
+export default async function NewProjectPage({ searchParams }: Props) {
     const session = await getServerSession(authOptions);
 
     if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
@@ -23,5 +27,10 @@ export default async function NewProjectPage() {
         category: { name: oa.subject, color: 'bg-slate-100' }
     }));
 
-    return <CreateProjectForm availableOAs={formattedOAs} />;
+    // Extract type from params (safe cast)
+    const rawType = searchParams?.type;
+    const typeStr = Array.isArray(rawType) ? rawType[0] : rawType;
+    const defaultType = (typeStr === 'CHALLENGE' || typeStr === 'PROBLEM') ? typeStr : 'PROJECT';
+
+    return <CreateProjectForm availableOAs={formattedOAs} defaultType={defaultType} />;
 }
