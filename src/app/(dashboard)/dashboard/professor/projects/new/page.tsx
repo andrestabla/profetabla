@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import CreateProjectForm from "./CreateProjectForm";
 
 type Props = {
-    searchParams: { [key: string]: string | string[] | undefined }
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export default async function NewProjectPage({ searchParams }: Props) {
@@ -28,7 +28,8 @@ export default async function NewProjectPage({ searchParams }: Props) {
     }));
 
     // Extract type from params (safe cast)
-    const rawType = searchParams?.type;
+    const params = await searchParams;
+    const rawType = params?.type;
     const typeStr = Array.isArray(rawType) ? rawType[0] : rawType;
     const defaultType = (typeStr === 'CHALLENGE' || typeStr === 'PROBLEM') ? typeStr : 'PROJECT';
 

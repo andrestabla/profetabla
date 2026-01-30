@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 // Define types
 type ProjectType = 'PROJECT' | 'CHALLENGE' | 'PROBLEM';
 
-export default async function Page({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
-    // Extract type from params (safe cast)
-    const rawType = searchParams?.type;
+export default async function Page({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+    // Await params in Next.js 15+
+    const params = await searchParams;
+    const rawType = params?.type;
     const typeStr = Array.isArray(rawType) ? rawType[0] : rawType;
     let filterType: ProjectType | undefined;
 
