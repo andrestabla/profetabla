@@ -44,6 +44,8 @@ export async function getProjectsForSelectAction() {
 export async function updateResourceAction(id: string, data: {
     title?: string;
     description?: string;
+    presentation?: string;
+    utility?: string;
     projectId?: string | null; // null to unassign
     url?: string;
     type?: string;
@@ -55,6 +57,8 @@ export async function updateResourceAction(id: string, data: {
         data: {
             title: data.title,
             description: data.description,
+            presentation: data.presentation,
+            utility: data.utility,
             projectId: data.projectId === 'GLOBAL' ? null : data.projectId,
             url: data.url,
             type: data.type

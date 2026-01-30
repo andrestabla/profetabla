@@ -136,6 +136,8 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
             await updateResourceAction(resource.id, {
                 title: formData.title,
                 description: formData.presentation,
+                presentation: formData.presentation,
+                utility: formData.utility,
                 url: formData.url,
                 type: formData.type
             });
