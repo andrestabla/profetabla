@@ -23,11 +23,11 @@ interface Resource {
 }
 
 type ProjectWithRelations = Project & {
-    teacher: {
+    teachers: {
         name: string | null;
         avatarUrl: string | null;
         email: string | null;
-    };
+    }[];
     learningObjects: { id: string; title: string }[];
     resources: Resource[];
 };
@@ -37,6 +37,9 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
     const [isPending, startTransition] = useTransition();
     const [applicationStatus, setApplicationStatus] = useState(initialStatus);
     const [viewerResource, setViewerResource] = useState<Resource | null>(null);
+
+    // Helper to get primary teacher
+    const teacher = project.teachers?.[0] || { name: 'Sin Asignar', avatarUrl: null, email: null };
 
     // Sync state with server prop updates (from revalidatePath)
     useEffect(() => {
@@ -139,17 +142,17 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
 
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-3 bg-white/60 px-4 py-2 rounded-full border border-slate-100 shadow-sm">
-                                    {project.teacher.avatarUrl ? (
+                                    {teacher.avatarUrl ? (
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={project.teacher.avatarUrl} alt={project.teacher.name || ""} className="w-8 h-8 rounded-full object-cover ring-2 ring-white" />
+                                        <img src={teacher.avatarUrl} alt={teacher.name || ""} className="w-8 h-8 rounded-full object-cover ring-2 ring-white" />
                                     ) : (
                                         <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs ring-2 ring-white">
-                                            {(project.teacher.name || "P")[0]}
+                                            {(teacher.name || "P")[0]}
                                         </div>
                                     )}
                                     <div className="leading-tight">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Liderado por</p>
-                                        <p className="text-sm font-bold text-slate-800">{project.teacher.name}</p>
+                                        <p className="text-sm font-bold text-slate-800">{teacher.name}</p>
                                     </div>
                                 </div>
                             </div>

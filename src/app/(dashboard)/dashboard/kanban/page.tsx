@@ -10,7 +10,7 @@ export default async function KanbanPage() {
     if (!session?.user) return null;
 
     const project = await prisma.project.findFirst({
-        where: { studentId: session.user.id, status: 'IN_PROGRESS' }
+        where: { students: { some: { id: session.user.id } }, status: 'IN_PROGRESS' }
     });
 
     if (!project) {

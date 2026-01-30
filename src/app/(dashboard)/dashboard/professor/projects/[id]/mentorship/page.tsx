@@ -9,10 +9,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
     const project = await prisma.project.findUnique({
         where: { id },
-        select: { id: true, studentId: true }
+        select: { id: true, students: { select: { id: true } } }
     });
 
-    if (!project || !project.studentId) return notFound();
+    if (!project || project.students.length === 0) return notFound();
 
     // Fetch Bookings
     const bookings = await prisma.mentorshipBooking.findMany({

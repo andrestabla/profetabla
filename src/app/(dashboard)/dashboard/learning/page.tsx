@@ -16,7 +16,7 @@ export default async function LearningPage() {
     if (session?.user?.role === 'STUDENT') {
         const activeProject = await prisma.project.findFirst({
             where: {
-                studentId: session.user.id,
+                students: { some: { id: session.user.id } },
                 status: 'IN_PROGRESS'
             }
         });

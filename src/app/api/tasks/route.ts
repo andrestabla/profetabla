@@ -41,7 +41,7 @@ export async function POST(request: Request) {
             // For MVP, if user doesn't pass project ID, try to find one assigned to them
             const proj = await prisma.project.findFirst({
                 where: {
-                    studentId: session.user.id,
+                    students: { some: { id: session.user.id } },
                     status: 'IN_PROGRESS'
                 }
             });

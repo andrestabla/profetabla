@@ -14,7 +14,7 @@ export async function GET() {
 
         const applications = await prisma.projectApplication.findMany({
             where: {
-                project: session.user.role === 'ADMIN' ? {} : { teacherId: session.user.id },
+                project: session.user.role === 'ADMIN' ? {} : { teachers: { some: { id: session.user.id } } },
                 status: 'PENDING'
             },
             include: {
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
             await prisma.project.update({
                 where: { id: app.projectId },
                 data: {
-                    studentId: app.studentId,
+                    students: { connect: { id: app.studentId } },
                     status: 'IN_PROGRESS'
                 }
             });

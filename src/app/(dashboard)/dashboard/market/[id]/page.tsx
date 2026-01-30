@@ -16,7 +16,7 @@ export default async function ProjectDetailPage(props: Props) {
     const project = await prisma.project.findUnique({
         where: { id: params.id },
         include: {
-            teacher: {
+            teachers: {
                 select: {
                     name: true,
                     avatarUrl: true,

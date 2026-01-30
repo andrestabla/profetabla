@@ -14,10 +14,10 @@ export default async function AssignmentsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
     if (session.user.role === 'STUDENT') {
-        where.project = { studentId: session.user.id };
+        where.project = { students: { some: { id: session.user.id } } };
     } else {
         // Teachers see assignments for projects they own
-        where.project = { teacherId: session.user.id };
+        where.project = { teachers: { some: { id: session.user.id } } };
     }
 
     const assignments = await prisma.assignment.findMany({
