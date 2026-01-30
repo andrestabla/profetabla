@@ -363,6 +363,7 @@ model PlatformConfig {
   aiSearchEnabled               Boolean  @default(false)
   aiTone                        String   @default("ACADEMIC")
   googleDriveServiceAccountJson String?
+  googleDriveAdminEmail         String?
 }
 
 model WorkExperience {

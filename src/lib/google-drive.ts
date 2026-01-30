@@ -17,7 +17,9 @@ async function getDriveClient() {
         const auth = new google.auth.JWT({
             email: credentials.client_email,
             key: credentials.private_key,
-            scopes: ['https://www.googleapis.com/auth/drive']
+            scopes: ['https://www.googleapis.com/auth/drive'],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            subject: (config as any).googleDriveAdminEmail || undefined
         });
 
         return google.drive({ version: 'v3', auth });

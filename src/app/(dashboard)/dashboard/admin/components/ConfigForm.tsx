@@ -308,6 +308,16 @@ export function ConfigForm({ config }: { config: any }) {
                     <input type="text" name="googleDriveFolderId" defaultValue={config?.googleDriveFolderId || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="ID de la carpeta aprobada para repositorios" />
                     <p className="text-[10px] text-slate-400 mt-1">Opcional: Restringe el acceso o define la raíz para nuevos proyectos.</p>
                 </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email Administrador (Delegación)</label>
+                    <input type="email" name="googleDriveAdminEmail" defaultValue={config?.googleDriveAdminEmail || ''} className="w-full px-3 py-2 border rounded-lg" placeholder="admin@tudominio.com" />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                        <strong>Recomendado:</strong> Para evitar errores de cuota (0GB en cuentas de servicio), ingresa un email de administrador con espacio disponible.
+                    </p>
+                    <p className="text-[10px] text-amber-600 mt-1 italic">
+                        * Requiere que la cuenta de servicio tenga &quot;Domain-wide Delegation&quot; habilitada en Google Workspace.
+                    </p>
+                </div>
             </div>
 
             {/* 4. Asistente Correo Saliente */}

@@ -43,6 +43,7 @@ export async function updatePlatformConfigAction(formData: FormData) {
             googleDriveClientSecret: formData.get('googleDriveClientSecret') as string,
             googleDriveServiceAccountJson: formData.get('googleDriveServiceAccountJson') as string,
             googleDriveFolderId: formData.get('googleDriveFolderId') as string,
+            googleDriveAdminEmail: formData.get('googleDriveAdminEmail') as string,
 
             smtpHost: formData.get('smtpHost') as string,
             smtpPort: smtpPort,
