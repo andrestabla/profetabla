@@ -18,7 +18,7 @@ async function getDriveClient() {
             email: credentials.client_email,
             key: credentials.private_key,
             scopes: ['https://www.googleapis.com/auth/drive'],
-             
+
             subject: config.googleDriveAdminEmail || undefined
         });
 
@@ -81,7 +81,7 @@ export async function createFolder(name: string, parentId: string) {
         return response.data.id;
     } catch (error) {
         console.error("Error creating folder:", error);
-        return null; // Return null on failure but don't crash
+        throw error; // Throw so checking logic can see the real error
     }
 }
 

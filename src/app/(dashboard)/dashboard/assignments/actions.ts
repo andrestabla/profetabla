@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { createFolder, listProjectFiles, uploadFileToDrive } from '@/lib/google-drive';
 import { Readable } from 'stream';
 
- 
+
 export async function submitAssignmentAction(formData: FormData) {
     const session = await getServerSession(authOptions);
     if (!session) return { success: false, error: 'No autorizado' };
@@ -34,13 +34,20 @@ export async function submitAssignmentAction(formData: FormData) {
         let submissionsFolder: any = files.find((f: any) => f.name === 'Entregas' && f.mimeType === 'application/vnd.google-apps.folder');
 
         if (!submissionsFolder) {
-            const newFolderId = await createFolder('Entregas', projectDriveId);
-            if (newFolderId) {
-                submissionsFolder = { id: newFolderId, name: 'Entregas' };
+            try {
+                const newFolderId = await createFolder('Entregas', projectDriveId);
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                if (newFolderId) {
+                    submissionsFolder = { id: newFolderId, name: 'Entregas' };
+                }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (err: any) {
+                return { success: false, error: `Error Drive: ${err.message || JSON.stringify(err)}` };
             }
         }
 
-        if (!submissionsFolder?.id) return { success: false, error: 'No se pudo crear la carpeta de entregas' };
+        if (!submissionsFolder?.id) return { success: false, error: 'No se pudo crear (ID nulo)' };
 
         // Upload
         const arrayBuffer = await file.arrayBuffer();
