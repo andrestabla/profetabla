@@ -42,7 +42,7 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
     const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
 
     // ... Form State ...
-     
+
     const [formData, setFormData] = useState({
         title: resource.title,
         url: resource.url,
@@ -54,6 +54,8 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
 
     // Helper to extract file ID from Drive URL
     const getDriveId = (url: string) => {
+        // Tries to find 25+ chars, which covers Drive IDs. 
+        // We can be more specific: /d/([a-zA-Z0-9_-]{25,}) or id=([a-zA-Z0-9_-]{25,})
         const match = url.match(/[-\w]{25,}/);
         return match ? match[0] : null;
     };
@@ -93,7 +95,12 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                 const fileId = getDriveId(formData.url);
                 if (fileId) {
                     const { processDriveFileForOAAction } = await import('@/app/actions/oa-actions');
-                    aiData = await processDriveFileForOAAction(fileId, 'application/pdf');
+                    // Pass 'auto' to let backend resolve mimeType
+                    aiData = await processDriveFileForOAAction(fileId, 'auto');
+                } else {
+                    alert("No se pudo identificar el ID del archivo de Drive en la URL.");
+                    setIsExtracting(false);
+                    return;
                 }
             } else {
                 const { improveTextWithAIAction } = await import('@/app/actions/oa-actions');
