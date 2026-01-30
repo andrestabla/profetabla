@@ -46,8 +46,8 @@ async function main() {
     data: {
       title: 'Sistema de Gestión Escolar',
       description: 'Proyecto final de curso para gestionar notas.',
-      teacherId: teacher.id,
-      studentId: student.id,
+      teachers: { connect: { id: teacher.id } },
+      students: { connect: { id: student.id } },
       status: 'IN_PROGRESS',
       tasks: {
         create: [
