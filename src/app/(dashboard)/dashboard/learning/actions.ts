@@ -68,7 +68,8 @@ export async function updateResourceAction(id: string, data: {
             projectId: data.projectId === 'GLOBAL' ? null : data.projectId,
             url: data.url,
             type: data.type
-        }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any
     });
 
     revalidatePath('/dashboard/learning');
@@ -131,14 +132,14 @@ export async function updateLearningObjectAction(formData: FormData) {
                 presentation,
                 utility,
                 keywords,
-            }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any
         });
 
         // 2. Delete existing items (simple replace strategy for now)
-        // Alternatively we could try to diff them, but full replace is safer for order handling
-        await tx.resource.deleteMany({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            where: { learningObjectId: id } as any
+        // Alternatively        // 2. Delete existing items (simple replace strategy for now)
+        await tx.resourceItem.deleteMany({
+            where: { learningObjectId: id }
         });
 
         // 3. Create new items
@@ -161,7 +162,7 @@ export async function updateLearningObjectAction(formData: FormData) {
 
 
             for (const [idx, item] of items.entries()) {
-                await tx.resource.create({
+                await tx.resourceItem.create({
                     data: {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         title: (item as any).title,
@@ -171,19 +172,16 @@ export async function updateLearningObjectAction(formData: FormData) {
                         url: (item as any).url,
                         order: idx,
                         learningObjectId: id,
-                        metadata: {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            presentation: (item as any).presentation,
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            utility: (item as any).utility,
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            subject: (item as any).subject,
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            competency: (item as any).competency,
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            keywords: (item as any).keywords || []
-                        }
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        presentation: (item as any).presentation,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        utility: (item as any).utility,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        subject: (item as any).subject,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        competency: (item as any).competency,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        keywords: (item as any).keywords || []
                     } as any
                 });
             }
@@ -238,7 +236,8 @@ export async function createLearningObjectAction(formData: FormData) {
                         keywords: item.keywords || []
                     }))
                 }
-            }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any
         });
 
         revalidatePath('/dashboard/learning');
@@ -355,7 +354,8 @@ export async function createGlobalResourceAction(formData: FormData) {
                 keywords,
                 categoryId,
                 projectId: (projectId && projectId !== 'GLOBAL') ? projectId : null
-            }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any
         });
 
         revalidatePath('/dashboard/learning');

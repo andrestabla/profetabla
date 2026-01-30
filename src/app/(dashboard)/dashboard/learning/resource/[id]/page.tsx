@@ -35,9 +35,14 @@ export default async function ResourceViewerPage({ params }: { params: Promise<{
         title: resource.title,
         type: resource.type,
         url: resource.url,
-        presentation: resource.presentation,
-        utility: resource.utility,
-        categoryId: resource.categoryId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        subject: (resource as any).subject,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        competency: (resource as any).competency,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        keywords: (resource as any).keywords,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        categoryId: (resource as any).categoryId,
         category: resource.category,
         project: resource.project ? {
             title: resource.project.title,
@@ -73,5 +78,6 @@ export default async function ResourceViewerPage({ params }: { params: Promise<{
         resource={safeResource}
         comments={safeComments}
         currentUserId={session?.user?.id || ''}
+        currentUserRole={session?.user?.role}
     />;
 }

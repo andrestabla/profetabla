@@ -27,9 +27,12 @@ type Resource = {
 
 import { DrivePickerModal } from '@/components/DrivePickerModal';
 
-export default function ResourceViewerClient({ resource, currentUserId, comments: initialComments }: {
-    resource: Resource;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function ResourceViewerClient({ resource, currentUserId, currentUserRole, comments: initialComments }: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resource: any;
     currentUserId: string;
+    currentUserRole?: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     comments: any[];
 }) {
@@ -96,6 +99,9 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
             setIsExtracting(false);
         }
     };
+
+
+    const isAdminOrTeacher = currentUserRole === 'ADMIN' || currentUserRole === 'TEACHER';
 
     const handleAIImprovement = async () => {
         setIsExtracting(true);
@@ -290,43 +296,49 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                     <div className="flex gap-2">
                         {/* Edit Actions */}
                         {!isEditing ? (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 flex items-center gap-2 transition-colors"
-                                title="Editar Contenido"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                            </button>
+                            (currentUserRole === 'ADMIN' || currentUserRole === 'TEACHER') && (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 flex items-center gap-2 transition-colors"
+                                    title="Editar Contenido"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                </button>
+                            )
                         ) : (
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleAIImprovement}
-                                    disabled={isExtracting}
-                                    className="px-3 py-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50"
-                                >
-                                    <Sparkles className={cn("w-4 h-4", isExtracting && "animate-spin")} />
-                                    {isExtracting ? 'Analizando...' : 'Mejorar con IA'}
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    disabled={isSaving}
-                                    className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
-                                >
-                                    {isSaving ? 'Guardando...' : 'Guardar'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Eliminar Recurso"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
+                                {isAdminOrTeacher && (
+                                    <>
+                                        <button
+                                            onClick={handleAIImprovement}
+                                            disabled={isExtracting}
+                                            className="px-3 py-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50"
+                                        >
+                                            <Sparkles className={cn("w-4 h-4", isExtracting && "animate-spin")} />
+                                            {isExtracting ? 'Analizando...' : 'Mejorar con IA'}
+                                        </button>
+                                        <button
+                                            onClick={handleSave}
+                                            disabled={isSaving}
+                                            className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                                        >
+                                            {isSaving ? 'Guardando...' : 'Guardar'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowDeleteConfirm(true)}
+                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Eliminar Recurso"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    </>
+                                )}
                                 <button
                                     onClick={() => setIsEditing(false)}
                                     className="px-3 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-bold"
                                 >
-                                    Cancelar
+                                    {isAdminOrTeacher ? 'Cancelar' : 'Cerrar'}
                                 </button>
                             </div>
                         )}
@@ -454,7 +466,7 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                                 ) : (
                                     <div className="flex flex-wrap gap-2">
                                         {resource.keywords && resource.keywords.length > 0 ? (
-                                            resource.keywords.map((kw, i) => (
+                                            resource.keywords.map((kw: string, i: number) => (
                                                 <span key={i} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase">
                                                     {kw}
                                                 </span>
@@ -480,7 +492,7 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                                         </li>
                                         <li className="pt-4 mt-4 border-t border-slate-100">
                                             <a
-                                                href={resource.url}
+                                                href={resource.url || '#'}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
@@ -527,7 +539,7 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
 
                             <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
                                 <p className="text-sm font-bold text-slate-700 truncate">{resource.title}</p>
-                                <p className="text-xs text-slate-500 mt-1">{resource.type} • {resource.category.name}</p>
+                                <p className="text-xs text-slate-500 mt-1">{resource.type} • {resource.category?.name}</p>
                             </div>
 
                             <div className="flex gap-3">
