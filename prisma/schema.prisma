@@ -31,8 +31,8 @@ model User {
   createdLearningObjects LearningObject[]
   bookings               MentorshipBooking[]
   mentorshipSlots        MentorshipSlot[]
-  projectsAsStudent      Project[]             @relation("StudentProjects")
-  projectsAsTeacher      Project[]             @relation("TeacherProjects")
+  projectsAsStudent      Project[]             @relation("ProjectStudents")
+  projectsAsTeacher      Project[]             @relation("ProjectTeachers")
   projectApplications    ProjectApplication[]  @relation("StudentApplications")
   resourceInteractions   ResourceInteraction[]
   submissions            Submission[]
@@ -72,23 +72,21 @@ model Project {
   evaluation           String?
   kpis                 String?
   status               ProjectStatus        @default(OPEN)
-  teacherId            String
-  studentId            String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   googleDriveFolderId  String?
   assignments          Assignment[]
   mentorships          MentorshipBooking[]  @relation("ProjectMentorships")
-  student              User?                @relation("StudentProjects", fields: [studentId], references: [id])
-  teacher              User                 @relation("TeacherProjects", fields: [teacherId], references: [id])
   applications         ProjectApplication[]
   resources            Resource[]           @relation("ProjectResources")
   tasks                Task[]
   learningObjects      LearningObject[]     @relation("ProjectLearningObjects")
   tags                 Tag[]                @relation("ProjectToTag")
+  
+  // M-N Relations
+  teachers             User[]               @relation("ProjectTeachers")
+  students             User[]               @relation("ProjectStudents")
 
-  @@index([teacherId])
-  @@index([studentId])
   @@index([status])
 }
 

@@ -21,15 +21,12 @@ export default async function DashboardPage() {
     // 1. STUDENT DASHBOARD
     if (user.role === 'STUDENT') {
         const project = await prisma.project.findFirst({
-            where: { studentId: user.id, status: 'IN_PROGRESS' },
-            include: { tasks: true, teacher: true },
-            // select or include correctly? 
-            // In Prisma, you can't have both include and select.
-            // But I can include everything and then get the field.
+            where: {
+                students: { some: { id: user.id } },
+                status: 'IN_PROGRESS'
+            },
+            include: { tasks: true, teachers: true },
         });
-
-        // Wait, the default findFirst with include should already have googleDriveFolderId 
-        // because it's a scalar field in Project.
 
         const priorityTasks = project ? await prisma.task.findMany({
             where: {
@@ -86,7 +83,7 @@ export default async function DashboardPage() {
                 user={user}
                 project={project}
                 stats={stats}
-                teacher={project?.teacher}
+                teacher={project?.teachers[0]}
                 citation={citation}
                 priorityTasks={priorityTasks}
                 nextMentorship={nextMentorship}
@@ -100,31 +97,52 @@ export default async function DashboardPage() {
 
         // KPIs
         const blockedTasks = await prisma.task.count({
-            where: { project: { teacherId: user.id }, priority: 'HIGH', status: { not: 'DONE' } }
+            where: {
+                project: { teachers: { some: { id: user.id } } },
+                priority: 'HIGH',
+                status: { not: 'DONE' }
+            }
         });
         const pendingApplications = await prisma.projectApplication.count({
-            where: { project: { teacherId: user.id }, status: 'PENDING' }
+            where: {
+                project: { teachers: { some: { id: user.id } } },
+                status: 'PENDING'
+            }
         });
         const pendingSubmissions = await prisma.submission.count({
-            where: { assignment: { project: { teacherId: user.id } }, grade: null }
+            where: {
+                assignment: { project: { teachers: { some: { id: user.id } } } },
+                grade: null
+            }
         });
         const mentorshipsTodayCount = await prisma.mentorshipBooking.count({
+            // Mentorship slots ARE owned by single teacher, so this is fine.
             where: { slot: { teacherId: user.id, startTime: { gte: today } }, status: 'CONFIRMED' }
         });
 
         // Detail Actions
         const applications = await prisma.projectApplication.findMany({
-            where: { project: { teacherId: user.id }, status: 'PENDING' },
+            where: {
+                project: { teachers: { some: { id: user.id } } },
+                status: 'PENDING'
+            },
             include: { student: true, project: true },
             take: 3
         });
         const submissions = await prisma.submission.findMany({
-            where: { assignment: { project: { teacherId: user.id } }, grade: null },
+            where: {
+                assignment: { project: { teachers: { some: { id: user.id } } } },
+                grade: null
+            },
             include: { student: true, assignment: true },
             take: 3
         });
         const tasksToApprove = await prisma.task.findMany({
-            where: { project: { teacherId: user.id }, status: 'DONE', isApproved: false },
+            where: {
+                project: { teachers: { some: { id: user.id } } },
+                status: 'DONE',
+                isApproved: false
+            },
             take: 3
         });
 

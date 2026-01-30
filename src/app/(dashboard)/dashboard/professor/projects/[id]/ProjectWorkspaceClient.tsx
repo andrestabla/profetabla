@@ -35,7 +35,8 @@ type Project = {
     evaluation: string | null;
     kpis: string | null;
     googleDriveFolderId: string | null;
-    student: { name: string | null; avatarUrl: string | null } | null;
+    students: { name: string | null; avatarUrl: string | null }[];
+    teachers: { name: string | null; avatarUrl: string | null }[];
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -121,8 +122,12 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">
                                 {project.title}
                             </h1>
-                            {project.student && (
-                                <p className="text-sm text-slate-500 mt-2 font-medium">Estudiante: <span className="text-slate-900 font-bold">{project.student.name}</span></p>
+                            {project.students && project.students.length > 0 && (
+                                <p className="text-sm text-slate-500 mt-2 font-medium">
+                                    Estudiantes: <span className="text-slate-900 font-bold">
+                                        {project.students.map(s => s.name).join(', ')}
+                                    </span>
+                                </p>
                             )}
                         </div>
                         <div className="flex items-center gap-3">

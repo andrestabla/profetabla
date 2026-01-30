@@ -161,9 +161,8 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <h3 className="font-bold text-slate-800 mb-4">Equipo Docente</h3>
                         <TeamList
-                            studentName={user.name}
-                            teacherName={teacher?.name || 'Por asignar'}
-                            teacherEmail={teacher?.email || ''}
+                            students={project.students || [{ name: user.name }]}
+                            teachers={project.teachers || (teacher ? [teacher] : [])}
                         />
                     </div>
                 </div>

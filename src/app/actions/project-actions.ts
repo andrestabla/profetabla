@@ -15,7 +15,7 @@ export async function createProjectAction(formData: FormData) {
     }
 
     const title = formData.get('title') as string;
-     
+
     const type = (formData.get('type') as 'PROJECT' | 'CHALLENGE' | 'PROBLEM') || 'PROJECT';
     const description = formData.get('description') as string;
     const industry = formData.get('industry') as string;
@@ -55,7 +55,9 @@ export async function createProjectAction(formData: FormData) {
             evaluation,
             kpis,
             type, // Add the type field to the Prisma create call
-            teacherId: session.user.id,
+            teachers: {
+                connect: { id: session.user.id }
+            },
             status: 'OPEN',
             googleDriveFolderId: driveFolderId,
             learningObjects: {
@@ -151,12 +153,14 @@ export async function applyToProjectAction(projectId: string) {
     try {
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            include: { teacher: true }
+            include: { teachers: true }
         });
 
-        if (project && project.teacher.email) {
+        const mainTeacher = project?.teachers[0];
+
+        if (mainTeacher && mainTeacher.email) {
             await sendEmail({
-                to: project.teacher.email,
+                to: mainTeacher.email,
                 subject: `Nueva Postulación: ${project.title}`,
                 html: `
                     <div style="font-family: sans-serif;">
@@ -188,15 +192,17 @@ export async function deleteProjectAction(projectId: string) {
         // 1. Get Project to find Drive Folder ID and author
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            select: { id: true, googleDriveFolderId: true, teacherId: true }
+            select: { id: true, googleDriveFolderId: true, teachers: { select: { id: true } } }
         });
 
         if (!project) {
             return { success: false, error: "Proyecto no encontrado" };
         }
 
+        const isMember = project.teachers.some(t => t.id === session.user.id);
+
         // Verify ownership (if not admin)
-        if (session.user.role !== 'ADMIN' && project.teacherId !== session.user.id) {
+        if (session.user.role !== 'ADMIN' && !isMember) {
             return { success: false, error: "No tienes permiso para eliminar este proyecto" };
         }
 

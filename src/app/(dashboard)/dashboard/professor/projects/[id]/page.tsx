@@ -23,8 +23,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             evaluation: true,
             kpis: true,
             googleDriveFolderId: true,
-            studentId: true,
-            student: {
+            students: {
+                select: { name: true, avatarUrl: true }
+            },
+            teachers: {
                 select: { name: true, avatarUrl: true }
             },
             learningObjects: {
@@ -44,7 +46,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         where: { projectId: id },
         include: {
             submissions: {
-                where: project.studentId ? { studentId: project.studentId } : { studentId: 'NONE' },
+                // Show all submissions for this project
                 orderBy: { createdAt: 'desc' },
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore

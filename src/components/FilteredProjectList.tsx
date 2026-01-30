@@ -32,13 +32,15 @@ export async function FilteredProjectList({
 
     const projects = await prisma.project.findMany({
         where: {
-            ...(session.user.role === 'ADMIN' ? {} : { teacherId: session.user.id }),
+            ...(session.user.role === 'ADMIN' ? {} : {
+                teachers: { some: { id: session.user.id } }
+            }),
             type: type
         },
         include: {
-            student: true,
+            students: true,
             _count: {
-                select: { applications: true, tasks: true }
+                select: { applications: true, tasks: true, students: true }
             }
         },
         orderBy: { createdAt: 'desc' }
@@ -104,14 +106,21 @@ export async function FilteredProjectList({
                                 </div>
                             </div>
 
-                            {project.student ? (
+                            {project.students && project.students.length > 0 ? (
                                 <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                                    <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
-                                        {project.student.name?.[0]}
+                                    <div className="flex -space-x-2">
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                        {project.students.slice(0, 3).map((s: any) => (
+                                            <div key={s.id} className="w-8 h-8 rounded-full bg-blue-200 border-2 border-white flex items-center justify-center text-blue-700 font-bold text-xs" title={s.name}>
+                                                {s.name?.[0]}
+                                            </div>
+                                        ))}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-blue-800 truncate">{project.student.name}</p>
-                                        <p className="text-[10px] text-blue-600">Estudiante Asignado</p>
+                                        <p className="text-xs font-bold text-blue-800 truncate">
+                                            {project.students.length === 1 ? project.students[0].name : `${project.students.length} Estudiantes`}
+                                        </p>
+                                        <p className="text-[10px] text-blue-600">Equipo Asignado</p>
                                     </div>
                                 </div>
                             ) : (
@@ -119,7 +128,7 @@ export async function FilteredProjectList({
                                     <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-400">
                                         <Users className="w-4 h-4" />
                                     </div>
-                                    <p className="text-xs font-bold text-slate-500 italic">Sin estudiante aún</p>
+                                    <p className="text-xs font-bold text-slate-500 italic">Sin estudiantes aún</p>
                                 </div>
                             )}
                         </div>

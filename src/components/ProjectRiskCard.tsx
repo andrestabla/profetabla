@@ -34,10 +34,14 @@ export function ProjectRiskCard({ project }: { project: ProjectRisk }) {
                                     'P'}
                         </span>
                     </div>
-                    <p className="text-sm text-slate-500">Estudiante: {project.studentName}</p>
+
+                    <p className="text-sm text-slate-500 line-clamp-1" title={project.studentName}>
+                        Estudiantes: {project.studentName}
+                    </p>
+
                     {project.teacherName && (
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                            Tutor: {project.teacherName}
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1 line-clamp-1" title={project.teacherName}>
+                            Tutores: {project.teacherName}
                         </p>
                     )}
                 </div>
