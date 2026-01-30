@@ -6,7 +6,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { listProjectFiles, uploadFileToDrive } from '@/lib/google-drive';
 import { Readable } from 'stream';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function addResourceToProjectAction(formData: FormData) {
     try {
@@ -168,7 +167,6 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
     }
 }
 
-import OpenAI from 'openai';
 
 
 
