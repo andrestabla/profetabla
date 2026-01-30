@@ -94,59 +94,66 @@ export function ResourceList({ projectId, availableProjects = [], userRole }: { 
     return (
         <div>
             {/* Search & Filter Bar */}
-            <div className="flex flex-col gap-4 mb-8">
+            <div className="flex flex-col gap-4 mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                 <div className="flex flex-col md:flex-row gap-4">
                     {/* Search */}
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Buscar por título, tema o descripción..."
+                            placeholder="Buscar recursos..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm font-medium transition-all"
                         />
                     </div>
 
-                    {/* Project Filter (Admin/Teacher only) */}
-                    {canEdit && (
-                        <select
-                            value={selectedProjectFilter}
-                            onChange={(e) => setSelectedProjectFilter(e.target.value)}
-                            className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                        >
-                            <option value="ALL">Todos los Proyectos</option>
-                            <option value="GLOBAL">🌐 Globales</option>
-                            {availableProjects.map(p => (
-                                <option key={p.id} value={p.id}>{p.title}</option>
-                            ))}
-                        </select>
-                    )}
+                    {/* Filters Group */}
+                    <div className="flex flex-wrap gap-2">
+                        {/* Project Filter (Admin/Teacher only) */}
+                        {canEdit && (
+                            <div className="relative min-w-[180px]">
+                                <select
+                                    value={selectedProjectFilter}
+                                    onChange={(e) => setSelectedProjectFilter(e.target.value)}
+                                    className="w-full appearance-none px-4 py-2.5 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer hover:bg-slate-100 transition-colors"
+                                >
+                                    <option value="ALL">Todos los Proyectos</option>
+                                    <option value="GLOBAL">🌐 Globales</option>
+                                    {availableProjects.map(p => (
+                                        <option key={p.id} value={p.id}>{p.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
-                    {/* Topic Filter */}
-                    <select
-                        value={selectedTopic}
-                        onChange={(e) => setSelectedTopic(e.target.value)}
-                        className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                    >
-                        <option value="ALL">Todos los Temas</option>
-                        {uniqueTopics.map(topic => (
-                            <option key={topic} value={topic}>{topic}</option>
-                        ))}
-                    </select>
+                        {/* Topic Filter */}
+                        <div className="relative min-w-[160px]">
+                            <select
+                                value={selectedTopic}
+                                onChange={(e) => setSelectedTopic(e.target.value)}
+                                className="w-full appearance-none px-4 py-2.5 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer hover:bg-slate-100 transition-colors"
+                            >
+                                <option value="ALL">Todos los Temas</option>
+                                {uniqueTopics.map(topic => (
+                                    <option key={topic} value={topic}>{topic}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 border-t border-slate-50 pt-3 mt-1">
                     <button
                         onClick={() => setFilter('ALL')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'ALL' ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${filter === 'ALL' ? 'bg-slate-900 text-white shadow-md' : 'bg-transparent text-slate-500 hover:bg-slate-50'
                             }`}
                     >
                         Todos
                     </button>
                     <button
                         onClick={() => setFilter('FAVORITES')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${filter === 'FAVORITES' ? 'bg-pink-50 text-pink-600 border border-pink-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${filter === 'FAVORITES' ? 'bg-pink-100 text-pink-600 shadow-sm' : 'bg-transparent text-slate-500 hover:bg-pink-50 hover:text-pink-500'
                             }`}
                     >
                         <HeartIcon filled={filter === 'FAVORITES'} /> Favoritos
@@ -160,41 +167,22 @@ export function ResourceList({ projectId, availableProjects = [], userRole }: { 
                     <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                 </div>
             ) : filteredClientSide.length === 0 ? (
-                <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                    <p className="text-slate-500 font-medium">No se encontraron recursos.</p>
+                <div className="text-center py-24 bg-white rounded-2xl border border-dashed border-slate-200">
+                    <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Search className="w-6 h-6 text-slate-300" />
+                    </div>
+                    <p className="text-slate-900 font-bold mb-1">No se encontraron recursos</p>
+                    <p className="text-slate-400 text-sm">Intenta ajustar los filtros de búsqueda</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
                     {filteredClientSide.map(resource => (
-                        <div key={resource.id} className="relative group">
-                            <ResourceCard resource={resource} />
-
-                            {/* Edit Button Overlay */}
-                            {canEdit && (
-                                <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        handleEdit(resource);
-                                    }}
-                                    className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-blue-600 z-10"
-                                    title="Editar Recurso"
-                                >
-                                    <Edit className="w-4 h-4" />
-                                </button>
-                            )}
-
-                            {/* Badges for Project Association */}
-                            {(resource.project || (resource.projects && resource.projects.length > 0)) && canEdit && (
-                                <div className="absolute bottom-4 right-4 z-10">
-                                    <span className="bg-slate-100/90 text-[10px] px-2 py-1 rounded-full text-slate-600 font-medium border border-slate-200 shadow-sm backdrop-blur-sm">
-                                        {resource.isOA
-                                            ? `${resource.projects?.length} Proyectos`
-                                            : (resource.project?.title || 'Global')}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
+                        <ResourceCard
+                            key={resource.id}
+                            resource={resource}
+                            canEdit={canEdit}
+                            onEdit={handleEdit}
+                        />
                     ))}
                 </div>
             )}
