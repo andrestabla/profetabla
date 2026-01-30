@@ -8,7 +8,7 @@ export default function ProfessorProjectsPage() {
             type="PROJECT"
             title="Proyectos (ABP)"
             description="Gestiona tus proyectos pedagógicos y el progreso de tus estudiantes."
-            createLink="/dashboard/professor/projects/new?type=PROJECT"
+            createLink="/dashboard/professor/projects/new"
             emptyMessage="Aún no tienes proyectos"
             emptySubMessage="Crea un proyecto bajo la metodología ABP para guiar a tus estudiantes."
             createLabel="Nuevo Proyecto"
