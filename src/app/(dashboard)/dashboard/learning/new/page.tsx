@@ -13,6 +13,9 @@ type NewItem = {
     url: string;
     presentation?: string;
     utility?: string;
+    subject?: string;
+    competency?: string;
+    keywords?: string[];
 };
 
 export default function NewLearningObjectPage() {
@@ -24,6 +27,9 @@ export default function NewLearningObjectPage() {
     const [newItemType, setNewItemType] = useState<NewItem['type']>('VIDEO');
     const [newItemPresentation, setNewItemPresentation] = useState('');
     const [newItemUtility, setNewItemUtility] = useState('');
+    const [newItemSubject, setNewItemSubject] = useState('');
+    const [newItemCompetency, setNewItemCompetency] = useState('');
+    const [newItemKeywords, setNewItemKeywords] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
 
     const handleAddItem = () => {
@@ -37,7 +43,10 @@ export default function NewLearningObjectPage() {
             type: newItemType,
             url: newItemUrl,
             presentation: newItemPresentation,
-            utility: newItemUtility
+            utility: newItemUtility,
+            subject: newItemSubject,
+            competency: newItemCompetency,
+            keywords: newItemKeywords ? newItemKeywords.split(',').map(s => s.trim()) : []
         }]);
 
         // Reset fields
@@ -45,6 +54,9 @@ export default function NewLearningObjectPage() {
         setNewItemUrl('');
         setNewItemPresentation('');
         setNewItemUtility('');
+        setNewItemSubject('');
+        setNewItemCompetency('');
+        setNewItemKeywords('');
     };
 
     const handleRemoveItem = (id: string) => {
@@ -61,9 +73,14 @@ export default function NewLearningObjectPage() {
         try {
             const result = await extractResourceMetadataAction(newItemUrl, newItemType);
             if (result.success && result.data) {
-                if (result.data.title) setNewItemTitle(result.data.title);
-                if (result.data.presentation) setNewItemPresentation(result.data.presentation);
-                if (result.data.utility) setNewItemUtility(result.data.utility);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const data = result.data as any;
+                if (data.title) setNewItemTitle(data.title);
+                if (data.presentation) setNewItemPresentation(data.presentation);
+                if (data.utility) setNewItemUtility(data.utility);
+                if (data.subject) setNewItemSubject(data.subject);
+                if (data.competency) setNewItemCompetency(data.competency);
+                if (data.keywords) setNewItemKeywords(data.keywords.join(', '));
             } else {
                 alert('No se pudieron extraer datos. Intenta llenarlos manualmente.');
             }
@@ -125,8 +142,13 @@ export default function NewLearningObjectPage() {
                                 <input name="keywords" placeholder="react, hooks, state" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Descripción</label>
-                                <textarea name="description" rows={3} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Descripción / Presentación</label>
+                                <textarea name="presentation" rows={3} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="¿Qué es este OA?"></textarea>
+                                <input type="hidden" name="description" value="" /> {/* Keep legacy for compatibility if needed */}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Utilidad Pedagógica</label>
+                                <textarea name="utility" rows={3} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="¿Para qué sirve?"></textarea>
                             </div>
                         </div>
                     </div>
@@ -216,6 +238,32 @@ export default function NewLearningObjectPage() {
                                     />
                                 </div>
 
+                                {/* Item Metadata */}
+                                <div className="md:col-span-2">
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">Materia / Categoría</label>
+                                    <input
+                                        value={newItemSubject} onChange={(e) => setNewItemSubject(e.target.value)}
+                                        placeholder="Ej: Matemáticas"
+                                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">Competencia</label>
+                                    <input
+                                        value={newItemCompetency} onChange={(e) => setNewItemCompetency(e.target.value)}
+                                        placeholder="Competencia principal"
+                                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                                    />
+                                </div>
+                                <div className="md:col-span-4">
+                                    <label className="text-xs font-bold text-slate-500 mb-1 block">Keywords (separadas por coma)</label>
+                                    <input
+                                        value={newItemKeywords} onChange={(e) => setNewItemKeywords(e.target.value)}
+                                        placeholder="react, web, tech"
+                                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                                    />
+                                </div>
+
                                 {/* Presentation */}
                                 <div className="md:col-span-4">
                                     <label className="text-xs font-bold text-slate-500 mb-1 block">Presentación (Contexto)</label>
@@ -279,20 +327,41 @@ export default function NewLearningObjectPage() {
                                                     {item.url}
                                                 </a>
 
-                                                {(item.presentation || item.utility) && (
-                                                    <div className="mt-2 space-y-2">
+                                                {(item.presentation || item.utility || item.subject || item.competency || (item.keywords && item.keywords.length > 0)) && (
+                                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                                                         {item.presentation && (
-                                                            <div className="text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                                                            <div className="text-[10px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
                                                                 <span className="font-bold text-slate-700 block mb-0.5">Presentación:</span>
                                                                 {item.presentation}
                                                             </div>
                                                         )}
                                                         {item.utility && (
-                                                            <div className="text-xs text-slate-600 bg-amber-50 p-2 rounded border border-amber-100">
+                                                            <div className="text-[10px] text-slate-600 bg-amber-50 p-2 rounded border border-amber-100">
                                                                 <span className="font-bold text-slate-700 block mb-0.5 flex items-center gap-1"><Sparkles className="w-3 h-3 text-amber-500" /> Utilidad:</span>
                                                                 {item.utility}
                                                             </div>
                                                         )}
+                                                        {item.subject && (
+                                                            <div className="text-[10px] text-slate-600 bg-blue-50 p-2 rounded border border-blue-100">
+                                                                <span className="font-bold text-slate-700 block mb-0.5">Materia:</span>
+                                                                {item.subject}
+                                                            </div>
+                                                        )}
+                                                        {item.competency && (
+                                                            <div className="text-[10px] text-slate-600 bg-green-50 p-2 rounded border border-green-100">
+                                                                <span className="font-bold text-slate-700 block mb-0.5">Competencia:</span>
+                                                                {item.competency}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {item.keywords && item.keywords.length > 0 && (
+                                                    <div className="mt-2 flex flex-wrap gap-1">
+                                                        {item.keywords.map((kw, i) => (
+                                                            <span key={i} className="text-[8px] font-bold uppercase px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded">
+                                                                {kw}
+                                                            </span>
+                                                        ))}
                                                     </div>
                                                 )}
                                             </div>
@@ -306,8 +375,8 @@ export default function NewLearningObjectPage() {
                         <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
                     </div>
                 </div>
-            </form>
-        </div>
+            </form >
+        </div >
     );
 }
 

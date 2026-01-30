@@ -206,8 +206,11 @@ export async function extractResourceMetadataAction(url: string, type: string) {
                 success: true,
                 data: {
                     title: data.title,
-                    presentation: data.description, // Map description to presentation
-                    utility: data.utility || data.competency || '' // Fallback to competency or empty
+                    presentation: data.presentation,
+                    utility: data.utility,
+                    subject: data.subject,
+                    competency: data.competency,
+                    keywords: data.keywords
                 }
             };
         }

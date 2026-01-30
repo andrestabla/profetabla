@@ -14,6 +14,9 @@ type Resource = {
     url: string;
     presentation?: string | null;
     utility?: string | null;
+    subject?: string | null;
+    competency?: string | null;
+    keywords?: string[];
     categoryId: string;
     category: { name: string; color: string; };
     project: { title: string; studentName?: string | null };
@@ -51,7 +54,10 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
         type: resource.type,
         description: resource.presentation || '',
         presentation: resource.presentation || '',
-        utility: resource.utility || ''
+        utility: resource.utility || '',
+        subject: resource.subject || '',
+        competency: resource.competency || '',
+        keywords: resource.keywords?.join(', ') || ''
     });
 
     // Helper to extract file ID from Drive URL
@@ -77,8 +83,11 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                 setFormData(prev => ({
                     ...prev,
                     title: aiData.title || prev.title,
-                    presentation: aiData.description || prev.presentation,
-                    utility: aiData.competency ? `Competencia: ${aiData.competency}` : prev.utility
+                    presentation: aiData.presentation || prev.presentation,
+                    utility: aiData.utility || prev.utility,
+                    subject: aiData.subject || prev.subject,
+                    competency: aiData.competency || prev.competency,
+                    keywords: aiData.keywords?.join(', ') || prev.keywords
                 }));
             }
         } catch (e) {
@@ -114,8 +123,11 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                 setFormData(prev => ({
                     ...prev,
                     title: aiData.title || prev.title,
-                    presentation: aiData.description || prev.presentation,
-                    utility: aiData.competency ? `Competencia: ${aiData.competency}` : prev.utility
+                    presentation: aiData.presentation || prev.presentation,
+                    utility: aiData.utility || prev.utility,
+                    subject: aiData.subject || prev.subject,
+                    competency: aiData.competency || prev.competency,
+                    keywords: aiData.keywords?.join(', ') || prev.keywords
                 }));
             } else {
                 alert("No se pudo extraer información automática de este recurso.");
@@ -138,6 +150,9 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                 description: formData.presentation,
                 presentation: formData.presentation,
                 utility: formData.utility,
+                subject: formData.subject,
+                competency: formData.competency,
+                keywords: formData.keywords,
                 url: formData.url,
                 type: formData.type
             });
@@ -391,6 +406,62 @@ export default function ResourceViewerClient({ resource, currentUserId, comments
                                 ) : (
                                     <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-100/50 text-sm text-slate-700 leading-relaxed font-medium">
                                         {formData.utility || resource.utility || 'No especificada.'}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Materia / Categoría</h3>
+                                {isEditing ? (
+                                    <input
+                                        value={formData.subject}
+                                        onChange={e => setFormData({ ...formData, subject: e.target.value })}
+                                        className="w-full p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Ej: Matemáticas..."
+                                    />
+                                ) : (
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600 font-medium">
+                                        {resource.subject || 'No especificada.'}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Competencia</h3>
+                                {isEditing ? (
+                                    <input
+                                        value={formData.competency}
+                                        onChange={e => setFormData({ ...formData, competency: e.target.value })}
+                                        className="w-full p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Competencia principal..."
+                                    />
+                                ) : (
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600 font-medium">
+                                        {resource.competency || 'No especificada.'}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Keywords</h3>
+                                {isEditing ? (
+                                    <input
+                                        value={formData.keywords}
+                                        onChange={e => setFormData({ ...formData, keywords: e.target.value })}
+                                        className="w-full p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="tag1, tag2..."
+                                    />
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {resource.keywords && resource.keywords.length > 0 ? (
+                                            resource.keywords.map((kw, i) => (
+                                                <span key={i} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase">
+                                                    {kw}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-xs text-slate-400 italic">Sin etiquetas.</span>
+                                        )}
                                     </div>
                                 )}
                             </div>

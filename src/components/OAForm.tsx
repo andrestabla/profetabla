@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Save, ArrowLeft, Plus, Trash2, FileText, Video, Link as LinkIcon, Box, Cloud, Sparkles, Loader2 } from 'lucide-react';
-import Link from 'next/link';
+import { Save, Plus, Trash2, FileText, Video, Link as LinkIcon, Box, Cloud, Loader2 } from 'lucide-react';
 import { DrivePickerModal } from './DrivePickerModal';
 import { processDriveFileForOAAction } from '@/app/actions/oa-actions';
 
@@ -26,22 +25,46 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
     const [subject, setSubject] = useState(initialData?.subject || '');
     const [competency, setCompetency] = useState(initialData?.competency || '');
     const [keywords, setKeywords] = useState(initialData?.keywords?.join(', ') || '');
-    const [description, setDescription] = useState(initialData?.description || '');
+    const [presentation, setPresentation] = useState(initialData?.presentation || '');
+    const [utility, setUtility] = useState(initialData?.utility || '');
+
+    // New item metadata states
+    const [newItemSubject, setNewItemSubject] = useState('');
+    const [newItemCompetency, setNewItemCompetency] = useState('');
+    const [newItemKeywords, setNewItemKeywords] = useState('');
+    const [newItemPresentation, setNewItemPresentation] = useState('');
+    const [newItemUtility, setNewItemUtility] = useState('');
 
     const handleAddItem = () => {
         if (!newItemTitle || !newItemUrl) {
             alert("Completa el título y la URL del ítem");
             return;
         }
-        setItems([...items, { id: Math.random().toString(), title: newItemTitle, type: newItemType, url: newItemUrl }]);
+        setItems([...items, {
+            id: Math.random().toString(),
+            title: newItemTitle,
+            type: newItemType,
+            url: newItemUrl,
+            subject: newItemSubject,
+            competency: newItemCompetency,
+            keywords: newItemKeywords ? newItemKeywords.split(',').map(s => s.trim()) : [],
+            presentation: newItemPresentation,
+            utility: newItemUtility
+        }]);
         setNewItemTitle('');
         setNewItemUrl('');
+        setNewItemSubject('');
+        setNewItemCompetency('');
+        setNewItemKeywords('');
+        setNewItemPresentation('');
+        setNewItemUtility('');
     };
 
     const handleRemoveItem = (id: string) => {
         setItems(items.filter((i: { id: string }) => i.id !== id));
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleDriveFileSelected = async (file: any) => {
         setIsDriveModalOpen(false);
         setNewItemTitle(file.name);
@@ -50,17 +73,24 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
         // AI Extraction
         setIsExtractingMetadata(true);
         try {
-            const aiData = await processDriveFileForOAAction(file.id, file.mimeType);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const aiData = await processDriveFileForOAAction(file.id, file.mimeType) as any;
             if (aiData) {
-                // Pre-fill main form!
+                // Pre-fill main form if empty!
                 if (!title) setTitle(aiData.title);
                 if (!subject) setSubject(aiData.subject);
                 if (!competency && aiData.competency) setCompetency(aiData.competency);
                 if (!keywords) setKeywords(aiData.keywords.join(', '));
-                if (!description) setDescription(aiData.description);
+                if (!presentation) setPresentation(aiData.presentation);
+                if (!utility) setUtility(aiData.utility);
 
                 // Also update the item title to be more specific if AI suggests something better
                 setNewItemTitle(aiData.title);
+                setNewItemSubject(aiData.subject);
+                setNewItemCompetency(aiData.competency || '');
+                setNewItemKeywords(aiData.keywords.join(', '));
+                setNewItemPresentation(aiData.presentation);
+                setNewItemUtility(aiData.utility);
             }
         } catch (e) {
             console.error("AI Extraction failed", e);
@@ -96,8 +126,13 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                             <input name="keywords" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="react, hooks, state" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Descripción</label>
-                            <textarea name="description" value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Presentación / Descripción</label>
+                            <textarea name="presentation" value={presentation} onChange={e => setPresentation(e.target.value)} rows={3} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="¿Qué es este OA?"></textarea>
+                            <input type="hidden" name="description" value="" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Utilidad Pedagógica</label>
+                            <textarea name="utility" value={utility} onChange={e => setUtility(e.target.value)} rows={3} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="¿Cómo ayuda al aprendizaje?"></textarea>
                         </div>
                     </div>
                 </div>
@@ -162,6 +197,51 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
                                     </button>
                                 )}
                             </div>
+
+                            {/* Item Metadata */}
+                            <div className="md:col-span-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Materia</label>
+                                <input
+                                    value={newItemSubject} onChange={(e) => setNewItemSubject(e.target.value)}
+                                    placeholder="Ej: Matemáticas"
+                                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Competencia</label>
+                                <input
+                                    value={newItemCompetency} onChange={(e) => setNewItemCompetency(e.target.value)}
+                                    placeholder="Ej: Resolución de problemas"
+                                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                                />
+                            </div>
+                            <div className="md:col-span-4">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Keywords</label>
+                                <input
+                                    value={newItemKeywords} onChange={(e) => setNewItemKeywords(e.target.value)}
+                                    placeholder="React, Hooks, State"
+                                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                                />
+                            </div>
+                            <div className="md:col-span-4">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Presentación / Contexto</label>
+                                <textarea
+                                    value={newItemPresentation} onChange={(e) => setNewItemPresentation(e.target.value)}
+                                    placeholder="Contexto del recurso..."
+                                    rows={2}
+                                    className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
+                                />
+                            </div>
+                            <div className="md:col-span-4">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Utilidad Pedagógica</label>
+                                <textarea
+                                    value={newItemUtility} onChange={(e) => setNewItemUtility(e.target.value)}
+                                    placeholder="¿Para qué sirve?"
+                                    rows={2}
+                                    className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
+                                />
+                            </div>
+
                             {isExtractingMetadata && (
                                 <div className="md:col-span-4 bg-purple-50 p-3 rounded-lg border border-purple-100 flex items-center gap-3 animate-pulse">
                                     <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />

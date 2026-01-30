@@ -115,6 +115,9 @@ model Resource {
   utility      String?
   url          String
   type         String                @default("ARTICLE")
+  subject      String?
+  competency   String?
+  keywords     String[]
   projectId    String?
   categoryId   String
   createdAt    DateTime              @default(now())
@@ -281,6 +284,8 @@ model LearningObject {
   subject     String
   competency  String?
   keywords    String[]
+  presentation String?
+  utility      String?
   authorId    String
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -299,6 +304,9 @@ model ResourceItem {
   url              String
   presentation     String?
   utility          String?
+  subject          String?
+  competency       String?
+  keywords         String[]
   order            Int               @default(0)
   learningObjectId String
   interactions     ItemInteraction[]

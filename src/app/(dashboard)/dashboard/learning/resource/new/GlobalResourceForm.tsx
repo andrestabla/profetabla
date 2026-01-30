@@ -15,6 +15,9 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
     const [type, setType] = useState('VIDEO');
     const [presentation, setPresentation] = useState('');
     const [utility, setUtility] = useState('');
+    const [subject, setSubject] = useState('');
+    const [competency, setCompetency] = useState('');
+    const [keywords, setKeywords] = useState('');
     const [projectId, setProjectId] = useState('GLOBAL');
 
     // AI State
@@ -41,8 +44,11 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
                     const aiData = await processDriveFileForOAAction(fileId, 'auto');
                     if (aiData) {
                         setTitle(aiData.title || title);
-                        setPresentation(aiData.description || presentation);
-                        setUtility(aiData.competency ? `Competencia: ${aiData.competency}` : utility);
+                        setPresentation(aiData.presentation || presentation);
+                        setUtility(aiData.utility || utility);
+                        setSubject(aiData.subject || subject);
+                        setCompetency(aiData.competency || competency);
+                        setKeywords(aiData.keywords?.join(', ') || keywords);
                     }
                     return;
                 }
@@ -51,9 +57,14 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
             // Standard extraction
             const res = await extractResourceMetadataAction(url, type);
             if (res.success && res.data) {
-                setTitle(res.data.title);
-                setPresentation(res.data.presentation || '');
-                setUtility(res.data.utility || '');
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const data = res.data as any;
+                setTitle(data.title);
+                setPresentation(data.presentation || '');
+                setUtility(data.utility || '');
+                setSubject(data.subject || '');
+                setCompetency(data.competency || '');
+                setKeywords(data.keywords?.join(', ') || '');
             } else {
                 alert("No se pudo extraer información. " + (res.error || ""));
             }
@@ -228,6 +239,40 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
                                 required
                                 placeholder="Nombre descriptivo del recurso"
                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Materia / Categoría</label>
+                                <input
+                                    name="subject"
+                                    value={subject}
+                                    onChange={(e) => setSubject(e.target.value)}
+                                    placeholder="Ej: Matemáticas, Historia..."
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Competencia</label>
+                                <input
+                                    name="competency"
+                                    value={competency}
+                                    onChange={(e) => setCompetency(e.target.value)}
+                                    placeholder="Competencia principal"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Keywords (separadas por coma)</label>
+                            <input
+                                name="keywords"
+                                value={keywords}
+                                onChange={(e) => setKeywords(e.target.value)}
+                                placeholder="tag1, tag2, tag3"
+                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                             />
                         </div>
 

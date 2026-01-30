@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Video, FileText, Globe, CheckCircle2, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Menu, AlertTriangle, Trash2, MessageSquare } from 'lucide-react';
+import { BookOpen, Video, FileText, Globe, CheckCircle2, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Menu, AlertTriangle, Trash2, MessageSquare, Sparkles } from 'lucide-react';
 
 import { CommentsSection } from '../../components/CommentsSection';
 
@@ -21,6 +21,9 @@ type LearningObject = {
     title: string;
     subject: string;
     competency: string | null;
+    presentation: string | null;
+    utility: string | null;
+    keywords: string[];
     items: ResourceItem[];
 };
 
@@ -41,7 +44,7 @@ export default function StudentViewerClient({ learningObject, comments, currentU
         setIsDeleting(true);
         try {
             await deleteLearningObjectAction(learningObject.id);
-        } catch (_) {  
+        } catch {
             alert("Error al eliminar");
             setIsDeleting(false);
             setShowDeleteModal(false);
@@ -124,7 +127,7 @@ export default function StudentViewerClient({ learningObject, comments, currentU
 
                     {/* EDIT & DELETE ACTIONS */}
                     {(currentUserRole === 'ADMIN' || currentUserRole === 'TEACHER') && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 mb-4">
                             <a href={`/dashboard/learning/${learningObject.id}/edit`} className="flex-1 text-center block text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 rounded-lg transition-colors">
                                 Editar
                             </a>
@@ -137,6 +140,33 @@ export default function StudentViewerClient({ learningObject, comments, currentU
                             </button>
                         </div>
                     )}
+
+                    {/* OA METADATA */}
+                    <div className="space-y-3 pt-4 border-t border-slate-100">
+                        {learningObject.presentation && (
+                            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-1">Presentación</h4>
+                                <p className="text-xs text-slate-600 leading-relaxed line-clamp-4 hover:line-clamp-none transition-all">{learningObject.presentation}</p>
+                            </div>
+                        )}
+                        {learningObject.utility && (
+                            <div className="bg-amber-50 p-2.5 rounded-lg border border-amber-100">
+                                <h4 className="text-[10px] font-bold text-amber-600 uppercase mb-1 flex items-center gap-1">
+                                    <Sparkles className="w-3 h-3" /> Utilidad Pedagógica
+                                </h4>
+                                <p className="text-xs text-slate-600 leading-relaxed line-clamp-4 hover:line-clamp-none transition-all">{learningObject.utility}</p>
+                            </div>
+                        )}
+                        {learningObject.keywords && learningObject.keywords.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                                {learningObject.keywords.map((kw, i) => (
+                                    <span key={i} className="text-[8px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">
+                                        {kw}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">

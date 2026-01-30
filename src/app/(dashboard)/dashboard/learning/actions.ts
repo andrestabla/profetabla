@@ -46,6 +46,9 @@ export async function updateResourceAction(id: string, data: {
     description?: string;
     presentation?: string;
     utility?: string;
+    subject?: string;
+    competency?: string;
+    keywords?: string;
     projectId?: string | null; // null to unassign
     url?: string;
     type?: string;
@@ -59,6 +62,9 @@ export async function updateResourceAction(id: string, data: {
             description: data.description,
             presentation: data.presentation,
             utility: data.utility,
+            subject: data.subject,
+            competency: data.competency,
+            keywords: data.keywords ? data.keywords.split(',').map(s => s.trim()) : undefined,
             projectId: data.projectId === 'GLOBAL' ? null : data.projectId,
             url: data.url,
             type: data.type
@@ -104,6 +110,8 @@ export async function updateLearningObjectAction(formData: FormData) {
     const competency = formData.get('competency') as string;
     const keywordsRaw = formData.get('keywords') as string;
     const description = formData.get('description') as string;
+    const presentation = formData.get('presentation') as string;
+    const utility = formData.get('utility') as string;
     const itemsJson = formData.get('itemsJson') as string;
 
     const keywords = keywordsRaw ? keywordsRaw.split(',').map(s => s.trim()) : [];
@@ -120,6 +128,8 @@ export async function updateLearningObjectAction(formData: FormData) {
                 subject,
                 competency,
                 description,
+                presentation,
+                utility,
                 keywords,
             }
         });
@@ -165,7 +175,13 @@ export async function updateLearningObjectAction(formData: FormData) {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             presentation: (item as any).presentation,
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            utility: (item as any).utility
+                            utility: (item as any).utility,
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            subject: (item as any).subject,
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            competency: (item as any).competency,
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            keywords: (item as any).keywords || []
                         }
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } as any
@@ -189,6 +205,8 @@ export async function createLearningObjectAction(formData: FormData) {
     const competency = formData.get('competency') as string;
     const keywordsRaw = formData.get('keywords') as string;
     const description = formData.get('description') as string;
+    const presentation = formData.get('presentation') as string;
+    const utility = formData.get('utility') as string;
     const itemsJson = formData.get('itemsJson') as string;
 
     const keywords = keywordsRaw ? keywordsRaw.split(',').map(s => s.trim()) : [];
@@ -202,6 +220,8 @@ export async function createLearningObjectAction(formData: FormData) {
                 subject,
                 competency,
                 description,
+                presentation,
+                utility,
                 keywords,
                 authorId: userId,
                 items: {
@@ -211,10 +231,11 @@ export async function createLearningObjectAction(formData: FormData) {
                         type: item.type,
                         url: item.url,
                         order: idx,
-                        metadata: {
-                            presentation: item.presentation,
-                            utility: item.utility
-                        }
+                        presentation: item.presentation,
+                        utility: item.utility,
+                        subject: item.subject,
+                        competency: item.competency,
+                        keywords: item.keywords || []
                     }))
                 }
             }
@@ -267,7 +288,12 @@ export async function createGlobalResourceAction(formData: FormData) {
     const url = formData.get('url') as string;
     const presentation = formData.get('presentation') as string;
     const utility = formData.get('utility') as string;
+    const subject = formData.get('subject') as string;
+    const competency = formData.get('competency') as string;
+    const keywordsRaw = formData.get('keywords') as string;
     const file = formData.get('file') as File;
+
+    const keywords = keywordsRaw ? keywordsRaw.split(',').map(s => s.trim()) : [];
 
     if (!title) {
         return { success: false, error: 'El título es obligatorio' };
@@ -324,6 +350,9 @@ export async function createGlobalResourceAction(formData: FormData) {
                 url: finalUrl,
                 presentation,
                 utility,
+                subject,
+                competency,
+                keywords,
                 categoryId,
                 projectId: (projectId && projectId !== 'GLOBAL') ? projectId : null
             }

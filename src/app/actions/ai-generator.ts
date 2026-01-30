@@ -210,20 +210,29 @@ export async function generateProjectStructure(
 export async function extractOAMetadata(content: string): Promise<{
   title: string;
   subject: string;
-  competency?: string;
+  competency: string;
   keywords: string[];
-  description: string;
-  utility?: string;
+  presentation: string;
+  utility: string;
 } | null> {
   const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
   const safeConfig = (config || {}) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   const aiProvider = safeConfig.aiProvider || 'GEMINI';
 
   const prompt = `
-    Actúa como un experto pedagogo. Tu tarea sugerir metadatos para un Objeto de Aprendizaje (OA) basándote en la información proporcionada.
+    Actúa como un experto pedagogo. Tu tarea sugerir metadatos estandarizados basándote en la información proporcionada.
     CONTENIDO: ${content.substring(0, 15000)}
+
+    DIFERENCIAS CLAVE DE CAMPOS:
+    - title: Título atractivo.
+    - subject: Materia, área o categoría.
+    - competency: Competencia principal que desarrolla.
+    - keywords: Lista de palabras clave.
+    - presentation: ¿Qué es este recurso/OA? (Descripción).
+    - utility: Utilidad pedagógica ¿Para qué sirve al estudiante? (Propósito).
+
     RESPONDE SIEMPRE EN ESPAÑOL EN FORMATO JSON:
-    { "title": "...", "subject": "...", "competency": "...", "keywords": [], "description": "...", "utility": "..." }
+    { "title": "...", "subject": "...", "competency": "...", "keywords": [], "presentation": "...", "utility": "..." }
   `;
 
   if (aiProvider === 'OPENAI') {
