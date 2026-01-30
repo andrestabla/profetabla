@@ -39,25 +39,25 @@ export default function ProjectMarketClient({ availableProjects, currentFilter }
             {/* FIlter Tabs */}
             <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
                 <Link
-                    href="/dashboard/projects/market"
+                    href="/dashboard/market"
                     className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${!currentFilter ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                 >
                     Todos
                 </Link>
                 <Link
-                    href="/dashboard/projects/market?type=PROJECT"
+                    href="/dashboard/market?type=PROJECT"
                     className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${currentFilter === 'PROJECT' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                 >
                     Proyectos
                 </Link>
                 <Link
-                    href="/dashboard/projects/market?type=CHALLENGE"
+                    href="/dashboard/market?type=CHALLENGE"
                     className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${currentFilter === 'CHALLENGE' ? 'border-orange-600 text-orange-600 bg-orange-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                 >
                     Retos
                 </Link>
                 <Link
-                    href="/dashboard/projects/market?type=PROBLEM"
+                    href="/dashboard/market?type=PROBLEM"
                     className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${currentFilter === 'PROBLEM' ? 'border-red-600 text-red-600 bg-red-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                 >
                     Problemas
