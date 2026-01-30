@@ -45,6 +45,7 @@ export async function updateResourceAction(id: string, data: {
     title?: string;
     description?: string;
     projectId?: string | null; // null to unassign
+    url?: string;
 }) {
     await requireTeacherOrAdmin();
 
@@ -53,7 +54,8 @@ export async function updateResourceAction(id: string, data: {
         data: {
             title: data.title,
             description: data.description,
-            projectId: data.projectId === 'GLOBAL' ? null : data.projectId
+            projectId: data.projectId === 'GLOBAL' ? null : data.projectId,
+            url: data.url
         }
     });
 
@@ -99,7 +101,7 @@ export async function updateLearningObjectAction(formData: FormData) {
     const itemsJson = formData.get('itemsJson') as string;
 
     const keywords = keywordsRaw ? keywordsRaw.split(',').map(s => s.trim()) : [];
-     
+
     const items = itemsJson ? JSON.parse(itemsJson) : [];
 
     // Transaction to update OA and replace items
@@ -141,7 +143,7 @@ export async function updateLearningObjectAction(formData: FormData) {
 
             // Note: `deleteMany` works on the relation if it's One-to-Many.
 
-             
+
             for (const [idx, item] of items.entries()) {
                 await tx.resource.create({
                     data: {

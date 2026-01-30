@@ -50,6 +50,7 @@ export default function ResourceViewerClient({
     // Form State
     const [formData, setFormData] = useState({
         title: resource.title,
+        url: resource.url,
         description: resource.presentation || '', // Mapping presentation as description for now or keeping separate?
         // Wait, DB has description, presentation, utility. 
         // Resource type here has presentation/utility.
@@ -72,7 +73,7 @@ export default function ResourceViewerClient({
             // If it's a Drive file, we can re-process it.
             let aiData = null;
             if (resource.type === 'DRIVE') {
-                const fileId = getDriveId(resource.url);
+                const fileId = getDriveId(formData.url); // Use updated URL
                 if (fileId) {
                     const { processDriveFileForOAAction } = await import('@/app/actions/oa-actions');
                     // Mimetype guess or generic
@@ -81,7 +82,7 @@ export default function ResourceViewerClient({
             } else {
                 // For other types (VIDEO, LINK), use the current metadata/url to generate improvements
                 const { improveTextWithAIAction } = await import('@/app/actions/oa-actions');
-                const context = `URL: ${resource.url}\nDescripción Actual: ${formData.presentation || ''}`;
+                const context = `URL: ${formData.url}\nDescripción Actual: ${formData.presentation || ''}`;
                 aiData = await improveTextWithAIAction(formData.title, context);
             }
 
@@ -111,13 +112,14 @@ export default function ResourceViewerClient({
             // IMPORTANT: Resources in DB have `description`. Presentation/Utility are often stored in `metadata` JSON or separate cols.
             // Looking at `Resource` type in line 10, it has direct props.
             // Let's assume updateResourceAction handles these or we need to check it.
-            // Verification: updateResourceAction signature in previous steps showed { title, description, projectId }. 
+            // Verification: updateResourceAction signature in previous steps showed { title, description, projectId, url }. 
             // It might NOT support presentation/utility yet. 
             // I will update the action as well if needed, but for now let's save what we can.
 
             await updateResourceAction(resource.id, {
                 title: formData.title,
                 description: formData.presentation, // Mapping presentation to description based on typical usage
+                url: formData.url
                 // If we need custom metadata, we might need to update the action.
                 // For now, let's map presentation -> description.
             });
@@ -155,12 +157,18 @@ export default function ResourceViewerClient({
                         </Link>
 
                         {isEditing ? (
-                            <div className="flex-1 mr-4">
+                            <div className="flex-1 mr-4 space-y-2">
                                 <input
                                     value={formData.title}
                                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                                     className="w-full text-lg font-bold text-slate-900 border-b border-slate-300 focus:border-blue-500 outline-none px-1"
                                     placeholder="Título del recurso"
+                                />
+                                <input
+                                    value={formData.url}
+                                    onChange={e => setFormData({ ...formData, url: e.target.value })}
+                                    className="w-full text-xs text-slate-500 border-b border-slate-200 focus:border-blue-500 outline-none px-1 font-mono"
+                                    placeholder="URL del recurso (Youtube, Drive, Link...)"
                                 />
                             </div>
                         ) : (
