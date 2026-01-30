@@ -44,6 +44,8 @@ export default function ResourceViewerClient({
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isExtracting, setIsExtracting] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [activeTab, setActiveTab] = useState<'info' | 'comments'>('info');
 
     // Form State
     const [formData, setFormData] = useState({
