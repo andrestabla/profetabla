@@ -30,20 +30,26 @@ export async function PATCH(
         // Sync Assignment if deliverable is set
         if (body.deliverable && typeof body.deliverable === 'string' && body.deliverable.trim().length > 0) {
             await prisma.assignment.upsert({
-                where: { taskId: task.id },
+                where: { taskId: id },
                 create: {
                     title: `Entrega: ${task.title}`,
                     description: `Entrega asociada a la tarea: ${task.title}. ${task.description || ''}`,
                     projectId: task.projectId,
-                    taskId: task.id,
+                    taskId: id,
                     dueDate: task.dueDate,
                     evaluationCriteria: task.evaluationCriteria
                 },
                 update: {
                     title: `Entrega: ${task.title}`,
                     dueDate: task.dueDate,
-                    evaluationCriteria: task.evaluationCriteria
+                    evaluationCriteria: task.evaluationCriteria,
+                    description: `Entrega asociada a la tarea: ${task.title}. ${task.description || ''}`,
                 }
+            });
+        } else if (body.deliverable === '' || body.deliverable === null) {
+            // If deliverable is explicitly cleared, delete the assignment
+            await prisma.assignment.deleteMany({
+                where: { taskId: id }
             });
         }
 
