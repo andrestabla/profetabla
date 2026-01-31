@@ -158,6 +158,16 @@ export async function applyToProjectAction(projectId: string) {
         console.error("❌ [Server] No session or user found");
         throw new Error("Debes iniciar sesión para postularte");
     }
+
+    // LOG START
+    await prisma.activityLog.create({
+        data: {
+            action: 'APPLY_PROJECT_START',
+            description: `User ${session.user.email} applying to ${projectId}`,
+            metadata: { projectId, userId: session.user.id }
+        }
+    });
+
     console.log(`👤[Server] User: ${session.user.id} (${session.user.email})`);
 
     // Check if already applied
@@ -230,10 +240,26 @@ export async function applyToProjectAction(projectId: string) {
                 `
             });
             console.log(`✉️ [Server] Confirmation email sent to student: ${session.user.email}`);
+
+            await prisma.activityLog.create({
+                data: {
+                    action: 'APPLY_PROJECT_EMAIL_SENT',
+                    description: `Confirmation email sent to ${session.user.email}`,
+                    metadata: { projectId, email: session.user.email }
+                }
+            });
         }
 
     } catch (emailError) {
         console.error("Error sending notification email:", emailError);
+        const errMsg = emailError instanceof Error ? emailError.message : String(emailError);
+        await prisma.activityLog.create({
+            data: {
+                action: 'APPLY_PROJECT_EMAIL_ERROR',
+                description: `Failed to send email: ${errMsg}`,
+                metadata: { error: errMsg }
+            }
+        });
         // Don't fail the action if email fails
     }
 
