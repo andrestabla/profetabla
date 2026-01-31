@@ -641,7 +641,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                 </p>
                             </div>
                         </div>
-                        <KanbanBoard projectId={project.id} />
+                        <KanbanBoard projectId={project.id} userRole={session?.user?.role || ''} />
                     </div>
                 )
             }

@@ -27,6 +27,13 @@ export default async function ProfessorProjectKanbanPage(props: Props) {
         redirect('/dashboard/professor/projects');
     }
 
+    const allProjects = await prisma.project.findMany({
+        where: {
+            teachers: { some: { id: session.user.id } }
+        },
+        select: { id: true, title: true, type: true, industry: true }
+    });
+
     // Use first student for display, or show count
     const student = project.students[0];
 
@@ -61,7 +68,7 @@ export default async function ProfessorProjectKanbanPage(props: Props) {
                 </div>
             </div>
 
-            <KanbanBoard projectId={project.id} userRole={session.user.role} />
+            <KanbanBoard projectId={project.id} userRole={session.user.role} allProjects={allProjects} />
         </div>
     );
 }

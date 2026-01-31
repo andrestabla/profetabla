@@ -20,6 +20,14 @@ export default async function StudentKanbanPage({ params }: { params: Promise<{ 
     if (!project) return notFound();
     if (project.students.length === 0) redirect('/dashboard');
 
+    const allProjects = await prisma.project.findMany({
+        where: {
+            students: { some: { id: session.user.id } },
+            status: { in: ['IN_PROGRESS', 'OPEN'] }
+        },
+        select: { id: true, title: true, type: true, industry: true }
+    });
+
     return (
         <div className="p-4 md:p-8 h-[calc(100vh-4rem)] max-w-[1920px] mx-auto">
             <header className="mb-6 flex items-center justify-between">
@@ -30,7 +38,7 @@ export default async function StudentKanbanPage({ params }: { params: Promise<{ 
             </header>
 
             <div className="h-[calc(100%-5rem)]">
-                <KanbanBoard projectId={project.id} userRole={session.user.role} />
+                <KanbanBoard projectId={project.id} userRole={session.user.role} allProjects={allProjects} />
             </div>
         </div>
     );

@@ -5,7 +5,8 @@ import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, KeyboardSensor, 
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { clsx } from 'clsx';
-import { MoreVertical, Plus, Calendar, Flag, CheckCircle, Sparkles, Loader2, Save, X, Trash2, Edit2 } from 'lucide-react';
+import { MoreVertical, Plus, Calendar, Flag, CheckCircle, Sparkles, Loader2, Save, X, Trash2, Edit2, Briefcase, ChevronDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { TaskModal } from './TaskModal';
 import { generateTasksFromProject } from '@/app/actions/kanban-actions';
 
@@ -34,7 +35,8 @@ const COLUMNS = [
     { id: 'DONE', title: 'Terminado', color: 'bg-green-50 border-green-100' },
 ];
 
-export function KanbanBoard({ projectId, userRole }: { projectId: string; userRole: string }) {
+export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: string; userRole: string; allProjects?: Array<{ id: string; title: string; type: string; industry: string | null }> }) {
+    const router = useRouter();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [originalTasks, setOriginalTasks] = useState<Task[]>([]);
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -43,6 +45,9 @@ export function KanbanBoard({ projectId, userRole }: { projectId: string; userRo
     const [isGenerating, setIsGenerating] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [columns] = useState(COLUMNS);
+
+    const currentProject = allProjects?.find(p => p.id === projectId);
 
     useEffect(() => {
         if (!projectId) return;
@@ -212,7 +217,46 @@ export function KanbanBoard({ projectId, userRole }: { projectId: string; userRo
 
 
     return (
-        <>
+        <div className="h-full space-y-6">
+            {/* PROJECT SWITCHER */}
+            {allProjects && allProjects.length > 1 && (
+                <div className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm animate-in fade-in duration-500">
+                    <div className="p-2 bg-blue-50 rounded-lg">
+                        <Briefcase className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cambiar de Tablero</p>
+                        <div className="relative mt-1">
+                            <select
+                                value={projectId}
+                                onChange={(e) => {
+                                    const baseUrl = userRole === 'STUDENT' ? '/dashboard/student/projects' : '/dashboard/professor/projects';
+                                    router.push(`${baseUrl}/${e.target.value}/kanban`);
+                                }}
+                                className="appearance-none bg-transparent font-bold text-slate-800 pr-8 outline-none cursor-pointer hover:text-blue-600 transition-colors"
+                            >
+                                {allProjects.map(p => (
+                                    <option key={p.id} value={p.id}>{p.title}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                    </div>
+                    {currentProject && (
+                        <div className="ml-auto hidden md:flex items-center gap-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 uppercase">
+                                {currentProject.type}
+                            </span>
+                            {currentProject.industry && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 uppercase">
+                                    {currentProject.industry}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Header Actions */}
             <div className="flex justify-end mb-6 gap-3">
                 {isEditMode ? (
@@ -249,9 +293,9 @@ export function KanbanBoard({ projectId, userRole }: { projectId: string; userRo
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-start">
-                    {COLUMNS.map((col) => (
-                        <div key={col.id} className={`p-4 rounded-xl border ${col.color} min-h-[500px]`}>
+                <div className="flex gap-6 h-[calc(100%-4rem)] min-h-[600px] overflow-x-auto pb-4 custom-scrollbar">
+                    {columns.map((col) => (
+                        <div key={col.id} className={`p-4 rounded-xl border ${col.color} min-h-[500px] w-80 flex-shrink-0`}>
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
                                     <h3 className="font-semibold text-slate-700">{col.title}</h3>
@@ -346,7 +390,7 @@ export function KanbanBoard({ projectId, userRole }: { projectId: string; userRo
                     onUpdate={handleTaskUpdate}
                 />
             )}
-        </>
+        </div>
     );
 }
 
