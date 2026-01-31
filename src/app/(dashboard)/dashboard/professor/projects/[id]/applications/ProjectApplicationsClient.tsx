@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { User, CheckCircle2, XCircle, FileText, Calendar, ArrowRight } from 'lucide-react';
-import { acceptStudentAction, rejectStudentAction } from '@/app/actions/project-actions';
+import { acceptStudentActionV2, rejectStudentAction } from '@/app/actions/project-actions';
 
 // Tipado de la postulación
 type Application = {
@@ -107,7 +107,7 @@ export default function ProjectApplicationsClient({
                                     console.log("🖱️ [Client] Accept button clicked");
                                     setIsProcessing(true);
                                     try {
-                                        await acceptStudentAction(formData);
+                                        await acceptStudentActionV2(formData);
                                         console.log("✅ [Client] acceptStudentAction completed");
                                     } catch (e) {
                                         console.error("❌ [Client] acceptStudentAction failed:", e);

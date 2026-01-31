@@ -3,10 +3,10 @@
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
 import { sendEmail } from '@/lib/email';
 import { createProjectFolder, deleteFolder } from '@/lib/google-drive';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export async function createProjectAction(formData: FormData) {
     const session = await getServerSession(authOptions);
@@ -399,7 +399,7 @@ export async function addStudentByEmailAction(projectId: string, email: string) 
     revalidatePath(`/dashboard/professor/projects/${projectId}`);
 }
 
-export async function acceptStudentAction(formData: FormData) {
+export async function acceptStudentActionV2(formData: FormData) {
     const applicationId = formData.get('applicationId') as string;
     const projectId = formData.get('projectId') as string;
     const studentId = formData.get('studentId') as string;
@@ -407,18 +407,19 @@ export async function acceptStudentAction(formData: FormData) {
     // LOG START
     await prisma.activityLog.create({
         data: {
-            action: 'ACCEPT_STUDENT_START',
-            description: `Starting acceptance for student ${studentId} in project ${projectId}`,
+            action: 'ACCEPT_STUDENT_V2_START',
+            description: `V2: Starting acceptance for student ${studentId} in project ${projectId}`,
             metadata: { applicationId, projectId, studentId }
         }
     });
 
-    console.log(`🚀 [Action] Accepting Student: App=${applicationId}, Project=${projectId}, Student=${studentId}`);
+    console.log(`🚀 [Action V2] Accepting Student: App=${applicationId}, Project=${projectId}, Student=${studentId}`);
 
     // Fetch necessary data for email
-    const [student, project] = await Promise.all([
+    const [student, project, session] = await Promise.all([
         prisma.user.findUnique({ where: { id: studentId }, select: { email: true, name: true } }),
-        prisma.project.findUnique({ where: { id: projectId }, select: { title: true } })
+        prisma.project.findUnique({ where: { id: projectId }, select: { title: true } }),
+        getServerSession(authOptions)
     ]);
 
     if (!student || !project) {
@@ -462,9 +463,15 @@ export async function acceptStudentAction(formData: FormData) {
                 }
             });
         }
-    });
 
-    const session = await import('@/lib/auth').then(m => import('next-auth').then(na => na.getServerSession(m.authOptions)));
+        await tx.activityLog.create({
+            data: {
+                action: 'ACCEPT_STUDENT_DB_DONE',
+                description: 'Database transaction completed',
+                metadata: { applicationId, projectId }
+            }
+        });
+    });
 
     // Send Email Notification
     if (student?.email && project?.title) {
