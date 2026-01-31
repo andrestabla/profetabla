@@ -196,17 +196,17 @@ export async function applyToProjectAction(projectId: string) {
         if (mainTeacher && mainTeacher.email) {
             await sendEmail({
                 to: mainTeacher.email,
-                subject: `Nueva Postulación: ${project.title} `,
+                subject: `Nueva Postulación: ${project.title}`,
                 html: `
-        < div style = "font-family: sans-serif;" >
-            <h2>¡Un estudiante se ha postulado! </h2>
-                < p > <strong>${session.user.name} </strong> quiere unirse a tu proyecto/reto: </p>
-                    < h3 style = "color: #2563EB;" > ${project.title} </h3>
-                        < p > Visita tu Panel de Profesor para revisar y aceptar la solicitud.</p>
-                            < br />
-                            <a href="${process.env.NEXTAUTH_URL}/dashboard/professor/projects/${projectId}" style = "background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;" > Ir al Proyecto </a>
-                                </div>
-                                    `
+        <div style="font-family: sans-serif;">
+            <h2>¡Un estudiante se ha postulado!</h2>
+            <p><strong>${session.user.name}</strong> quiere unirse a tu proyecto/reto:</p>
+            <h3 style="color: #2563EB;">${project.title}</h3>
+            <p>Visita tu Panel de Profesor para revisar y aceptar la solicitud.</p>
+            <br />
+            <a href="${process.env.NEXTAUTH_URL}/dashboard/professor/projects/${projectId}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;">Ir al Proyecto</a>
+        </div>
+                `
             });
         }
     } catch (emailError) {
