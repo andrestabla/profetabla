@@ -10,11 +10,17 @@ export async function acceptStudentAction(formData: FormData) {
     const projectId = formData.get('projectId') as string;
     const studentId = formData.get('studentId') as string;
 
+    console.log(`🚀 [Action] Accepting Student: App=${applicationId}, Project=${projectId}, Student=${studentId}`);
+
     // Fetch necessary data for email
     const [student, project] = await Promise.all([
         prisma.user.findUnique({ where: { id: studentId }, select: { email: true, name: true } }),
         prisma.project.findUnique({ where: { id: projectId }, select: { title: true } })
     ]);
+
+    if (!student || !project) {
+        console.error("❌ [Action] Student or Project not found for email");
+    }
 
     // 1. Iniciar una transacción de Prisma (para asegurar que todos los cambios ocurran a la vez)
     await prisma.$transaction(async (tx) => {
@@ -29,21 +35,7 @@ export async function acceptStudentAction(formData: FormData) {
         // The professor can manually reject others if needed.
 
         // C. El cambio principal: Asignar el estudiante al Proyecto y cambiar estado a IN_PROGRESS
-        const project = await tx.project.findUnique({ where: { id: projectId }, include: { students: true } });
-        // Only update status to IN_PROGRESS if it was pending/open. 
-        // But honestly, keeping it OPEN might be better if we want more students?
-        // Requirement says "Open" unless Draft/Full/Dates.
-        // But typically getting accepted implies starting work.
-        // Let's keep the existing logic of IN_PROGRESS for now to not break workflow, 
-        // but it might conflict with the "Market Visibility" logic if IN_PROGRESS projects are hidden?
-        // Wait, "Market visibility" usually hides IN_PROGRESS. If accepting ONE student hides it, that breaks M-N.
-        // Let's NOT force IN_PROGRESS if maxStudents > currentStudents.
-        // However, the previous code enforced IN_PROGRESS.
-        // I will keep it as IS for now regarding status, but just add the student.
-        // Actually, if I just add the student, the filtering logic I added earlier handles visibility!
-        // So I don't STRICTLY need to set it to IN_PROGRESS unless that's the desired "start" signal.
-        // For now, I will keep the existing status update to minimize side effects, 
-        // BUT I must fetch the student email and send the mail.
+        const projectData = await tx.project.findUnique({ where: { id: projectId }, include: { students: true } });
 
         await tx.project.update({
             where: { id: projectId },
@@ -69,6 +61,8 @@ export async function acceptStudentAction(formData: FormData) {
             });
         }
     });
+
+    console.log("✅ [Action] DB Update success. Sending email...");
 
     // Send Email Notification
     if (student?.email && project?.title) {
@@ -102,16 +96,50 @@ export async function acceptStudentAction(formData: FormData) {
 export async function rejectStudentAction(formData: FormData) {
     const applicationId = formData.get('applicationId') as string;
 
+    // We need to fetch details before updating/redirecting to send email
+    const application = await prisma.projectApplication.findUnique({
+        where: { id: applicationId },
+        include: {
+            student: { select: { email: true, name: true } },
+            project: { select: { title: true, id: true } }
+        }
+    });
+
+    if (!application) {
+        redirect(`/dashboard/professor/projects`);
+    }
+
     await prisma.projectApplication.update({
         where: { id: applicationId },
         data: { status: 'REJECTED' },
     });
 
-    // Recarga la página actual para mostrar el siguiente candidato
-    const application = await prisma.projectApplication.findUnique({ where: { id: applicationId } });
-    if (application) {
-        redirect(`/dashboard/professor/projects/${application.projectId}/applications`);
-    } else {
-        redirect(`/dashboard/professor/projects`);
+    // Send Rejection Email
+    if (application.student?.email && application.project?.title) {
+        try {
+            await sendEmail({
+                to: application.student.email,
+                subject: `Actualización de tu postulación - ${application.project.title}`,
+                html: `
+                    <div style="font-family: sans-serif; color: #333;">
+                        <h2>Hola, ${application.student.name || 'Estudiante'}</h2>
+                        <p>Gracias por tu interés en el proyecto <strong>${application.project.title}</strong>.</p>
+                        <p>En esta ocasión, el profesor ha decidido no avanzar con tu solicitud.</p>
+                        <p>Te animamos a explorar otros proyectos disponibles en la plataforma.</p>
+                        <br/>
+                        <a href="${process.env.NEXTAUTH_URL}/dashboard/student/projects" 
+                           style="background-color: #64748B; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;">
+                           Ver otros Proyectos
+                        </a>
+                    </div>
+                `
+            });
+            console.log(`✅ [Email Sent] Rejection to: ${application.student.email}`);
+        } catch (error) {
+            console.error("❌ [Email Error] Failed to send rejection email:", error);
+        }
     }
+
+    // Recarga la página actual para mostrar el siguiente candidato
+    redirect(`/dashboard/professor/projects/${application.project.id}/applications`);
 }
