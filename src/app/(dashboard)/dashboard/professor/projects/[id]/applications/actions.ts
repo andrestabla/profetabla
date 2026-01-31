@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 
+import { sendEmail } from '@/lib/email';
+
 export async function acceptStudentAction(formData: FormData) {
     const applicationId = formData.get('applicationId') as string;
     const projectId = formData.get('projectId') as string;
@@ -71,7 +73,7 @@ export async function acceptStudentAction(formData: FormData) {
     // Send Email Notification
     if (student?.email && project?.title) {
         try {
-            await import('@/lib/email').then(mod => mod.sendEmail({
+            await sendEmail({
                 to: student.email,
                 subject: `¡Has sido aceptado! - ${project.title}`,
                 html: `
@@ -86,7 +88,7 @@ export async function acceptStudentAction(formData: FormData) {
                         </a>
                     </div>
                 `
-            }));
+            });
             console.log(`✅ [Email Sent] To: ${student.email}`);
         } catch (error) {
             console.error("❌ [Email Error] Failed to send acceptance email:", error);
