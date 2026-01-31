@@ -140,7 +140,7 @@ export async function FilteredProjectList({
                             )}
                         </div>
 
-                        <ProjectListActions projectId={project.id} projectTitle={project.title} />
+                        <ProjectListActions projectId={project.id} projectTitle={project.title} projectType={project.type} />
                     </div>
                 ))}
 

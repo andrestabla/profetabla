@@ -128,10 +128,26 @@ export async function updateProjectAction(formData: FormData) {
         }
     });
 
+    // We need the project type to redirect correctly.
+    // Since we didn't update the type, we should fetch it or pass it?
+    // It's better to fetch it to be safe, or just redirect to 'projects' and let a middleware handle it?
+    // But we implemented rewrites, not redirects. So we must redirect to the correct URL.
+    const project = await prisma.project.findUnique({ where: { id }, select: { type: true } });
+
+    // Import dynamically to avoid circular deps if any (though usually fine in actions)
+    const { getProjectRoute } = await import('@/lib/routes');
+
     revalidatePath(`/dashboard/professor/projects/${id}`);
     revalidatePath('/dashboard/professor/projects');
     revalidatePath('/dashboard/market');
-    redirect(`/dashboard/professor/projects/${id}`);
+
+    // Also revalidate the specific path if possible?
+    if (project) {
+        const route = getProjectRoute(id, project.type);
+        redirect(route);
+    } else {
+        redirect(`/dashboard/professor/projects/${id}`);
+    }
 }
 
 export async function applyToProjectAction(projectId: string) {

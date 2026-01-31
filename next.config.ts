@@ -9,6 +9,18 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'plus.unsplash.com' }, // Unsplash Plus
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/dashboard/professor/challenge/:path*',
+        destination: '/dashboard/professor/projects/:path*',
+      },
+      {
+        source: '/dashboard/professor/problem/:path*',
+        destination: '/dashboard/professor/projects/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
