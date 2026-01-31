@@ -51,6 +51,7 @@ export function Sidebar({ config }: { config?: any }) {
         { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Mercado de Proyectos', href: '/dashboard/market', icon: ShoppingBag, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
+        { name: 'Unirse con Código', href: '/dashboard/join', icon: Terminal, roles: ['STUDENT'] },
     ];
 
     const adminItems = [
