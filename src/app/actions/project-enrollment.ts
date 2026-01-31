@@ -84,12 +84,22 @@ export async function removeStudentFromProjectAction(projectId: string, studentI
     }
 
     try {
+        // 1. Disconnect the student from the project
         await prisma.project.update({
             where: { id: projectId },
             data: {
                 students: {
                     disconnect: { id: studentId }
                 }
+            }
+        });
+
+        // 2. Also delete their application so they can re-apply (or reset status)
+        // If we leave it as ACCEPTED, the market view will still show "Accepted"
+        await prisma.projectApplication.deleteMany({
+            where: {
+                projectId: projectId,
+                studentId: studentId
             }
         });
 
