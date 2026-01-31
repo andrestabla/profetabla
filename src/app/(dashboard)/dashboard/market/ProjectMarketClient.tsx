@@ -33,7 +33,7 @@ export default function ProjectMarketClient({ availableProjects, currentFilter }
         <div className="p-6 space-y-8">
             <header className="mb-0">
                 <h1 className="text-2xl font-bold text-slate-800">Mercado de Proyectos</h1>
-                <p className="text-slate-500">Explora y postúlate a retos reales diseñados por tus profesores.</p>
+                <p className="text-slate-500">Explora y postúlate a los proyectos, retos y problemas diseñados por tus profesores.</p>
             </header>
 
             {/* FIlter Tabs */}
