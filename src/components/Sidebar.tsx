@@ -44,7 +44,7 @@ export function Sidebar({ config }: { config?: any }) {
     };
 
     const navItems = [
-        { name: 'Resumen', href: '/dashboard', icon: LayoutDashboard, roles: ['STUDENT'] },
+        { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard, roles: ['STUDENT'] },
         { name: 'Kanban', href: '/dashboard/kanban', icon: Kanban, roles: ['STUDENT'] },
         { name: 'Entregas', href: '/dashboard/assignments', icon: FileText, roles: ['STUDENT'] },
         { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
