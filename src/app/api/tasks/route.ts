@@ -22,25 +22,49 @@ export async function GET(request: Request) {
     try {
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            select: { isGroup: true }
+            include: {
+                teachers: { select: { id: true } }
+            }
         });
 
         if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
-        // If isGroup is FALSE (Individual), strictly filter tasks assigned to the current user
-        // If isGroup is TRUE (Group), show all tasks for the project
+        // Check if user is a teacher of this project or ADMIN
+        const isTeacher = project.teachers.some(t => t.id === session.user.id) || session.user.role === 'ADMIN';
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const whereClause: any = {
+        let whereClause: any = {
             projectId
         };
 
-        if (!project.isGroup) {
-            whereClause.assignees = { some: { id: session.user.id } };
+        if (!isTeacher) {
+            // Student Logic
+            // 1. Check if student belongs to a team in this project
+            const userTeam = await prisma.team.findFirst({
+                where: {
+                    projectId,
+                    members: { some: { id: session.user.id } }
+                }
+            });
+
+            if (userTeam) {
+                // If in a team, see tasks for that team OR tasks assigned specifically to them (hybrid)
+                whereClause = {
+                    projectId,
+                    OR: [
+                        { teamId: userTeam.id },
+                        { assignees: { some: { id: session.user.id } } }
+                    ]
+                };
+            } else {
+                // If individual, only see their own tasks
+                whereClause.assignees = { some: { id: session.user.id } };
+            }
         }
 
         const tasks = await prisma.task.findMany({
             where: whereClause,
-            include: { comments: true, tags: true, assignees: true },
+            include: { comments: true, tags: true, assignees: true, team: true },
             orderBy: { createdAt: 'desc' }
         });
         return NextResponse.json(tasks);
@@ -73,6 +97,14 @@ export async function POST(request: Request) {
 
         if (!pid) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
 
+        // Check for Team association
+        const userTeam = await prisma.team.findFirst({
+            where: {
+                projectId: pid,
+                members: { some: { id: session.user.id } }
+            }
+        });
+
         const task = await prisma.task.create({
             data: {
                 title,
@@ -83,6 +115,10 @@ export async function POST(request: Request) {
                 status: status || 'TODO',
                 deliverable,
                 evaluationCriteria,
+                // Assign to Team if exists
+                ...(userTeam ? {
+                    team: { connect: { id: userTeam.id } }
+                } : {}),
                 // Automatically assign the creator to the task
                 assignees: {
                     connect: { id: session.user.id }
@@ -95,7 +131,12 @@ export async function POST(request: Request) {
                             projectId: pid,
                             dueDate: dueDate ? new Date(dueDate) : undefined,
                             evaluationCriteria: evaluationCriteria,
-                            description: `Entrega asociada a la tarea: ${title}. ${description || ''}`
+                            description: `Entrega asociada a la tarea: ${title}. ${description || ''}`,
+                            // Also link Assignment to Team if applicable? 
+                            // Only if Submission logic uses it. For now, Assignment is usually Project-wide or Task-specific. 
+                            // The Schema has `teamId` on Submission, not Assignment (usually). 
+                            // Wait, Schema check: Assignment usually doesn't have teamId unless edits were made. 
+                            // Just keeping standard assignment creation for now.
                         }
                     }
                 } : {})
