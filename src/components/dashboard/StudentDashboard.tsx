@@ -203,6 +203,12 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
                             students={currentProject.students || [{ name: user.name }]}
                             teachers={currentProject.teachers || []}
                         />
+                        <Link
+                            href={`/dashboard/student/projects/${currentProject.id}/teams`}
+                            className="block w-full text-center bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl hover:bg-slate-200 transition-colors text-sm mt-4 border border-slate-200"
+                        >
+                            Gestionar Equipos
+                        </Link>
                     </div>
                 </div>
             </div>
