@@ -32,6 +32,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             },
             learningObjects: {
                 include: { items: { take: 1 } }
+            },
+            teams: {
+                include: {
+                    members: {
+                        select: { id: true, name: true, avatarUrl: true }
+                    }
+                },
+                orderBy: { createdAt: 'asc' }
             }
         }
     });

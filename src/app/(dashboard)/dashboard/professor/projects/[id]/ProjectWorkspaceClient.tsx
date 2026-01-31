@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from 'react';
@@ -10,6 +11,8 @@ import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
 import { SubmissionCard } from '@/components/SubmissionCard';
 import { OAPickerModal } from '@/components/OAPickerModal';
 import { EnrollmentControls } from '@/components/EnrollmentControls';
+import { TeamManagement } from '@/components/TeamManagement';
+import { useSession } from 'next-auth/react';
 
 // Tipos basados en nuestro esquema Prisma actualizado
 type Resource = {
@@ -38,13 +41,16 @@ type Project = {
     googleDriveFolderId: string | null;
     students: { name: string | null; avatarUrl: string | null }[];
     teachers: { name: string | null; avatarUrl: string | null }[];
+    type: string;
+    teams: any[]; // Using any for simplicity as it matches TeamManagement props
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function ProjectWorkspaceClient({ project, resources, learningObjects, assignments }: { project: Project, resources: Resource[], learningObjects: any[], assignments: any[] }) {
+    const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP' | 'ASSIGNMENTS' | 'TEAM'>('RESOURCES');
     const [isUploading, setIsUploading] = useState(false);
-    const [showContext, setShowContext] = useState(false);
+    // const [showContext, setShowContext] = useState(false);
     const [resourceType, setResourceType] = useState('ARTICLE');
     const [driveFiles, setDriveFiles] = useState<any[]>([]);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -178,33 +184,48 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
             {/* Contenido Principal */}
             {
                 activeTab === 'TEAM' && (
-                    <div className="animate-in fade-in duration-300 grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="md:col-span-2">
-                            <div className="bg-white p-6 rounded-2xl border border-slate-200">
-                                <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                    <Users className="w-5 h-5 text-blue-600" /> Estudiantes Vinculados
-                                </h3>
-                                {project.students && project.students.length > 0 ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {project.students.map((student, i) => (
-                                            <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                                                    {student.avatarUrl ? <img src={student.avatarUrl} alt={student.name || ''} className="w-full h-full rounded-full object-cover" /> : (student.name?.[0] || 'E')}
+                    <div className="animate-in fade-in duration-300 space-y-8">
+                        {/* Gestor de Equipos */}
+                        {session?.user && (
+                            <section className="bg-slate-50 p-6 rounded-3xl border border-slate-200">
+                                <TeamManagement
+                                    teams={project.teams || []}
+                                    projectId={project.id}
+                                    // @ts-expect-error session user type mismatch with team component
+                                    currentUser={session.user}
+                                    projectType={project.type || 'PROJECT'}
+                                />
+                            </section>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="md:col-span-2">
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200">
+                                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-blue-600" /> Listado General de Estudiantes
+                                    </h3>
+                                    {project.students && project.students.length > 0 ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {project.students.map((student, i) => (
+                                                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
+                                                        {student.avatarUrl ? <img src={student.avatarUrl} alt={student.name || ''} className="w-full h-full rounded-full object-cover" /> : (student.name?.[0] || 'E')}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-slate-800 text-sm">{student.name}</p>
+                                                        <p className="text-xs text-slate-500">Estudiante</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-bold text-slate-800 text-sm">{student.name}</p>
-                                                    <p className="text-xs text-slate-500">Estudiante</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-slate-500 italic">No hay estudiantes vinculados aún.</p>
-                                )}
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-slate-500 italic">No hay estudiantes vinculados aún.</p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <EnrollmentControls projectId={project.id} initialAccessCode={(project as any).accessCode} />
+                            <div>
+                                <EnrollmentControls projectId={project.id} initialAccessCode={(project as any).accessCode} />
+                            </div>
                         </div>
                     </div>
                 )
