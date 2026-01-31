@@ -20,22 +20,20 @@ export default async function DashboardPage() {
 
     // 1. STUDENT DASHBOARD
     if (user.role === 'STUDENT') {
-        const project = await prisma.project.findFirst({
+        const projects = await prisma.project.findMany({
             where: {
                 students: { some: { id: user.id } },
-                status: 'IN_PROGRESS'
+                // Allow OPEN too? The user was worried about visibility.
+                // "Join by code" adds them. Status might be "OPEN" or "IN_PROGRESS".
+                // Let's show OPEN too just in case.
+                status: { in: ['IN_PROGRESS', 'OPEN'] }
             },
-            include: { tasks: true, teachers: true },
+            include: {
+                tasks: true, // Fetch all for stats
+                teachers: true,
+                students: true
+            },
         });
-
-        const priorityTasks = project ? await prisma.task.findMany({
-            where: {
-                projectId: project.id,
-                status: { in: ['TODO', 'IN_PROGRESS'] }
-            },
-            orderBy: { priority: 'desc' },
-            take: 3
-        }) : [];
 
         const citations = await prisma.mentorshipBooking.findMany({
             where: {
@@ -70,22 +68,11 @@ export default async function DashboardPage() {
             };
         }
 
-        const stats = project ? {
-            totalTasks: project.tasks.length,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            completedTasks: project.tasks.filter((t: any) => t.status === 'DONE').length,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            pendingTasks: project.tasks.filter((t: any) => t.status !== 'DONE').length,
-        } : null;
-
         return (
             <StudentDashboard
                 user={user}
-                project={project}
-                stats={stats}
-                teacher={project?.teachers[0]}
+                projects={projects}
                 citation={citation}
-                priorityTasks={priorityTasks}
                 nextMentorship={nextMentorship}
             />
         );

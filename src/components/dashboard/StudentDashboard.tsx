@@ -1,24 +1,25 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { ProgressBar } from '@/components/ProgressBar';
 import { TeamList } from '@/components/TeamList';
 import { UrgentCitationCard } from '@/components/UrgentCitationCard';
-import { Briefcase, Search, Kanban, ChevronRight, Clock, Target, Cloud } from 'lucide-react';
+import { Briefcase, Search, Kanban, ChevronRight, Clock, Target, Cloud, ChevronDown } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface StudentDashboardProps {
     user: any;
-    project: any;
-    stats: any;
-    teacher: any;
+    projects: any[]; // Changed from single project
     citation: any;
-    priorityTasks: any[];
     nextMentorship: any;
 }
 
-export function StudentDashboard({ user, project, stats, teacher, citation, priorityTasks, nextMentorship }: StudentDashboardProps) {
-    if (!project) {
+export function StudentDashboard({ user, projects, citation, nextMentorship }: StudentDashboardProps) {
+    const [selectedProjectId, setSelectedProjectId] = useState<string>(projects?.[0]?.id || '');
+
+    // Handle no projects case
+    if (!projects || projects.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-[80vh] text-center p-6">
                 {citation && <div className="w-full max-w-2xl mb-8"><UrgentCitationCard citation={citation} /></div>}
@@ -38,13 +39,50 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
         );
     }
 
-    const { totalTasks = 0, completedTasks = 0, pendingTasks = 0 } = stats || {};
+    const currentProject = projects.find(p => p.id === selectedProjectId) || projects[0];
+
+    // Compute stats for current project
+    const totalTasks = currentProject.tasks?.length || 0;
+    const completedTasks = currentProject.tasks?.filter((t: any) => t.status === 'DONE').length || 0;
+    const pendingTasks = totalTasks - completedTasks;
+
+    // Filter priority tasks
+    const priorityTasks = currentProject.tasks?.filter((t: any) =>
+        (t.status === 'TODO' || t.status === 'IN_PROGRESS')
+    ).sort((a: any, b: any) => {
+        // High priority first
+        if (a.priority === 'HIGH' && b.priority !== 'HIGH') return -1;
+        if (a.priority !== 'HIGH' && b.priority === 'HIGH') return 1;
+        return 0;
+    }).slice(0, 3) || [];
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            <header>
-                <h1 className="text-3xl font-bold text-slate-800">Hola, {user.name?.split(' ')[0]} 👋</h1>
-                <p className="text-slate-500">Aquí tienes el resumen de tu proyecto actual.</p>
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-800">Hola, {user.name?.split(' ')[0]} 👋</h1>
+                    <p className="text-slate-500">Aquí tienes el resumen de tu proyecto actual.</p>
+                </div>
+
+                {/* PROJECT SELECTOR */}
+                {projects.length > 1 && (
+                    <div className="relative group">
+                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-300 transition-colors">
+                            <Briefcase className="w-4 h-4 text-slate-400" />
+                            <select
+                                value={selectedProjectId}
+                                onChange={(e) => setSelectedProjectId(e.target.value)}
+                                className="bg-transparent font-bold text-slate-700 outline-none cursor-pointer appearance-none pr-8"
+                                style={{ WebkitAppearance: 'none' }}
+                            >
+                                {projects.map(p => (
+                                    <option key={p.id} value={p.id}>{p.title}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 pointer-events-none" />
+                        </div>
+                    </div>
+                )}
             </header>
 
             {citation && <UrgentCitationCard citation={citation} />}
@@ -52,7 +90,7 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* MI PROYECTO ACTIVO (Hero) */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group">
+                    <div key={currentProject.id} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group animate-in slide-in-from-right-4 duration-300">
                         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                             <Briefcase className="w-24 h-24" />
                         </div>
@@ -60,32 +98,32 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
                         <div className="relative z-10">
                             <div className="flex flex-wrap gap-2 mb-4">
                                 <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider inline-block">
-                                    {project.industry || 'General'}
+                                    {currentProject.industry || 'General'}
                                 </span>
-                                <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border ${project.type === 'CHALLENGE' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                                    project.type === 'PROBLEM' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border ${currentProject.type === 'CHALLENGE' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                    currentProject.type === 'PROBLEM' ? 'bg-amber-100 text-amber-700 border-amber-200' :
                                         'bg-indigo-50 text-indigo-600 border-indigo-100'
                                     }`}>
-                                    {project.type === 'CHALLENGE' ? 'Reto' :
-                                        project.type === 'PROBLEM' ? 'Problema' :
+                                    {currentProject.type === 'CHALLENGE' ? 'Reto' :
+                                        currentProject.type === 'PROBLEM' ? 'Problema' :
                                             'Proyecto'}
                                 </span>
                             </div>
-                            <h2 className="text-2xl font-bold text-slate-800 mb-4">{project.title}</h2>
-                            <p className="text-slate-500 mb-8 line-clamp-2 max-w-2xl">{project.description}</p>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-4">{currentProject.title}</h2>
+                            <p className="text-slate-500 mb-8 line-clamp-2 max-w-2xl">{currentProject.description}</p>
 
                             <ProgressBar total={totalTasks} completed={completedTasks} />
 
                             <div className="mt-8 flex flex-wrap gap-4">
-                                <Link href="/dashboard/kanban" className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-black transition-all">
+                                <Link href={`/dashboard/student/projects/${currentProject.id}/kanban`} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-black transition-all">
                                     <Kanban className="w-5 h-5" /> Ir al Kanban
                                 </Link>
                                 <Link href="/dashboard/learning" className="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all text-sm">
                                     Recursos <ChevronRight className="w-4 h-4" />
                                 </Link>
-                                {project.googleDriveFolderId && (
+                                {currentProject.googleDriveFolderId && (
                                     <a
-                                        href={`https://drive.google.com/drive/folders/${project.googleDriveFolderId}`}
+                                        href={`https://drive.google.com/drive/folders/${currentProject.googleDriveFolderId}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="bg-blue-50 text-blue-600 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-100 transition-all text-sm border border-blue-100"
@@ -104,7 +142,7 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
                         </h3>
                         {priorityTasks.length > 0 ? (
                             <div className="space-y-3">
-                                {priorityTasks.map(task => (
+                                {priorityTasks.map((task: any) => (
                                     <div key={task.id} className="flex items-center p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors group cursor-pointer">
                                         <div className={`w-2 h-10 rounded-full mr-4 ${task.priority === 'HIGH' ? 'bg-red-400' : 'bg-amber-400'}`} />
                                         <div className="flex-1">
@@ -114,7 +152,8 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
                                         <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
                                     </div>
                                 ))}
-                                <Link href="/dashboard/kanban" className="block text-center text-sm font-bold text-blue-600 hover:underline mt-4">
+                                {/* TODO: Update Kanban link to be project specific if needed, or global */}
+                                <Link href={`/dashboard/student/projects/${currentProject.id}/kanban`} className="block text-center text-sm font-bold text-blue-600 hover:underline mt-4">
                                     Ver todas las tareas ({pendingTasks})
                                 </Link>
                             </div>
@@ -161,8 +200,8 @@ export function StudentDashboard({ user, project, stats, teacher, citation, prio
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <h3 className="font-bold text-slate-800 mb-4">Equipo Docente</h3>
                         <TeamList
-                            students={project.students || [{ name: user.name }]}
-                            teachers={project.teachers || (teacher ? [teacher] : [])}
+                            students={currentProject.students || [{ name: user.name }]}
+                            teachers={currentProject.teachers || []}
                         />
                     </div>
                 </div>
