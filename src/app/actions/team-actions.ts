@@ -16,7 +16,7 @@ export async function createTeamAction(projectId: string, name: string) {
     try {
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            include: { students: true }
+            include: { students: true, teachers: true }
         });
 
         if (!project) return { success: false, error: "Project not found" };
