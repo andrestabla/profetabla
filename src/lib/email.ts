@@ -35,7 +35,10 @@ export const sendEmail = async ({ to, subject, html }: EmailOptions) => {
         const transporter = await getTransporter();
         const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
         const fromName = config?.smtpSenderName || config?.institutionName || 'Profe Tabla';
-        const fromEmail = config?.smtpFrom || 'noreply@profetabla.com';
+        // Fallback to smtpUser if smtpFrom is not set, to avoid "owned by" mismatches
+        const fromEmail = config?.smtpFrom || config?.smtpUser || 'notifications@profetabla.com';
+
+        console.log(`[Email] Preparing to send to ${to} from ${fromEmail}`);
 
         const info = await transporter.sendMail({
             from: `"${fromName}" <${fromEmail}>`,
