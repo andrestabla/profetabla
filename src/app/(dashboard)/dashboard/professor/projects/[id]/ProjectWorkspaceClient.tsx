@@ -191,7 +191,6 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                 <TeamManagement
                                     teams={project.teams || []}
                                     projectId={project.id}
-                                    // @ts-expect-error session user type mismatch with team component
                                     currentUser={session.user}
                                     projectType={project.type || 'PROJECT'}
                                 />
