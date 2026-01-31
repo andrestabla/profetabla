@@ -545,7 +545,7 @@ export async function acceptStudentActionV2(formData: FormData) {
         professorEmail: session?.user?.email
     });
 
-    redirect(`/dashboard/professor/projects/${projectId}/kanban`);
+    return { success: true };
 }
 
 export async function rejectStudentAction(formData: FormData) {
@@ -596,5 +596,5 @@ export async function rejectStudentAction(formData: FormData) {
     }
 
     // Recarga la página actual para mostrar el siguiente candidato
-    redirect(`/dashboard/professor/projects/${application.project.id}/applications`);
+    return { success: true };
 }

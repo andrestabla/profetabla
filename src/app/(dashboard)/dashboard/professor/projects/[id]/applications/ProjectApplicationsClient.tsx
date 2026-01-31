@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { User, CheckCircle2, XCircle, FileText, Calendar, ArrowRight } from 'lucide-react';
 import { acceptStudentActionV2, rejectStudentAction } from '@/app/actions/project-actions';
+import StatusModal from '@/components/StatusModal';
+import { useRouter } from 'next/navigation';
 
 // Tipado de la postulación
 type Application = {
@@ -21,11 +23,40 @@ export default function ProjectApplicationsClient({
     projectId: string,
     applications: Application[]
 }) {
+    const router = useRouter();
     const [selectedApp, setSelectedApp] = useState<Application | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Modal state
+    const [modalConfig, setModalConfig] = useState<{
+        isOpen: boolean;
+        type: 'success' | 'error' | 'warning';
+        title: string;
+        message: string;
+    }>({
+        isOpen: false,
+        type: 'success',
+        title: '',
+        message: ''
+    });
+
+    const closeModal = () => {
+        setModalConfig(prev => ({ ...prev, isOpen: false }));
+        router.refresh(); // Actualiza la lista para quitar al estudiante procesado
+        if (applications.length <= 1) {
+            setSelectedApp(null);
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto p-6">
+            <StatusModal
+                isOpen={modalConfig.isOpen}
+                onClose={closeModal}
+                type={modalConfig.type}
+                title={modalConfig.title}
+                message={modalConfig.message}
+            />
             <header className="mb-8">
                 <h1 className="text-3xl font-bold text-slate-800">Candidatos del Proyecto</h1>
                 <p className="text-slate-500 font-medium mt-1">Proyecto: <span className="text-blue-600">{projectTitle}</span></p>
@@ -94,8 +125,24 @@ export default function ProjectApplicationsClient({
                             <div className="flex gap-4 mt-8 pt-6 border-t border-slate-100">
                                 <form action={async (formData) => {
                                     setIsProcessing(true);
-                                    await rejectStudentAction(formData);
-                                    setIsProcessing(false);
+                                    try {
+                                        await rejectStudentAction(formData);
+                                        setModalConfig({
+                                            isOpen: true,
+                                            type: 'warning',
+                                            title: 'Solicitud Rechazada',
+                                            message: `Has rechazado la solicitud de ${selectedApp.student.name}. Se le enviará un correo notificándole.`
+                                        });
+                                    } catch {
+                                        setModalConfig({
+                                            isOpen: true,
+                                            type: 'error',
+                                            title: 'Error',
+                                            message: 'Hubo un error al procesar el rechazo.'
+                                        });
+                                    } finally {
+                                        setIsProcessing(false);
+                                    }
                                 }} className="flex-1">
                                     <input type="hidden" name="applicationId" value={selectedApp.id} />
                                     <button disabled={isProcessing} className="w-full flex items-center justify-center gap-2 py-3 bg-white border-2 border-red-100 text-red-600 font-bold rounded-xl hover:bg-red-50 hover:border-red-200 transition-all disabled:opacity-50">
@@ -108,9 +155,20 @@ export default function ProjectApplicationsClient({
                                     setIsProcessing(true);
                                     try {
                                         await acceptStudentActionV2(formData);
-                                        console.log("✅ [Client] acceptStudentAction completed");
-                                    } catch (e) {
-                                        console.error("❌ [Client] acceptStudentAction failed:", e);
+                                        setModalConfig({
+                                            isOpen: true,
+                                            type: 'success',
+                                            title: '¡Estudiante Aceptado!',
+                                            message: `${selectedApp.student.name} ya es parte del proyecto. Se ha habilitado el espacio de trabajo y enviado el correo de bienvenida.`
+                                        });
+                                    } catch {
+                                        console.error("❌ [Client] acceptStudentAction failed");
+                                        setModalConfig({
+                                            isOpen: true,
+                                            type: 'error',
+                                            title: 'Error de Servidor',
+                                            message: 'No pudimos procesar la aceptación en este momento.'
+                                        });
                                     } finally {
                                         setIsProcessing(false);
                                     }
