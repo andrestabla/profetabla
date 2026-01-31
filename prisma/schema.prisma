@@ -108,7 +108,7 @@ model ProjectApplication {
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
   project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  student    User              @relation("StudentApplications", fields: [studentId], references: [id])
+  student    User              @relation("StudentApplications", fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, studentId])
   @@index([status])
@@ -172,7 +172,7 @@ model ResourceInteraction {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   resource    Resource @relation(fields: [resourceId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, resourceId])
 }
@@ -188,7 +188,7 @@ model MentorshipSlot {
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
   booking    MentorshipBooking?
-  teacher    User               @relation(fields: [teacherId], references: [id])
+  teacher    User               @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 }
 
 model MentorshipBooking {
@@ -206,7 +206,7 @@ model MentorshipBooking {
   updatedAt   DateTime       @updatedAt
   project     Project?       @relation("ProjectMentorships", fields: [projectId], references: [id])
   slot        MentorshipSlot @relation(fields: [slotId], references: [id])
-  student     User           @relation(fields: [studentId], references: [id])
+  student     User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([projectId])
@@ -248,7 +248,7 @@ model Comment {
   learningObjectId String?
   authorId         String
   createdAt        DateTime        @default(now())
-  author           User            @relation(fields: [authorId], references: [id])
+  author           User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
   learningObject   LearningObject? @relation(fields: [learningObjectId], references: [id], onDelete: Cascade)
   task             Task?           @relation(fields: [taskId], references: [id], onDelete: Cascade)
   resourceId       String?
@@ -292,7 +292,7 @@ model Submission {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   assignment   Assignment @relation(fields: [assignmentId], references: [id])
-  student      User       @relation(fields: [studentId], references: [id])
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   rubricScores RubricScore[]
   teamId       String?
   team         Team?      @relation(fields: [teamId], references: [id])
@@ -334,7 +334,7 @@ model ActivityLog {
   description String?
   metadata    Json?
   createdAt   DateTime @default(now())
-  user        User?    @relation(fields: [userId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([action])
@@ -353,7 +353,7 @@ model LearningObject {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   comments    Comment[]
-  author      User           @relation(fields: [authorId], references: [id])
+  author      User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   items       ResourceItem[]
   projects    Project[]      @relation("ProjectLearningObjects")
 
@@ -384,7 +384,7 @@ model ItemInteraction {
   timeSpentSecs  Int          @default(0)
   lastAccessed   DateTime     @default(now())
   resourceItem   ResourceItem @relation(fields: [resourceItemId], references: [id])
-  user           User         @relation(fields: [userId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, resourceItemId])
 }

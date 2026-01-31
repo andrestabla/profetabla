@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Briefcase, GraduationCap, Globe, Heart, Edit2, Plus, ShieldCheck, X } from 'lucide-react';
+import { Briefcase, GraduationCap, Globe, Heart, Edit2, Plus, ShieldCheck, X, Trash2, AlertCircle } from 'lucide-react';
 import { updateBasicProfileAction, addExperienceAction, addEducationAction, addLanguageAction } from '@/app/actions/profile-actions';
+import { deleteAccountAction } from '@/app/actions/user-actions';
+import { signOut } from 'next-auth/react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function ProfilePageClient({ user }: { user: any }) {
@@ -11,6 +13,9 @@ export default function ProfilePageClient({ user }: { user: any }) {
     const [showEduModal, setShowEduModal] = useState(false);
     const [showLangModal, setShowLangModal] = useState(false);
     const [showPolicies, setShowPolicies] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmEmail, setConfirmEmail] = useState("");
 
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-6">
@@ -297,6 +302,94 @@ export default function ProfilePageClient({ user }: { user: any }) {
                                 </section>
 
                                 <button onClick={() => setShowPolicies(false)} className="w-full mt-8 py-3 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-black transition-all">Entendido</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* 5. ZONA DE PELIGRO - ELIMINAR CUENTA */}
+            <div className="bg-red-50/50 border border-red-100 rounded-2xl p-8 space-y-4">
+                <div className="flex items-center gap-3 text-red-600 mb-2">
+                    <AlertCircle className="w-6 h-6" />
+                    <h2 className="text-lg font-bold uppercase tracking-wider">Zona de Peligro</h2>
+                </div>
+                <p className="text-slate-600 text-sm">
+                    Al eliminar tu cuenta, todos tus datos personales, proyectos, tareas, comentarios y participaciones serán borrados permanentemente. Esta acción es <strong>irreversible</strong> y se realiza bajo el ejercicio de tu derecho al olvido según la normativa vigente.
+                </p>
+                <div className="pt-2">
+                    <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="bg-white border-2 border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-600 hover:text-white hover:border-red-600 transition-all active:scale-95 flex items-center gap-2"
+                    >
+                        <Trash2 className="w-5 h-5" /> Eliminar mi cuenta permanentemente
+                    </button>
+                </div>
+
+                {showDeleteModal && (
+                    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+                            <div className="bg-red-600 p-8 text-white text-center">
+                                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Trash2 className="w-8 h-8" />
+                                </div>
+                                <h3 className="text-2xl font-bold">¿Estás absolutamente seguro?</h3>
+                                <p className="text-red-100 text-sm mt-2 font-medium">Esta acción no se puede deshacer.</p>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-amber-800 text-xs leading-relaxed">
+                                    <p className="font-bold flex items-center gap-2 mb-1">
+                                        <AlertCircle className="w-4 h-4" /> RECUERDA:
+                                    </p>
+                                    Se perderá el acceso a todos los proyectos inscritos, certificados generados y registros académicos vinculados a este correo.
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-sm font-medium text-slate-700 block text-center">
+                                        Para confirmar, escribe tu correo electrónico abajo:
+                                        <br />
+                                        <span className="font-bold text-slate-400 mt-1 inline-block">{user.email}</span>
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={confirmEmail}
+                                        onChange={(e) => setConfirmEmail(e.target.value)}
+                                        placeholder="Escribe tu correo aquí"
+                                        className="w-full p-3 border-2 border-slate-100 rounded-xl focus:border-red-500 outline-none transition-all text-center font-medium"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        disabled={confirmEmail !== user.email || isDeleting}
+                                        onClick={async () => {
+                                            setIsDeleting(true);
+                                            try {
+                                                await deleteAccountAction();
+                                                await signOut({ callbackUrl: "/" });
+                                            } catch (error) {
+                                                console.error("Error al eliminar cuenta:", error);
+                                                setIsDeleting(false);
+                                                alert("Hubo un error al intentar eliminar la cuenta.");
+                                            }
+                                        }}
+                                        className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl shadow-lg disabled:opacity-30 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {isDeleting ? (
+                                            <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            "Eliminar permanentemente"
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowDeleteModal(false); setConfirmEmail(""); }}
+                                        disabled={isDeleting}
+                                        className="w-full py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-2xl transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

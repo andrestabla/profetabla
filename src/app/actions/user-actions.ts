@@ -22,3 +22,17 @@ export async function acceptPoliciesAction() {
     revalidatePath('/', 'layout');
     return { success: true };
 }
+
+export async function deleteAccountAction() {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        throw new Error("No estás autenticado");
+    }
+
+    await prisma.user.delete({
+        where: { id: session.user.id }
+    });
+
+    revalidatePath('/', 'layout');
+    return { success: true };
+}
