@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
         if (userRole === 'STUDENT') {
             const studentProjects = await prisma.project.findMany({
-                where: { studentId: userId },
+                where: { students: { some: { id: userId } } },
                 select: { id: true }
             });
             studentProjectIds = studentProjects.map(p => p.id);
