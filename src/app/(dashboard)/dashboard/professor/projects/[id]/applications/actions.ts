@@ -78,9 +78,10 @@ export async function acceptStudentAction(formData: FormData) {
                         <br/>
                         <br/>
                         <br/>
-                        <a href="${process.env.NEXTAUTH_URL || 'https://profetabla.com'}/dashboard/market?currentFilter=MINE" 
+                        <br/>
+                        <a href="${process.env.NEXTAUTH_URL || 'https://profetabla.com'}/dashboard" 
                            style="background-color: #2563EB; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;">
-                           Ir a Mis Proyectos
+                           Ir al Dashboard
                         </a>
                     </div>
                 `
