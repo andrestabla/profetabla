@@ -9,6 +9,7 @@ import { MoreVertical, Plus, Calendar, Flag, CheckCircle, Sparkles, Loader2, Sav
 import { useRouter } from 'next/navigation';
 import { TaskModal } from './TaskModal';
 import { generateTasksFromProject } from '@/app/actions/kanban-actions';
+import { CreateTaskModal } from './CreateTaskModal';
 
 type Task = {
     id: string;
@@ -45,6 +46,8 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
     const [isGenerating, setIsGenerating] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [createModalStatus, setCreateModalStatus] = useState<Task['status']>('TODO');
     const [columns] = useState(COLUMNS);
 
     const currentProject = allProjects?.find(p => p.id === projectId);
@@ -158,17 +161,22 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
         }
     };
 
-    const addTask = async (status: Task['status']) => {
-        const title = prompt("Título de la tarea:");
-        if (!title) return;
+    const addTask = (status: Task['status']) => {
+        setCreateModalStatus(status);
+        setIsCreateModalOpen(true);
+    };
 
+    const handleConfirmCreate = async (data: { title: string, description: string, priority: 'LOW' | 'MEDIUM' | 'HIGH' }) => {
+        const { title, description, priority } = data;
+        const status = createModalStatus;
         const tempId = crypto.randomUUID();
+
         const newTask = {
             id: tempId,
             title,
-            description: null,
+            description,
             status,
-            priority: 'MEDIUM',
+            priority,
             dueDate: null,
             deliverable: null,
             evaluationCriteria: null,
@@ -178,20 +186,22 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
             comments: [],
             tags: []
         } as Task;
-        setTasks([...tasks, newTask]);
+
+        setTasks(prev => [...prev, newTask]);
 
         try {
-            // Create immediately (safe default behavior)
             const res = await fetch('/api/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, status, projectId, priority: 'MEDIUM' })
+                body: JSON.stringify({
+                    title,
+                    description,
+                    status,
+                    projectId,
+                    priority
+                })
             });
             const savedTask = await res.json();
-            // Update ID from server
-            // Append to tasks AND originalTasks (since it's saved)
-            // But wait, if we are in EditMode, adding a task might be confusing if we don't save it
-            // Let's assume adding tasks works regardless of edit mode and persists immediately.
             setTasks(prev => [...prev.filter(t => t.id !== tempId), savedTask]);
             setOriginalTasks(prev => [...prev, savedTask]);
         } catch (e) {
@@ -390,6 +400,13 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
                     onUpdate={handleTaskUpdate}
                 />
             )}
+
+            <CreateTaskModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onConfirm={handleConfirmCreate}
+                initialStatus={createModalStatus}
+            />
         </div>
     );
 }
