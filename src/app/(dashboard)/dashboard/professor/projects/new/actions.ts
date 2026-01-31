@@ -24,9 +24,9 @@ export async function createProjectAction(formData: FormData) {
     const aiTasksJson = formData.get('aiTasks') as string;
     const aiResourcesJson = formData.get('aiResources') as string;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const initialTasks = aiTasksJson ? JSON.parse(aiTasksJson) : [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const initialResources = aiResourcesJson ? JSON.parse(aiResourcesJson) : [];
 
     // 2. Transacción Atómica: Crea Proyecto + Tareas + Recursos
@@ -41,7 +41,7 @@ export async function createProjectAction(formData: FormData) {
                 objectives,
                 deliverables,
                 status: 'OPEN',
-                teacherId: session.user.id
+                teachers: { connect: { id: session.user.id } }
             }
         });
 

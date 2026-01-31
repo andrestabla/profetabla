@@ -22,7 +22,7 @@ export async function POST(request: Request) {
                 objectives,
                 deliverables,
                 status: 'OPEN',
-                teacherId: session.user.id
+                teachers: { connect: { id: session.user.id } }
             }
         });
 
