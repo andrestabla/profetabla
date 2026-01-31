@@ -132,9 +132,12 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                             )}
                         </div>
                         <div className="flex items-center gap-3">
-                            <button className="flex items-center gap-2 px-4 py-2 text-slate-600 font-bold bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all text-xs">
+                            <Link
+                                href={`/dashboard/professor/projects/${project.id}/edit`}
+                                className="flex items-center gap-2 px-4 py-2 text-slate-600 font-bold bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all text-xs"
+                            >
                                 <Edit3 className="w-4 h-4" /> Editar Metadatos
-                            </button>
+                            </Link>
                             {project.googleDriveFolderId && (
                                 <a
                                     href={`https://drive.google.com/drive/folders/${project.googleDriveFolderId}`}
