@@ -47,8 +47,10 @@ export async function PATCH(
             },
         });
 
-        // Sync Assignment if deliverable is set
-        if (body.deliverable && typeof body.deliverable === 'string' && body.deliverable.trim().length > 0) {
+        // Sync Assignment if the task HAS a deliverable
+        const taskDeliverable = body.deliverable !== undefined ? body.deliverable : task.deliverable;
+
+        if (taskDeliverable && typeof taskDeliverable === 'string' && taskDeliverable.trim().length > 0) {
             await prisma.assignment.upsert({
                 where: { taskId: id },
                 create: {
