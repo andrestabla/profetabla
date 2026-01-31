@@ -38,8 +38,7 @@ export async function GET(request: Request) {
         };
 
         if (!isTeacher) {
-            // Student Logic
-            // 1. Check if student belongs to a team in this project
+            // Student Logic: See mandatory tasks OR tasks assigned to them/their team
             const userTeam = await prisma.team.findFirst({
                 where: {
                     projectId,
@@ -47,27 +46,43 @@ export async function GET(request: Request) {
                 }
             });
 
+            whereClause = {
+                projectId,
+                OR: [
+                    { isMandatory: true }, // Mandatory tasks are visible to everyone in the project
+                    { assignees: { some: { id: session.user.id } } }
+                ]
+            };
+
             if (userTeam) {
-                // If in a team, see tasks for that team OR tasks assigned specifically to them (hybrid)
-                whereClause = {
-                    projectId,
-                    OR: [
-                        { teamId: userTeam.id },
-                        { assignees: { some: { id: session.user.id } } }
-                    ]
-                };
-            } else {
-                // If individual, only see their own tasks
-                whereClause.assignees = { some: { id: session.user.id } };
+                (whereClause.OR as Array<Record<string, unknown>>).push({ teamId: userTeam.id });
             }
         }
 
         const tasks = await prisma.task.findMany({
             where: whereClause,
-            include: { comments: true, tags: true, assignees: true, team: true },
+            include: {
+                comments: { include: { author: true } },
+                tags: true,
+                assignees: true,
+                team: true,
+                assignment: { select: { id: true } }
+            },
             orderBy: { createdAt: 'desc' }
         });
-        return NextResponse.json(tasks);
+
+        // Map author to user for frontend compatibility
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mappedTasks = (tasks as any[]).map(task => ({
+            ...task,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            comments: (task.comments || []).map((comment: any) => ({
+                ...comment,
+                user: comment.author // Frontend expects 'user'
+            }))
+        }));
+
+        return NextResponse.json(mappedTasks);
     } catch {
         return NextResponse.json({ error: 'Error fetching tasks' }, { status: 500 });
     }
@@ -105,6 +120,12 @@ export async function POST(request: Request) {
             }
         });
 
+        const isTeacher = session.user.role === 'ADMIN' || (await prisma.project.findFirst({
+            where: { id: pid, teachers: { some: { id: session.user.id } } }
+        }));
+
+        const isMandatory = !!isTeacher;
+
         const task = await prisma.task.create({
             data: {
                 title,
@@ -115,6 +136,7 @@ export async function POST(request: Request) {
                 status: status || 'TODO',
                 deliverable,
                 evaluationCriteria,
+                isMandatory,
                 // Assign to Team if exists
                 ...(userTeam ? {
                     team: { connect: { id: userTeam.id } }
@@ -123,8 +145,8 @@ export async function POST(request: Request) {
                 assignees: {
                     connect: { id: session.user.id }
                 },
-                // If there is a deliverable, create the linked Assignment immediately
-                ...(deliverable ? {
+                // Only create linked Assignment if mandatory (teacher/admin)
+                ...(isMandatory && deliverable ? {
                     assignment: {
                         create: {
                             title: `Entrega: ${title}`,
@@ -132,11 +154,6 @@ export async function POST(request: Request) {
                             dueDate: dueDate ? new Date(dueDate) : undefined,
                             evaluationCriteria: evaluationCriteria,
                             description: `Entrega asociada a la tarea: ${title}. ${description || ''}`,
-                            // Also link Assignment to Team if applicable? 
-                            // Only if Submission logic uses it. For now, Assignment is usually Project-wide or Task-specific. 
-                            // The Schema has `teamId` on Submission, not Assignment (usually). 
-                            // Wait, Schema check: Assignment usually doesn't have teamId unless edits were made. 
-                            // Just keeping standard assignment creation for now.
                         }
                     }
                 } : {})

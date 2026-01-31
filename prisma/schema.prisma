@@ -223,6 +223,7 @@ model Task {
   dueDate            DateTime?
   isApproved         Boolean    @default(false)
   approvalNotes      String?
+  isMandatory        Boolean    @default(false)
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
   deliverable        String?

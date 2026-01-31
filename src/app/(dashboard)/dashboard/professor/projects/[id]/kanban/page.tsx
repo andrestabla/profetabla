@@ -61,7 +61,7 @@ export default async function ProfessorProjectKanbanPage(props: Props) {
                 </div>
             </div>
 
-            <KanbanBoard projectId={project.id} />
+            <KanbanBoard projectId={project.id} userRole={session.user.role} />
         </div>
     );
 }

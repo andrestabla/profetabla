@@ -30,7 +30,7 @@ export default async function StudentKanbanPage({ params }: { params: Promise<{ 
             </header>
 
             <div className="h-[calc(100%-5rem)]">
-                <KanbanBoard projectId={project.id} />
+                <KanbanBoard projectId={project.id} userRole={session.user.role} />
             </div>
         </div>
     );

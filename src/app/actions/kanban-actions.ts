@@ -120,6 +120,7 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
                     evaluationCriteria: t.evaluationCriteria || null,
                     status: 'TODO',
                     projectId: projectId,
+                    isMandatory: true,
                     // If deliverable exists, create assignment
                     ...(t.deliverable ? {
                         assignment: {

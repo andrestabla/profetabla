@@ -6,7 +6,8 @@ import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AssignmentsPage() {
+export default async function AssignmentsPage({ searchParams }: { searchParams: Promise<{ selectedId?: string }> }) {
+    const { selectedId } = await searchParams;
     const session = await getServerSession(authOptions);
     if (!session) redirect('/auth/login');
 
@@ -25,7 +26,7 @@ export default async function AssignmentsPage() {
         include: {
             project: { select: { id: true, title: true } },
             submissions: {
-                where: { studentId: session.user.id }, // Only show own submissions even for teacher in this view? Or maybe all? For now, stick to simple valid query.
+                where: { studentId: session.user.id },
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 include: { rubricScores: true }
@@ -41,5 +42,5 @@ export default async function AssignmentsPage() {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return <AssignmentsTimelineClient assignments={assignments as any} />;
+    return <AssignmentsTimelineClient assignments={assignments as any} initialSelectedId={selectedId} />;
 }

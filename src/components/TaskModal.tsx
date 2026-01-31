@@ -22,6 +22,8 @@ interface Task {
     evaluationCriteria: string | null;
     isApproved: boolean;
     approvalNotes: string | null;
+    isMandatory: boolean;
+    assignment?: { id: string } | null;
     comments: Comment[];
     tags: { id: string; name: string; color: string }[];
 }
@@ -29,13 +31,14 @@ interface Task {
 interface TaskModalProps {
     task: Task;
     projectId?: string;
+    userRole: string;
     isOpen: boolean;
     onClose: () => void;
     /* eslint-disable @typescript-eslint/no-explicit-any */
     onUpdate: (updatedTask: any) => void;
 }
 
-export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskModalProps) {
+export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate }: TaskModalProps) {
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || '');
     const [priority, setPriority] = useState(task.priority);
@@ -46,6 +49,10 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
     const [newComment, setNewComment] = useState('');
     const [comments, setComments] = useState<Comment[]>(task.comments || []);
     const [isApproved, setIsApproved] = useState(task.isApproved);
+
+    const isStudent = userRole === 'STUDENT';
+    const isMandatory = task.isMandatory;
+    const canEditStructural = !isStudent || !isMandatory;
 
     if (!isOpen) return null;
 
@@ -134,7 +141,8 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                                 type="text"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className="text-3xl font-bold text-slate-800 bg-transparent border-none focus:ring-0 p-0 w-full placeholder:text-slate-300 leading-tight"
+                                disabled={!canEditStructural}
+                                className="text-3xl font-bold text-slate-800 bg-transparent border-none focus:ring-0 p-0 w-full placeholder:text-slate-300 leading-tight disabled:opacity-100"
                                 placeholder="Título de la Tarea"
                             />
                         </div>
@@ -150,7 +158,8 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                             <textarea
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                className="w-full text-slate-600 text-base bg-transparent border-none focus:ring-0 outline-none resize-none min-h-[120px]"
+                                disabled={!canEditStructural}
+                                className="w-full text-slate-600 text-base bg-transparent border-none focus:ring-0 outline-none resize-none min-h-[120px] disabled:opacity-100"
                                 placeholder="Añade una descripción detallada..."
                             />
                         </div>
@@ -228,7 +237,8 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                                     <select
                                         value={priority}
                                         onChange={(e) => setPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')}
-                                        className="w-full bg-slate-50 border border-slate-200 border-solid text-slate-700 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none"
+                                        disabled={!canEditStructural}
+                                        className="w-full bg-slate-50 border border-slate-200 border-solid text-slate-700 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none disabled:opacity-70"
                                     >
                                         <option value="LOW">Baja</option>
                                         <option value="MEDIUM">Media</option>
@@ -244,7 +254,8 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                                         type="date"
                                         value={dueDate}
                                         onChange={(e) => setDueDate(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 border-solid text-slate-700 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500"
+                                        disabled={!canEditStructural}
+                                        className="w-full bg-slate-50 border border-slate-200 border-solid text-slate-700 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70"
                                     />
                                 </div>
                             </div>
@@ -260,8 +271,9 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                                 type="text"
                                 value={deliverable}
                                 onChange={(e) => setDeliverable(e.target.value)}
+                                disabled={!canEditStructural}
                                 placeholder="¿Qué se debe entregar?"
-                                className="w-full bg-slate-50 border border-slate-200 border-solid text-slate-700 text-sm rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className="w-full bg-slate-50 border border-slate-200 border-solid text-slate-700 text-sm rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-70"
                             />
                             <p className="text-[10px] text-slate-400 italic">Define el producto tangible de esta tarea.</p>
                         </div>
@@ -275,7 +287,8 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                             <textarea
                                 value={evaluationCriteria}
                                 onChange={(e) => setEvaluationCriteria(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 border-solid text-slate-600 text-sm rounded-lg p-3 focus:ring-2 focus:ring-teal-500 outline-none resize-none h-24"
+                                disabled={!canEditStructural}
+                                className="w-full bg-slate-50 border border-slate-200 border-solid text-slate-600 text-sm rounded-lg p-3 focus:ring-2 focus:ring-teal-500 outline-none resize-none h-24 disabled:opacity-70"
                                 placeholder="- Debe cumplir..."
                             />
                         </div>
@@ -307,19 +320,32 @@ export function TaskModal({ task, projectId, isOpen, onClose, onUpdate }: TaskMo
                 </div>
 
                 {/* Footer (Sticky Bottom) */}
-                <div className="p-6 border-t border-slate-100 border-solid bg-white flex justify-end gap-3 rounded-b-2xl sticky bottom-0 z-10">
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-2.5 rounded-lg text-slate-500 font-medium hover:bg-slate-50 transition-colors border-none bg-transparent"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all border-none"
-                    >
-                        Guardar Cambios
-                    </button>
+                <div className="p-6 border-t border-slate-100 border-solid bg-white flex items-center justify-between rounded-b-2xl sticky bottom-0 z-10 font-[Inter]">
+                    <div className="flex items-center gap-3">
+                        {isStudent && task.assignment?.id && (
+                            <Link
+                                href={`/dashboard/assignments?selectedId=${task.assignment.id}`}
+                                className="px-6 py-2.5 bg-indigo-50 text-indigo-700 rounded-lg font-bold hover:bg-indigo-100 transition-all flex items-center gap-2"
+                            >
+                                <Send className="w-4 h-4" /> Realizar Entrega
+                            </Link>
+                        )}
+                    </div>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onClose}
+                            className="px-6 py-2.5 rounded-lg text-slate-500 font-medium hover:bg-slate-50 transition-colors border-none bg-transparent"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={!canEditStructural}
+                            className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all border-none disabled:opacity-40"
+                        >
+                            Guardar Cambios
+                        </button>
+                    </div>
                 </div>
 
             </div>

@@ -20,6 +20,8 @@ type Task = {
     evaluationCriteria: string | null;
     isApproved: boolean;
     approvalNotes: string | null;
+    isMandatory: boolean;
+    assignment?: { id: string } | null;
     /* eslint-disable @typescript-eslint/no-explicit-any */
     comments: any[];
     tags: any[];
@@ -32,7 +34,7 @@ const COLUMNS = [
     { id: 'DONE', title: 'Terminado', color: 'bg-green-50 border-green-100' },
 ];
 
-export function KanbanBoard({ projectId }: { projectId: string }) {
+export function KanbanBoard({ projectId, userRole }: { projectId: string; userRole: string }) {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [originalTasks, setOriginalTasks] = useState<Task[]>([]);
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -167,6 +169,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
             evaluationCriteria: null,
             isApproved: false,
             approvalNotes: null,
+            isMandatory: false,
             comments: [],
             tags: []
         } as Task;
@@ -181,7 +184,6 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
             });
             const savedTask = await res.json();
             // Update ID from server
-            const updatedList = tasks.map(t => t.id === tempId ? savedTask : t);
             // Append to tasks AND originalTasks (since it's saved)
             // But wait, if we are in EditMode, adding a task might be confusing if we don't save it
             // Let's assume adding tasks works regardless of edit mode and persists immediately.
@@ -257,7 +259,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                                         {tasks.filter(t => t.status === col.id).length}
                                     </span>
                                 </div>
-                                {col.id === 'TODO' && (
+                                {col.id === 'TODO' && (userRole === 'TEACHER' || userRole === 'ADMIN') && (
                                     <button
                                         onClick={async () => {
                                             if (!confirm("¿Generar tareas automáticas basadas en el proyecto via IA?")) return;
@@ -338,6 +340,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                     key={selectedTask.id}
                     task={selectedTask}
                     projectId={projectId}
+                    userRole={userRole}
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     onUpdate={handleTaskUpdate}
@@ -376,9 +379,20 @@ function SortableTask({ task, isEditMode, onClick, onDelete }: { task: Task; isE
                 "bg-white p-4 rounded-lg shadow-sm border border-slate-100 cursor-pointer hover:shadow-md transition-shadow group relative select-none",
                 isDragging && "opacity-50",
                 task.isApproved && "border-l-4 border-l-green-500",
+                task.isMandatory && !task.isApproved && "border-l-4 border-l-blue-500",
                 isEditMode && "cursor-grab"
             )}
         >
+            {task.isMandatory && (
+                <div className="absolute -top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                    OBLIGATORIA
+                </div>
+            )}
+            {!task.isMandatory && (
+                <div className="absolute -top-2 left-2 bg-slate-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                    AUTOGESTIÓN
+                </div>
+            )}
             <div className="flex justify-between items-start">
                 <h4 className="font-medium text-slate-800 text-sm line-clamp-2">{task.title}</h4>
                 {task.priority === 'HIGH' && <Flag className="w-3 h-3 text-red-500 fill-red-500 flex-shrink-0" />}

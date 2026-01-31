@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { submitAssignmentAction } from './actions';
 import { Upload, X, FileText, CheckCircle, Clock, Paperclip, Loader2 } from 'lucide-react';
 import StatusModal from '@/components/StatusModal';
@@ -24,11 +24,21 @@ type Assignment = {
     rubricItems: any[];
 };
 
-export default function AssignmentsTimelineClient({ assignments }: { assignments: Assignment[] }) {
+export default function AssignmentsTimelineClient({ assignments, initialSelectedId }: { assignments: Assignment[], initialSelectedId?: string }) {
     const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [statusModal, setStatusModal] = useState<{ type: 'success' | 'error', title: string, message: string } | null>(null);
+
+    useEffect(() => {
+        if (initialSelectedId) {
+            const found = assignments.find(a => a.id === initialSelectedId);
+            if (found) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setSelectedAssignment(found);
+            }
+        }
+    }, [initialSelectedId, assignments]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
