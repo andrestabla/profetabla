@@ -193,6 +193,7 @@ export async function applyToProjectAction(projectId: string) {
 
         const mainTeacher = project?.teachers[0];
 
+        // 1. Send Email to Teacher
         if (mainTeacher && mainTeacher.email) {
             await sendEmail({
                 to: mainTeacher.email,
@@ -209,6 +210,28 @@ export async function applyToProjectAction(projectId: string) {
                 `
             });
         }
+
+        // 2. Send Confirmation Email to Student (NEW)
+        if (session.user.email && project) {
+            await sendEmail({
+                to: session.user.email,
+                subject: `Solicitud Recibida - ${project.title}`,
+                html: `
+        <div style="font-family: sans-serif; color: #333;">
+            <h2>¡Solicitud Enviada!</h2>
+            <p>Hola <strong>${session.user.name}</strong>,</p>
+            <p>Hemos recibido tu solicitud para unirte al proyecto:</p>
+            <h3 style="color: #2563EB;">${project.title}</h3>
+            <p>El profesor líder revisará tu perfil y recibirás una notificación cuando tu solicitud sea procesada.</p>
+            <p>Puedes ver el estado de tus solicitudes en tu Dashboard.</p>
+            <br />
+            <a href="${process.env.NEXTAUTH_URL}/dashboard" style="background-color: #64748B; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;">Ir a mi Dashboard</a>
+        </div>
+                `
+            });
+            console.log(`✉️ [Server] Confirmation email sent to student: ${session.user.email}`);
+        }
+
     } catch (emailError) {
         console.error("Error sending notification email:", emailError);
         // Don't fail the action if email fails
