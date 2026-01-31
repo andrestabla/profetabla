@@ -42,8 +42,8 @@ export default function ProjectApplicationsClient({
                             key={app.id}
                             onClick={() => setSelectedApp(app)}
                             className={`w-full text-left p-4 rounded-xl border transition-all ${selectedApp?.id === app.id
-                                    ? 'bg-blue-50 border-blue-500 shadow-md'
-                                    : 'bg-white border-slate-200 hover:border-blue-300 shadow-sm'
+                                ? 'bg-blue-50 border-blue-500 shadow-md'
+                                : 'bg-white border-slate-200 hover:border-blue-300 shadow-sm'
                                 }`}
                         >
                             <div className="flex items-center gap-3">
@@ -104,8 +104,16 @@ export default function ProjectApplicationsClient({
                                 </form>
 
                                 <form action={async (formData) => {
+                                    console.log("🖱️ [Client] Accept button clicked");
                                     setIsProcessing(true);
-                                    await acceptStudentAction(formData);
+                                    try {
+                                        await acceptStudentAction(formData);
+                                        console.log("✅ [Client] acceptStudentAction completed");
+                                    } catch (e) {
+                                        console.error("❌ [Client] acceptStudentAction failed:", e);
+                                    } finally {
+                                        setIsProcessing(false);
+                                    }
                                 }} className="flex-1">
                                     <input type="hidden" name="applicationId" value={selectedApp.id} />
                                     <input type="hidden" name="projectId" value={projectId} />
