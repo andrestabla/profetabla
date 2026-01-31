@@ -40,6 +40,7 @@ export function Sidebar({ config }: { config?: any }) {
 
     const isActive = (path: string) => {
         if (path === '/dashboard') return pathname === '/dashboard';
+        if (path === '/dashboard/professor') return pathname === '/dashboard/professor';
         return pathname === path || pathname?.startsWith(path + '/');
     };
 
