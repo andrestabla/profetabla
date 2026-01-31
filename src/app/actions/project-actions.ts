@@ -399,59 +399,58 @@ export async function addStudentByEmailAction(projectId: string, email: string) 
     revalidatePath(`/dashboard/professor/projects/${projectId}`);
 }
 
-export async function acceptStudentActionV2(formData: FormData) {
-    const applicationId = formData.get('applicationId') as string;
-    const projectId = formData.get('projectId') as string;
-    const studentId = formData.get('studentId') as string;
-
+/**
+ * Shared logic for accepting a student application.
+ * Used by both Server Actions and API Routes.
+ */
+export async function processAcceptStudent({
+    applicationId,
+    projectId,
+    studentId,
+    professorEmail
+}: {
+    applicationId: string;
+    projectId: string;
+    studentId: string;
+    professorEmail?: string | null;
+}) {
     // LOG START
     await prisma.activityLog.create({
         data: {
-            action: 'ACCEPT_STUDENT_V2_START',
-            description: `V2: Starting acceptance for student ${studentId} in project ${projectId}`,
+            action: 'ACCEPT_STUDENT_PROCESS_START',
+            description: `Processing acceptance for student ${studentId} in project ${projectId}`,
             metadata: { applicationId, projectId, studentId }
         }
     });
 
-    console.log(`🚀 [Action V2] Accepting Student: App=${applicationId}, Project=${projectId}, Student=${studentId}`);
-
     // Fetch necessary data for email
-    const [student, project, session] = await Promise.all([
+    const [student, project] = await Promise.all([
         prisma.user.findUnique({ where: { id: studentId }, select: { email: true, name: true } }),
-        prisma.project.findUnique({ where: { id: projectId }, select: { title: true } }),
-        getServerSession(authOptions)
+        prisma.project.findUnique({ where: { id: projectId }, select: { title: true } })
     ]);
 
     if (!student || !project) {
-        await prisma.activityLog.create({
-            data: {
-                action: 'ACCEPT_STUDENT_ERROR',
-                description: 'Student or Project not found',
-                metadata: { studentId, projectId, foundStudent: !!student, foundProject: !!project }
-            }
-        });
-        console.error("❌ [Action] Student or Project not found for email");
+        throw new Error("Student or Project not found");
     }
 
-    // 1. Iniciar una transacción de Prisma
+    // 1. Database Transaction
     await prisma.$transaction(async (tx) => {
-        // A. Actualizar la postulación seleccionada a ACCEPTED
+        // A. Update application
         await tx.projectApplication.update({
             where: { id: applicationId },
             data: { status: 'ACCEPTED' },
         });
 
+        // B. Connect student and update project status
         await tx.project.update({
             where: { id: projectId },
             data: {
-                students: {
-                    connect: { id: studentId }
-                },
+                students: { connect: { id: studentId } },
                 status: 'IN_PROGRESS'
             },
         });
 
-        // D. Create Task
+        // C. Create Initial Task if none exist
         const existingTasks = await tx.task.count({ where: { projectId } });
         if (existingTasks === 0) {
             await tx.task.create({
@@ -473,18 +472,10 @@ export async function acceptStudentActionV2(formData: FormData) {
         });
     });
 
-    // Send Email Notification
-    if (student?.email && project?.title) {
+    // 2. Send Emails
+    if (student.email && project.title) {
         try {
-            await prisma.activityLog.create({
-                data: {
-                    action: 'ACCEPT_STUDENT_EMAIL_ATTEMPT',
-                    description: `Sending email to ${student.email}`,
-                    metadata: { studentEmail: student.email }
-                }
-            });
-
-            // 1. Email to Student
+            // Email to Student
             const emailResult = await sendEmail({
                 to: student.email,
                 subject: `¡Has sido aceptado! - ${project.title}`,
@@ -507,14 +498,14 @@ export async function acceptStudentActionV2(formData: FormData) {
                     action: 'ACCEPT_STUDENT_EMAIL_RESULT',
                     description: emailResult.success ? 'Success' : 'Failed',
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    metadata: emailResult as any
+                    metadata: { type: 'STUDENT', ...emailResult } as any
                 }
             });
 
-            // 2. Email Copy to Professor
-            if (session?.user?.email) {
+            // Email Copy to Professor
+            if (professorEmail) {
                 await sendEmail({
-                    to: session.user.email,
+                    to: professorEmail,
                     subject: `[Copia] Aceptaste a ${student.name} en ${project.title}`,
                     html: `
                         <div style="font-family: sans-serif; color: #555;">
@@ -525,25 +516,34 @@ export async function acceptStudentActionV2(formData: FormData) {
             }
 
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error("❌ [Email Error] Failed to send acceptance email:", error);
+            const errMsg = error instanceof Error ? error.message : String(error);
             await prisma.activityLog.create({
                 data: {
                     action: 'ACCEPT_STUDENT_EMAIL_EXCEPTION',
-                    description: errorMessage,
-                    metadata: { error: errorMessage }
+                    description: errMsg,
+                    metadata: { error: errMsg }
                 }
             });
-            console.error("❌ [Email Error] Failed to send acceptance email:", error);
         }
-    } else {
-        await prisma.activityLog.create({
-            data: {
-                action: 'ACCEPT_STUDENT_EMAIL_SKIPPED',
-                description: 'Missing email or title',
-                metadata: { studentEmail: student?.email, projectTitle: project?.title }
-            }
-        });
     }
+
+    return { success: true };
+}
+
+export async function acceptStudentActionV2(formData: FormData) {
+    const applicationId = formData.get('applicationId') as string;
+    const projectId = formData.get('projectId') as string;
+    const studentId = formData.get('studentId') as string;
+
+    const session = await getServerSession(authOptions);
+
+    await processAcceptStudent({
+        applicationId,
+        projectId,
+        studentId,
+        professorEmail: session?.user?.email
+    });
 
     redirect(`/dashboard/professor/projects/${projectId}/kanban`);
 }

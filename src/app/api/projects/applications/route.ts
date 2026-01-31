@@ -39,28 +39,26 @@ export async function POST(request: Request) {
 
         const { applicationId, action } = await request.json(); // action: 'ACCEPT' | 'REJECT'
 
-        const app = await prisma.projectApplication.findUnique({ where: { id: applicationId }, include: { project: true } });
+        const app = await prisma.projectApplication.findUnique({
+            where: { id: applicationId },
+            include: { project: true }
+        });
         if (!app) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-        // Update Application Status
-        const status = action === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED';
-        await prisma.projectApplication.update({
-            where: { id: applicationId },
-            data: { status }
-        });
-
         if (action === 'ACCEPT') {
-            // Assign student to project and set to IN_PROGRESS
-            await prisma.project.update({
-                where: { id: app.projectId },
-                data: {
-                    students: { connect: { id: app.studentId } },
-                    status: 'IN_PROGRESS'
-                }
+            const { processAcceptStudent } = await import('@/app/actions/project-actions');
+            await processAcceptStudent({
+                applicationId: app.id,
+                projectId: app.projectId,
+                studentId: app.studentId,
+                professorEmail: session.user.email
             });
-
-            // Generate Project Workspace (Initial Tasks, Resources clone if needed)
-            // For MVP, just assigning is enough to activate the workspace view for student.
+        } else {
+            // Reject logic remains simple for now or could also be extracted
+            await prisma.projectApplication.update({
+                where: { id: applicationId },
+                data: { status: 'REJECTED' }
+            });
         }
 
         return NextResponse.json({ success: true });
