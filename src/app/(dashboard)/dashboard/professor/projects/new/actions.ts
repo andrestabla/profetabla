@@ -24,9 +24,9 @@ export async function createProjectAction(formData: FormData) {
     const aiTasksJson = formData.get('aiTasks') as string;
     const aiResourcesJson = formData.get('aiResources') as string;
 
-     
+
     const initialTasks = aiTasksJson ? JSON.parse(aiTasksJson) : [];
-     
+
     const initialResources = aiResourcesJson ? JSON.parse(aiResourcesJson) : [];
 
     // 2. Transacción Atómica: Crea Proyecto + Tareas + Recursos
@@ -41,7 +41,8 @@ export async function createProjectAction(formData: FormData) {
                 objectives,
                 deliverables,
                 status: 'OPEN',
-                teachers: { connect: { id: session.user.id } }
+                teachers: { connect: { id: session.user.id } },
+                isGroup: formData.get('isGroup') === 'on'
             }
         });
 

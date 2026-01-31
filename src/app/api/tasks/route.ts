@@ -10,14 +10,37 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
 
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (!projectId) {
         return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
     try {
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            select: { isGroup: true }
+        });
+
+        if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+
+        // If isGroup is FALSE (Individual), strictly filter tasks assigned to the current user
+        // If isGroup is TRUE (Group), show all tasks for the project
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const whereClause: any = {
+            projectId
+        };
+
+        if (!project.isGroup) {
+            whereClause.assignees = { some: { id: session.user.id } };
+        }
+
         const tasks = await prisma.task.findMany({
-            where: { projectId },
-            include: { comments: true, tags: true },
+            where: whereClause,
+            include: { comments: true, tags: true, assignees: true },
             orderBy: { createdAt: 'desc' }
         });
         return NextResponse.json(tasks);
@@ -60,6 +83,10 @@ export async function POST(request: Request) {
                 status: status || 'TODO',
                 deliverable,
                 evaluationCriteria,
+                // Automatically assign the creator to the task
+                assignees: {
+                    connect: { id: session.user.id }
+                },
                 // If there is a deliverable, create the linked Assignment immediately
                 ...(deliverable ? {
                     assignment: {

@@ -16,6 +16,8 @@ export async function acceptStudentAction(formData: FormData) {
             data: { status: 'ACCEPTED' },
         });
 
+        console.log(`📧 [Simulated Email] To Student (${studentId}): "Your application has been ACCEPTED for project ${projectId}. Welcome!"`);
+
         // B. (REMOVED) Previously we rejected all other applications. 
         // With M-N support, we allow multiple students to be accepted. 
         // The professor can manually reject others if needed.
@@ -63,5 +65,10 @@ export async function rejectStudentAction(formData: FormData) {
     });
 
     // Recarga la página actual para mostrar el siguiente candidato
-    redirect(`/dashboard/professor/projects/${(await prisma.projectApplication.findUnique({ where: { id: applicationId } }))?.projectId}/applications`);
+    const application = await prisma.projectApplication.findUnique({ where: { id: applicationId } });
+    if (application) {
+        redirect(`/dashboard/professor/projects/${application.projectId}/applications`);
+    } else {
+        redirect(`/dashboard/professor/projects`);
+    }
 }

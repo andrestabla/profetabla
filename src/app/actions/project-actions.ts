@@ -228,3 +228,89 @@ export async function deleteProjectAction(projectId: string) {
         return { success: false, error: "Error al eliminar el proyecto" };
     }
 }
+
+export async function generateAccessCodeAction(projectId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        throw new Error("Unauthorized");
+    }
+
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    await prisma.project.update({
+        where: { id: projectId },
+        data: { accessCode: code }
+    });
+
+    revalidatePath(`/dashboard/professor/projects/${projectId}`);
+    return code;
+}
+
+export async function regenerateAccessCodeAction(projectId: string) {
+    return generateAccessCodeAction(projectId);
+}
+
+export async function joinByCodeAction(code: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+        throw new Error("Debes iniciar sesión");
+    }
+
+    const project = await prisma.project.findUnique({
+        where: { accessCode: code }
+    });
+
+    if (!project) {
+        throw new Error("Código inválido");
+    }
+
+    // Check if already in the project (as student in relation)
+    const existingStudent = await prisma.project.findFirst({
+        where: {
+            id: project.id,
+            students: { some: { id: session.user.id } }
+        }
+    });
+
+    if (existingStudent) {
+        throw new Error("Ya eres parte de este proyecto");
+    }
+
+    // Add student to project directly
+    await prisma.project.update({
+        where: { id: project.id },
+        data: {
+            students: {
+                connect: { id: session.user.id }
+            }
+        }
+    });
+
+    return { projectId: project.id };
+}
+
+export async function addStudentByEmailAction(projectId: string, email: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        throw new Error("Unauthorized");
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { email }
+    });
+
+    if (!user) {
+        throw new Error("Usuario no encontrado");
+    }
+
+    await prisma.project.update({
+        where: { id: projectId },
+        data: {
+            students: {
+                connect: { id: user.id }
+            }
+        }
+    });
+
+    revalidatePath(`/dashboard/professor/projects/${projectId}`);
+}

@@ -60,6 +60,8 @@ model Project {
   id                   String               @id @default(uuid())
   title                String
   type                 ProjectType          @default(PROJECT)
+  isGroup              Boolean              @default(false)
+  accessCode           String?              @unique
   description          String?
   industry             String?
   justification        String?

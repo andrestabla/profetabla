@@ -23,6 +23,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             evaluation: true,
             kpis: true,
             googleDriveFolderId: true,
+            accessCode: true,
             students: {
                 select: { name: true, avatarUrl: true }
             },
@@ -61,7 +62,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
     return <ProjectWorkspaceClient
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        project={project as any}
+        project={{ ...project, accessCode: project.accessCode } as any}
         resources={resources}
         learningObjects={project.learningObjects}
         assignments={assignments}

@@ -83,6 +83,13 @@ export async function FilteredProjectList({
                                             'Proyecto'}
                                 </span>
 
+                                <span className={`text-[10px] font-extrabold px-2 py-1 rounded-full uppercase tracking-wider ml-2 border ${project.isGroup
+                                    ? 'bg-pink-100 text-pink-700 border-pink-200'
+                                    : 'bg-teal-100 text-teal-700 border-teal-200'
+                                    }`}>
+                                    {project.isGroup ? 'Grupal' : 'Individual'}
+                                </span>
+
                                 <div className="flex-1"></div>
 
                                 {project.industry && (
