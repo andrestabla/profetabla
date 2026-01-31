@@ -67,8 +67,7 @@ export default async function StudentTeamsPage({ params }: { params: Promise<{ i
             <TeamManagement
                 teams={project.teams}
                 projectId={project.id}
-                 
-                // @ts-expect-error session user type mismatch
+
                 currentUser={session.user}
                 projectType={project.type}
             />
