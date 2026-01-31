@@ -435,6 +435,7 @@ model PlatformConfig {
   r2BucketName                  String?
   
   loadingUrl                    String?  @default("https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif")
+  timezone                      String   @default("UTC")
 }
 
 model WorkExperience {

@@ -233,6 +233,9 @@ export async function updateSystemConfigAction(formData: FormData) {
         smtpUser: getVal('smtpUser', null),
         smtpPassword: getVal('smtpPassword', null),
         smtpFrom: getVal('smtpFrom', 'noreply@profetabla.com'),
+
+        // Regional settings
+        timezone: getVal('timezone', 'UTC'),
     };
 
     // Upsert works because we now guarantee required fields have defaults

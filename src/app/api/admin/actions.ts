@@ -62,6 +62,7 @@ export async function updatePlatformConfigAction(formData: FormData) {
             aiTone: formData.get('aiTone') as string,
             aiSearchEnabled: formData.get('aiSearchEnabled') === 'on',
             loadingUrl: formData.get('loadingUrl') as string,
+            timezone: formData.get('timezone') as string || 'UTC',
         };
 
         // Only update password if provided

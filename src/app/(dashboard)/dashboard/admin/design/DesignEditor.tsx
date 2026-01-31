@@ -60,6 +60,18 @@ export function DesignEditor({ config }: { config: any }) {
                         <label className="block text-sm font-bold text-slate-700 mb-2">URL del Logo</label>
                         <input name="logoUrl" defaultValue={config?.logoUrl || ''} className="w-full px-4 py-2 border rounded-lg" placeholder="https://ejemplo.com/logo.png" />
                     </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Huso Horario (Timezone)</label>
+                        <select name="timezone" defaultValue={config?.timezone || 'UTC'} className="w-full px-4 py-2 border rounded-lg">
+                            <option value="UTC">UTC</option>
+                            <option value="America/Bogota">Bogotá (GMT-5)</option>
+                            <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
+                            <option value="America/Argentina/Buenos_Aires">Buenos Aires (GMT-3)</option>
+                            <option value="America/Santiago">Santiago (GMT-4)</option>
+                            <option value="Europe/Madrid">Madrid (GMT+1)</option>
+                            <option value="America/New_York">New York (GMT-5)</option>
+                        </select>
+                    </div>
                     <div className="md:col-span-2">
                         <label className="block text-sm font-bold text-slate-700 mb-2">URL del Favicon (Icono de pestaña)</label>
                         <input name="faviconUrl" defaultValue={config?.faviconUrl || ''} className="w-full px-4 py-2 border rounded-lg" placeholder="https://img.icons8.com/fluency/48/education.png" />
