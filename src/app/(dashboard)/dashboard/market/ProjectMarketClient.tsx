@@ -1,7 +1,8 @@
 'use client';
 
-import { Search, Layers, CheckSquare, User, Plus } from 'lucide-react';
+import { Search, Layers, CheckSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 // Tipado basado en nuestro nuevo esquema Prisma
@@ -19,6 +20,7 @@ type ProjectWithTeacher = {
     kpis: string | null;
     type: 'PROJECT' | 'CHALLENGE' | 'PROBLEM';
     teachers: { name: string | null; avatarUrl: string | null }[];
+    students?: { id: string }[];
 };
 
 export default function ProjectMarketClient({ availableProjects, currentFilter }: { availableProjects: ProjectWithTeacher[], currentFilter?: 'PROJECT' | 'CHALLENGE' | 'PROBLEM' }) {
@@ -29,6 +31,26 @@ export default function ProjectMarketClient({ availableProjects, currentFilter }
         PROBLEM: { label: "Problema", icon: Search, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" }
     };
 
+    const { data: session } = useSession();
+    const [filter, setFilter] = useState<'ALL' | 'PROJECT' | 'CHALLENGE' | 'PROBLEM' | 'MINE'>(currentFilter || 'ALL');
+
+    // Sync URL param with internal state
+    useEffect(() => {
+        if (currentFilter && currentFilter !== filter) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setFilter(currentFilter);
+        }
+    }, [currentFilter, filter]);
+
+    // Apply filters locally (allows combining Type + Mine if we wanted, but for now tabs are exclusive)
+    const filteredProjects = availableProjects.filter(p => {
+        if (filter === 'MINE') {
+            return p.students?.some((s: { id: string }) => s.id === session?.user?.id);
+        }
+        if (filter === 'ALL') return true;
+        return p.type === filter;
+    });
+
     return (
         <div className="p-6 space-y-8">
             <header className="mb-0">
@@ -38,35 +60,41 @@ export default function ProjectMarketClient({ availableProjects, currentFilter }
 
             {/* FIlter Tabs */}
             <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
-                <Link
-                    href="/dashboard/market"
-                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${!currentFilter ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                <button
+                    onClick={() => setFilter('ALL')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${filter === 'ALL' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                 >
                     Todos
-                </Link>
-                <Link
-                    href="/dashboard/market?type=PROJECT"
-                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${currentFilter === 'PROJECT' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                </button>
+                <button
+                    onClick={() => setFilter('PROJECT')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${filter === 'PROJECT' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                 >
                     Proyectos
-                </Link>
-                <Link
-                    href="/dashboard/market?type=CHALLENGE"
-                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${currentFilter === 'CHALLENGE' ? 'border-orange-600 text-orange-600 bg-orange-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                </button>
+                <button
+                    onClick={() => setFilter('CHALLENGE')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${filter === 'CHALLENGE' ? 'border-orange-600 text-orange-600 bg-orange-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                 >
                     Retos
-                </Link>
-                <Link
-                    href="/dashboard/market?type=PROBLEM"
-                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${currentFilter === 'PROBLEM' ? 'border-red-600 text-red-600 bg-red-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                </button>
+                <button
+                    onClick={() => setFilter('PROBLEM')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${filter === 'PROBLEM' ? 'border-red-600 text-red-600 bg-red-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                 >
                     Problemas
-                </Link>
+                </button>
+                <button
+                    onClick={() => setFilter('MINE')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${filter === 'MINE' ? 'border-purple-600 text-purple-600 bg-purple-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                >
+                    Solo míos
+                </button>
             </div>
 
             {/* Grid de Proyectos */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {availableProjects.map((project) => {
+                {filteredProjects.map((project) => {
                     const config = typeConfig[project.type] || typeConfig.PROJECT;
                     const Icon = config.icon;
                     const teacher = project.teachers?.[0] || { name: 'Sin Asignar', avatarUrl: null };
@@ -122,9 +150,11 @@ export default function ProjectMarketClient({ availableProjects, currentFilter }
                     );
                 })}
 
-                {availableProjects.length === 0 && (
+                {filteredProjects.length === 0 && (
                     <div className="col-span-full py-20 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                        <p className="font-medium text-lg text-slate-600 mb-1">No hay {currentFilter === 'PROJECT' ? 'proyectos' : currentFilter === 'CHALLENGE' ? 'retos' : currentFilter === 'PROBLEM' ? 'problemas' : 'experiencias'} disponibles.</p>
+                        <p className="font-medium text-lg text-slate-600 mb-1">
+                            {filter === 'MINE' ? 'No tienes proyectos asignados aún.' : `No hay ${filter === 'PROJECT' ? 'proyectos' : filter === 'CHALLENGE' ? 'retos' : filter === 'PROBLEM' ? 'problemas' : 'experiencias'} disponibles.`}
+                        </p>
                         <p className="text-sm">Intenta cambiar el filtro o vuelve más tarde.</p>
                     </div>
                 )}

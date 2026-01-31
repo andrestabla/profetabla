@@ -173,38 +173,43 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
                                     </div>
                                 </div>
                             )}
-                            <button
-                                type="button"
-                                onClick={handleApply}
-                                disabled={isPending || applicationStatus === 'PENDING' || applicationStatus === 'ACCEPTED'}
-                                className={`w-full py-3.5 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group text-sm disabled:opacity-80 disabled:cursor-not-allowed
-                                    ${applicationStatus === 'ACCEPTED'
-                                        ? 'bg-green-600 text-white shadow-green-900/20'
-                                        : applicationStatus === 'PENDING'
-                                            ? 'bg-yellow-500 text-white shadow-yellow-900/20'
-                                            : 'bg-slate-900 hover:bg-black text-white shadow-slate-900/20 hover:-translate-y-0.5 active:translate-y-0'
-                                    }
-                                `}
-                            >
-                                {isPending ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Enviando...
-                                    </>
-                                ) : applicationStatus === 'ACCEPTED' ? (
-                                    <>
+                            <div className="w-full">
+                                {applicationStatus === 'ACCEPTED' ? (
+                                    <Link
+                                        href={`/dashboard/student/projects/${project.id}/kanban`}
+                                        className="w-full py-3.5 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group text-sm bg-green-600 text-white shadow-green-900/20 hover:bg-green-700"
+                                    >
                                         ¡Aceptado! Ir al Dashboard <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
-                                    </>
-                                ) : applicationStatus === 'PENDING' ? (
-                                    <>
-                                        Solicitud Pendiente
-                                    </>
+                                    </Link>
                                 ) : (
-                                    <>
-                                        Postularme Ahora <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
-                                    </>
+                                    <button
+                                        type="button"
+                                        onClick={handleApply}
+                                        disabled={isPending || applicationStatus === 'PENDING'}
+                                        className={`w-full py-3.5 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group text-sm disabled:opacity-80 disabled:cursor-not-allowed
+                                            ${applicationStatus === 'PENDING'
+                                                ? 'bg-yellow-500 text-white shadow-yellow-900/20'
+                                                : 'bg-slate-900 hover:bg-black text-white shadow-slate-900/20 hover:-translate-y-0.5 active:translate-y-0'
+                                            }
+                                        `}
+                                    >
+                                        {isPending ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                Enviando...
+                                            </>
+                                        ) : applicationStatus === 'PENDING' ? (
+                                            <>
+                                                Solicitud Pendiente
+                                            </>
+                                        ) : (
+                                            <>
+                                                Postularme Ahora <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+                                            </>
+                                        )}
+                                    </button>
                                 )}
-                            </button>
+                            </div>
                         </div>
                     </div>
                 </div>
