@@ -19,7 +19,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
 
     const rawProjects = await prisma.project.findMany({
         where: {
-            status: 'OPEN',
+            status: { not: 'DRAFT' }, // Show everything except DRAFT
             ...(filterType ? { type: filterType } : {})
         },
         include: {
@@ -38,14 +38,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
         }
     });
 
-    const availableProjects = rawProjects.filter(project => {
-        const now = new Date();
-        const hasSpace = !project.maxStudents || project.students.length < project.maxStudents;
-        const isStarted = !project.startDate || project.startDate <= now;
-        const isNotEnded = !project.endDate || project.endDate >= now;
-
-        return hasSpace && isStarted && isNotEnded;
-    });
+    // We no longer filter by dates or capacity for VISIBILITY. 
+    // They are always visible, but the Client Component might handle "Full" UI states.
+    const availableProjects = rawProjects;
 
     // Remove filtered properties before passing to client component to match its type if necessary
     // or update the client component type. The client expects ProjectWithTeacher.

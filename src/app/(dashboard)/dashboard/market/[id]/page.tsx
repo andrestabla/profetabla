@@ -24,13 +24,21 @@ export default async function ProjectDetailPage(props: Props) {
                 }
             },
             learningObjects: true,
-            resources: true
+            resources: true,
+            students: { // Fetch students to check enrollment
+                where: { id: session.user.id }
+            }
         }
     });
 
     if (!project) notFound();
 
-    // Check if current user has already applied
+    // 1. Check if already enrolled (member of the project)
+    if (project.students.length > 0) {
+        redirect(`/dashboard/student/projects/${project.id}`);
+    }
+
+    // 2. Check if current user has applied (but not yet accepted/enrolled via application flow)
     const existingApplication = await prisma.projectApplication.findUnique({
         where: {
             projectId_studentId: {
