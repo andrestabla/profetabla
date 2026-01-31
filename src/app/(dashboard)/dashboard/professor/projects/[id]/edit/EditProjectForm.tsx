@@ -23,6 +23,10 @@ interface Project {
     budget: string | null;
     evaluation: string | null;
     kpis: string | null;
+    maxStudents: number | null;
+    startDate: Date | null;
+    endDate: Date | null;
+    status: 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
 }
 
 export default function EditProjectForm({ project }: { project: Project }) {
@@ -62,6 +66,60 @@ export default function EditProjectForm({ project }: { project: Project }) {
 
             <form action={onSubmit} className="space-y-8">
                 <input type="hidden" name="id" value={project.id} />
+
+                {/* SECCIÓN 0: CONFIGURACIÓN Y VISIBILIDAD */}
+                <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-blue-600">
+                    <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-blue-600" /> Configuración y Visibilidad
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Estado del Proyecto</label>
+                            <select
+                                name="status"
+                                defaultValue={project.status}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                            >
+                                <option value="DRAFT">🔲 Borrador (Oculto)</option>
+                                <option value="OPEN">🟢 Abierto (Visible en Mercado)</option>
+                                <option value="IN_PROGRESS">🚀 En Progreso</option>
+                                <option value="COMPLETED">✅ Completado</option>
+                            </select>
+                            <p className="text-xs text-slate-500 mt-2">
+                                Solo los proyectos &quot;Abiertos&quot; son visibles para postulación.
+                            </p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Cupos Máximos</label>
+                            <input
+                                name="maxStudents"
+                                type="number"
+                                min="1"
+                                defaultValue={project.maxStudents || ''}
+                                placeholder="Sin límite"
+                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Fecha Inicio (Publicación)</label>
+                            <input
+                                name="startDate"
+                                type="date"
+                                defaultValue={project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : ''}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Fecha Cierre (Límite)</label>
+                            <input
+                                name="endDate"
+                                type="date"
+                                defaultValue={project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : ''}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+                    </div>
+                </section>
 
                 {/* SECCIÓN 1: IDENTIFICACIÓN */}
                 <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">

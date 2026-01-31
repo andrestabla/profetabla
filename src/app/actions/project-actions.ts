@@ -124,6 +124,7 @@ export async function updateProjectAction(formData: FormData) {
             maxStudents,
             startDate,
             endDate,
+            status: formData.get('status') as 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | undefined,
         }
     });
 
