@@ -38,7 +38,10 @@ export function Sidebar({ config }: { config?: any }) {
     const logo = config?.logoUrl;
     const title = config?.institutionName || 'Profe Tabla';
 
-    const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/');
+    const isActive = (path: string) => {
+        if (path === '/dashboard') return pathname === '/dashboard';
+        return pathname === path || pathname?.startsWith(path + '/');
+    };
 
     const navItems = [
         { name: 'Resumen', href: '/dashboard', icon: LayoutDashboard, roles: ['STUDENT'] },

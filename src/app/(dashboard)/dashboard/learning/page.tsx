@@ -32,11 +32,10 @@ export default async function LearningPage() {
                     </div>
                     <h1 className="text-3xl font-bold text-slate-800 mb-2">Aprendizaje Contextual</h1>
                     <p className="text-slate-500 max-w-md mb-8">
-                        El módulo de aprendizaje se activa cuando tienes un reto en curso.
-                        Los recursos se adaptarán automáticamente a lo que necesites.
+                        El módulo de aprendizaje se activa cuando tienes un proyecto, reto o problema en curso. Los recursos se adaptarán automáticamente a lo que necesites.
                     </p>
                     <Link
-                        href="/dashboard/projects/market"
+                        href="/dashboard/market"
                         className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-transform hover:scale-105"
                     >
                         Buscar un Reto
