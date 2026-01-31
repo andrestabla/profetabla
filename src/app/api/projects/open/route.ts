@@ -15,7 +15,7 @@ export async function GET() {
                 status: 'OPEN'
             },
             include: {
-                teacher: {
+                teachers: {
                     select: { name: true, avatarUrl: true }
                 },
                 tags: true
