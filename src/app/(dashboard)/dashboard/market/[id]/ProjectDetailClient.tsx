@@ -176,7 +176,7 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
                             <div className="w-full">
                                 {applicationStatus === 'ACCEPTED' ? (
                                     <Link
-                                        href={`/dashboard/student/projects/${project.id}/kanban`}
+                                        href="/dashboard/market?currentFilter=MINE"
                                         className="w-full py-3.5 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group text-sm bg-green-600 text-white shadow-green-900/20 hover:bg-green-700"
                                     >
                                         ¡Aceptado! Ir al Dashboard <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
