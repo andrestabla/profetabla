@@ -11,7 +11,12 @@ type Booking = {
     initiatedBy: string;
 }
 
-export default function ProjectMentorshipClient({ project, riskLevel, upcomingSessions }: { project: any, riskLevel: 'HIGH' | 'NORMAL', upcomingSessions: Booking[] }) {
+type ProjectSimple = {
+    id: string;
+    students: { id: string }[];
+};
+
+export default function ProjectMentorshipClient({ project, riskLevel, upcomingSessions }: { project: ProjectSimple, riskLevel: 'HIGH' | 'NORMAL', upcomingSessions: Booking[] }) {
     const [isSummoning, setIsSummoning] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -90,7 +95,7 @@ export default function ProjectMentorshipClient({ project, riskLevel, upcomingSe
                             setIsProcessing(false);
                         }}>
                             <input type="hidden" name="projectId" value={project.id} />
-                            <input type="hidden" name="studentId" value={project.studentId} />
+                            <input type="hidden" name="studentId" value={project.students[0]?.id} />
                             <input type="hidden" name="reason" value="Bajo rendimiento en el proyecto" />
 
                             <div className="flex gap-2 justify-end">
