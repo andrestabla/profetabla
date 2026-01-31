@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import { UserPlus, Search, Shield, User, GraduationCap, Eye, MoreHorizontal } from 'lucide-react';
+import { UserPlus, Search, Shield, User, GraduationCap, Eye, ShieldCheck } from 'lucide-react';
 import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,17 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
         } : {},
         orderBy: { createdAt: 'desc' }
     });
+
+    interface UserData {
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+        role: string;
+        isActive: boolean;
+        policiesAccepted: boolean;
+        policiesAcceptedAt: Date | null;
+    }
 
     const getRoleIcon = (role: string) => {
         switch (role) {
@@ -60,16 +71,19 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                             <th className="p-4 font-bold text-slate-600 text-sm">Usuario</th>
                             <th className="p-4 font-bold text-slate-600 text-sm">Rol</th>
                             <th className="p-4 font-bold text-slate-600 text-sm">Estado</th>
+                            <th className="p-4 font-bold text-slate-600 text-sm text-center">Políticas</th>
                             <th className="p-4 font-bold text-slate-600 text-sm text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {users.map((user: any) => (
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {(users as any[]).map((user: UserData) => (
                             <tr key={user.id} className="hover:bg-slate-50 transition-colors group">
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold">
-                                            {user.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full rounded-full" /> : user.name?.[0]?.toUpperCase()}
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            {user.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full rounded-full" alt={user.name || ''} /> : user.name?.[0]?.toUpperCase()}
                                         </div>
                                         <div>
                                             <p className="font-bold text-slate-800">{user.name || 'Sin Nombre'}</p>
@@ -87,6 +101,20 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                                     <span className={`text-xs px-2 py-1 rounded-full font-bold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                         {user.isActive ? 'ACTIVO' : 'SUSPENDIDO'}
                                     </span>
+                                </td>
+                                <td className="p-4 text-center">
+                                    <div className="flex flex-col items-center justify-center gap-1">
+                                        {user.policiesAccepted ? (
+                                            <>
+                                                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                                                <span className="text-[10px] text-slate-400 font-medium">
+                                                    {user.policiesAcceptedAt ? new Date(user.policiesAcceptedAt).toLocaleDateString() : '-'}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <ShieldCheck className="w-5 h-5 text-slate-300" />
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="p-4 text-right">
                                     <Link href={`/dashboard/admin/users/${user.id}`} className="inline-flex items-center justify-center p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">

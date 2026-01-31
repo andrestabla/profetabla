@@ -12,7 +12,17 @@ export default async function ProfilePage() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        include: {
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            bio: true,
+            age: true,
+            interests: true,
+            avatarUrl: true,
+            policiesAccepted: true,
+            policiesAcceptedAt: true,
             workExperiences: { orderBy: { startDate: 'desc' } },
             education: { orderBy: { startDate: 'desc' } },
             languages: true

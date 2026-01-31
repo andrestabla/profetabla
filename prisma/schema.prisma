@@ -39,6 +39,8 @@ model User {
   workExperiences        WorkExperience[]
   assignedTasks          Task[]                @relation("TaskAssignees")
   teams                  Team[]                @relation("TeamMembers")
+  policiesAccepted       Boolean               @default(false)
+  policiesAcceptedAt     DateTime?
 }
 
 model VerificationToken {

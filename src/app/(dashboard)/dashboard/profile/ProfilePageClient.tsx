@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Briefcase, GraduationCap, Globe, Heart, Edit2, Plus } from 'lucide-react';
+import { Briefcase, GraduationCap, Globe, Heart, Edit2, Plus, ShieldCheck, X } from 'lucide-react';
 import { updateBasicProfileAction, addExperienceAction, addEducationAction, addLanguageAction } from '@/app/actions/profile-actions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,6 +10,7 @@ export default function ProfilePageClient({ user }: { user: any }) {
     const [showExpModal, setShowExpModal] = useState(false);
     const [showEduModal, setShowEduModal] = useState(false);
     const [showLangModal, setShowLangModal] = useState(false);
+    const [showPolicies, setShowPolicies] = useState(false);
 
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-6">
@@ -20,6 +21,7 @@ export default function ProfilePageClient({ user }: { user: any }) {
                 <div className="px-8 pb-8">
                     <div className="relative flex justify-between items-end -mt-12 mb-6">
                         <div className="w-24 h-24 rounded-full border-4 border-white shadow-md bg-white overflow-hidden">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             {user.image ? <img src={user.image} alt={user.name} className="w-full h-full object-cover" /> : (
                                 <div className="w-full h-full bg-slate-200 flex items-center justify-center text-3xl font-bold text-slate-400">
                                     {user.name?.[0]}
@@ -210,7 +212,68 @@ export default function ProfilePageClient({ user }: { user: any }) {
                         )}
                     </div>
                 </div>
+            </div>
 
+            {/* 4. POLÍTICAS DE PRIVACIDAD Y DATOS */}
+            <div className="bg-slate-50 border-t border-slate-100 p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-4 text-slate-700">
+                    <div className={`p-2 rounded-lg ${user.policiesAccepted ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                        <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="font-bold text-sm">Políticas de Uso y Privacidad</p>
+                        <p className="text-xs text-slate-500">
+                            {user.policiesAccepted
+                                ? `Aceptadas el ${new Date(user.policiesAcceptedAt).toLocaleDateString()}`
+                                : 'Pendiente de aceptación'}
+                        </p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setShowPolicies(true)}
+                    className="text-blue-600 hover:text-blue-700 font-bold text-sm underline underline-offset-4"
+                >
+                    Revisar Términos y Condiciones
+                </button>
+                {showPolicies && (
+                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4">
+                        <div className="bg-white rounded-3xl w-full max-w-2xl relative flex flex-col max-h-[90vh]">
+                            <button onClick={() => setShowPolicies(false)} className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full z-10">
+                                <X className="w-5 h-5 text-slate-500" />
+                            </button>
+                            <div className="flex-1 overflow-auto p-8 custom-scrollbar">
+                                <div className="text-center mb-8">
+                                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                        <ShieldCheck className="w-10 h-10" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-slate-900">Políticas de Uso Pedagógico</h2>
+                                    <p className="text-slate-500">Consulta los términos que aceptaste al ingresar.</p>
+                                </div>
+                                <div className="space-y-6">
+                                    <section>
+                                        <h3 className="font-bold text-slate-800 mb-1">Finalidad Educativa</h3>
+                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                            Plataforma diseñada para el apoyo docente y la gestión de proyectos de aprendizaje.
+                                        </p>
+                                    </section>
+                                    <section>
+                                        <h3 className="font-bold text-slate-800 mb-1">Uso No Comercial</h3>
+                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                            Prohibido el uso de los datos personales para comunicación comercial o marketing externo.
+                                        </p>
+                                    </section>
+                                    <section>
+                                        <h3 className="font-bold text-slate-800 mb-1">Protección de Datos</h3>
+                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                            Tratamiento conforme a las leyes de protección de datos actuales y locales.
+                                        </p>
+                                    </section>
+                                </div>
+                                <button onClick={() => setShowPolicies(false)} className="w-full mt-8 py-3 bg-slate-900 text-white font-bold rounded-xl">Entendido</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
