@@ -341,7 +341,7 @@ export default function CreateProjectForm({ availableOAs, defaultType, enforceTy
                 {/* SECCIÓN 1: IDENTIFICACIÓN */}
                 <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                     <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <Search className="w-5 h-5 text-blue-500" /> 1. Identificación y Contexto
+                        <Search className="w-5 h-5 text-blue-500" /> 1. Identificación y Configuración
                     </h2>
                     <div className="space-y-6">
                         <div>
@@ -364,11 +364,40 @@ export default function CreateProjectForm({ availableOAs, defaultType, enforceTy
                                     className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                 />
                             </div>
+
+                            {/* NEW FIELDS: Dates & Students */}
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Estado Inicial</label>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Máximo de Estudiantes</label>
+                                <input
+                                    type="number"
+                                    name="maxStudents"
+                                    placeholder="Opcional (Ilimitado si se deja vacío)"
+                                    min="1"
+                                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Fecha de Inicio (Publicación)</label>
+                                <input
+                                    type="date"
+                                    name="startDate"
+                                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-600"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Fecha de Cierre</label>
+                                <input
+                                    type="date"
+                                    name="endDate"
+                                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-600"
+                                />
                             </div>
                         </div>
                     </div>
+
 
                     <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
                         <input
@@ -561,6 +590,15 @@ export default function CreateProjectForm({ availableOAs, defaultType, enforceTy
                         Descartar
                     </button>
                     <button
+                        type="submit"
+                        name="action"
+                        value="draft"
+                        disabled={isSubmitting}
+                        className="px-8 py-3 text-slate-700 font-bold hover:bg-slate-100 bg-white border border-slate-300 rounded-xl transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        Guardar Borrador
+                    </button>
+                    <button
                         type="button"
                         onClick={() => setConfirmAction('PUBLISH')}
                         disabled={isSubmitting}
@@ -575,6 +613,9 @@ export default function CreateProjectForm({ availableOAs, defaultType, enforceTy
                             </>
                         )}
                     </button>
+                    {/* Hidden input for PUBLISH action which is triggered via state/modal */}
+                    {confirmAction === 'PUBLISH' && <input type="hidden" name="action" value="publish" />}
+                    <button type="submit" className="hidden" ref={submitBtnRef} />
                 </div>
             </form>
         </div >

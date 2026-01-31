@@ -32,10 +32,18 @@ export async function createProjectAction(formData: FormData) {
     // Get selected OAs
     const selectedOAs = formData.getAll('selectedOAs') as string[];
 
+    const maxStudents = formData.get('maxStudents') ? parseInt(formData.get('maxStudents') as string) : null;
+    const startDate = formData.get('startDate') ? new Date(formData.get('startDate') as string) : null;
+    const endDate = formData.get('endDate') ? new Date(formData.get('endDate') as string) : null;
+    const action = formData.get('action') as string;
+    const status = action === 'draft' ? 'DRAFT' : 'OPEN';
+
     // OPTIONAL: Create Google Drive Folder if configured
     let driveFolderId = null;
     try {
-        driveFolderId = await createProjectFolder(title);
+        if (status === 'OPEN') { // Only create drive folder if opening? Or always? Maybe always for consistency.
+            driveFolderId = await createProjectFolder(title);
+        }
     } catch (e) {
         console.error("Failed to create Drive folder:", e);
     }
@@ -55,10 +63,13 @@ export async function createProjectAction(formData: FormData) {
             evaluation,
             kpis,
             type, // Add the type field to the Prisma create call
+            maxStudents,
+            startDate,
+            endDate,
             teachers: {
                 connect: { id: session.user.id }
             },
-            status: 'OPEN',
+            status,
             googleDriveFolderId: driveFolderId,
             learningObjects: {
                 connect: selectedOAs.map(id => ({ id }))
@@ -91,6 +102,10 @@ export async function updateProjectAction(formData: FormData) {
     const evaluation = formData.get('evaluation') as string;
     const kpis = formData.get('kpis') as string;
 
+    const maxStudents = formData.get('maxStudents') ? parseInt(formData.get('maxStudents') as string) : null;
+    const startDate = formData.get('startDate') ? new Date(formData.get('startDate') as string) : null;
+    const endDate = formData.get('endDate') ? new Date(formData.get('endDate') as string) : null;
+
     await prisma.project.update({
         where: { id },
         data: {
@@ -106,6 +121,9 @@ export async function updateProjectAction(formData: FormData) {
             budget,
             evaluation,
             kpis,
+            maxStudents,
+            startDate,
+            endDate,
         }
     });
 
@@ -116,14 +134,14 @@ export async function updateProjectAction(formData: FormData) {
 }
 
 export async function applyToProjectAction(projectId: string) {
-    console.log(`📡 [Server] applyToProjectAction called for project: ${projectId}`);
+    console.log(`📡[Server] applyToProjectAction called for project: ${projectId} `);
 
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
         console.error("❌ [Server] No session or user found");
         throw new Error("Debes iniciar sesión para postularte");
     }
-    console.log(`👤 [Server] User: ${session.user.id} (${session.user.email})`);
+    console.log(`👤[Server] User: ${session.user.id} (${session.user.email})`);
 
     // Check if already applied
     const existing = await prisma.projectApplication.findUnique({
@@ -161,17 +179,17 @@ export async function applyToProjectAction(projectId: string) {
         if (mainTeacher && mainTeacher.email) {
             await sendEmail({
                 to: mainTeacher.email,
-                subject: `Nueva Postulación: ${project.title}`,
+                subject: `Nueva Postulación: ${project.title} `,
                 html: `
-                    <div style="font-family: sans-serif;">
-                        <h2>¡Un estudiante se ha postulado!</h2>
-                        <p><strong>${session.user.name}</strong> quiere unirse a tu proyecto/reto:</p>
-                        <h3 style="color: #2563EB;">${project.title}</h3>
-                        <p>Visita tu Panel de Profesor para revisar y aceptar la solicitud.</p>
-                        <br/>
-                        <a href="${process.env.NEXTAUTH_URL}/dashboard/professor/projects/${projectId}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;">Ir al Proyecto</a>
-                    </div>
-                `
+        < div style = "font-family: sans-serif;" >
+            <h2>¡Un estudiante se ha postulado! </h2>
+                < p > <strong>${session.user.name} </strong> quiere unirse a tu proyecto/reto: </p>
+                    < h3 style = "color: #2563EB;" > ${project.title} </h3>
+                        < p > Visita tu Panel de Profesor para revisar y aceptar la solicitud.</p>
+                            < br />
+                            <a href="${process.env.NEXTAUTH_URL}/dashboard/professor/projects/${projectId}" style = "background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;" > Ir al Proyecto </a>
+                                </div>
+                                    `
             });
         }
     } catch (emailError) {
@@ -208,7 +226,7 @@ export async function deleteProjectAction(projectId: string) {
 
         // 2. Delete from Google Drive (if linked)
         if (project.googleDriveFolderId) {
-            console.log(`🗑️ [Delete Project] Deleting Drive Folder: ${project.googleDriveFolderId}`);
+            console.log(`🗑️[Delete Project] Deleting Drive Folder: ${project.googleDriveFolderId} `);
             await deleteFolder(project.googleDriveFolderId);
         }
 
@@ -217,7 +235,7 @@ export async function deleteProjectAction(projectId: string) {
             where: { id: projectId }
         });
 
-        console.log(`✅ [Delete Project] Deleted project ${projectId}`);
+        console.log(`✅[Delete Project] Deleted project ${projectId} `);
 
         revalidatePath('/dashboard/professor/projects');
         revalidatePath('/dashboard/market');

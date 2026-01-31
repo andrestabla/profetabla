@@ -17,7 +17,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
         filterType = typeStr;
     }
 
-    const availableProjects = await prisma.project.findMany({
+    const rawProjects = await prisma.project.findMany({
         where: {
             status: 'OPEN',
             ...(filterType ? { type: filterType } : {})
@@ -28,6 +28,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
                     name: true,
                     avatarUrl: true
                 }
+            },
+            students: {
+                select: { id: true }
             }
         },
         orderBy: {
@@ -35,5 +38,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
         }
     });
 
-    return <ProjectMarketClient availableProjects={availableProjects} currentFilter={filterType} />;
+    const availableProjects = rawProjects.filter(project => {
+        const now = new Date();
+        const hasSpace = !project.maxStudents || project.students.length < project.maxStudents;
+        const isStarted = !project.startDate || project.startDate <= now;
+        const isNotEnded = !project.endDate || project.endDate >= now;
+
+        return hasSpace && isStarted && isNotEnded;
+    });
+
+    // Remove filtered properties before passing to client component to match its type if necessary
+    // or update the client component type. The client expects ProjectWithTeacher.
+    // We can cast or just pass as is, since extra props (students, dates) are fine.
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return <ProjectMarketClient availableProjects={availableProjects as any} currentFilter={filterType} />;
 }

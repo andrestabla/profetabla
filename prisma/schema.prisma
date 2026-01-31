@@ -62,6 +62,9 @@ model Project {
   type                 ProjectType          @default(PROJECT)
   isGroup              Boolean              @default(false)
   accessCode           String?              @unique
+  maxStudents          Int?
+  startDate            DateTime?
+  endDate              DateTime?
   description          String?
   industry             String?
   justification        String?
@@ -453,6 +456,7 @@ enum Role {
 }
 
 enum ProjectStatus {
+  DRAFT
   OPEN
   IN_PROGRESS
   COMPLETED
