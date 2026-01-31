@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -8,9 +10,27 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { id } = await params;
         const body = await request.json();
         const { status, title, description, priority, dueDate, isApproved, approvalNotes } = body;
+
+        const currentTask = await prisma.task.findUnique({ where: { id } });
+        if (!currentTask) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+
+        // Enforcement: Students cannot move (change status) or edit mandatory tasks
+        if (session.user.role === 'STUDENT' && currentTask.isMandatory) {
+            // However, we might want to allow students to mark a task as DONE if they finished it? 
+            // The prompt says "no pueden editar ni eliminar". Moving is editing status. 
+            // In many kanbans, students move tasks to done. 
+            // BUT the instruction says "estudiantes no pueden editar ni eliminar tareas obligatorias".
+            // So I will block ALL PATCH calls for students on mandatory tasks.
+            return NextResponse.json({ error: 'No tienes permiso para modificar tareas obligatorias' }, { status: 403 });
+        }
 
         const task = await prisma.task.update({
             where: { id },
@@ -67,7 +87,20 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { id } = await params;
+
+        const task = await prisma.task.findUnique({ where: { id } });
+        if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+
+        if (session.user.role === 'STUDENT' && task.isMandatory) {
+            return NextResponse.json({ error: 'No tienes permiso para eliminar tareas obligatorias' }, { status: 403 });
+        }
+
         await prisma.task.delete({
             where: { id },
         });

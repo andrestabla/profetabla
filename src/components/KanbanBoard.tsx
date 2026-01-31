@@ -77,6 +77,10 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
 
     function handleDragStart(event: DragStartEvent) {
         if (!isEditMode) return;
+        const task = tasks.find(t => t.id === event.active.id);
+        if (userRole === 'STUDENT' && task?.isMandatory) {
+            return; // Students cannot move mandatory tasks
+        }
         setActiveId(event.active.id as string);
     }
 
@@ -362,6 +366,7 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
                                             key={task.id}
                                             task={task}
                                             isEditMode={isEditMode}
+                                            userRole={userRole}
                                             onClick={() => handleTaskClick(task)}
                                             onDelete={() => handleDeleteTask(task.id)}
                                         />
@@ -411,7 +416,11 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
     );
 }
 
-function SortableTask({ task, isEditMode, onClick, onDelete }: { task: Task; isEditMode: boolean; onClick: () => void; onDelete: () => void }) {
+function SortableTask({ task, isEditMode, userRole, onClick, onDelete }: { task: Task; isEditMode: boolean; userRole: string; onClick: () => void; onDelete: () => void }) {
+    const isStudent = userRole === 'STUDENT';
+    const isMandatory = task.isMandatory;
+    const canMove = isEditMode && (!isStudent || !isMandatory);
+
     const {
         attributes,
         listeners,
@@ -421,7 +430,7 @@ function SortableTask({ task, isEditMode, onClick, onDelete }: { task: Task; isE
         isDragging
     } = useSortable({
         id: task.id,
-        disabled: !isEditMode
+        disabled: !canMove
     });
 
     const style = {
@@ -474,7 +483,7 @@ function SortableTask({ task, isEditMode, onClick, onDelete }: { task: Task; isE
                     )}
                 </div>
 
-                {isEditMode ? (
+                {isEditMode && (!isStudent || !isMandatory) ? (
                     <button
                         onClick={(e) => {
                             e.stopPropagation(); // Prevent modal open
