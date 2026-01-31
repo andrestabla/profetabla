@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { User, CheckCircle2, XCircle, FileText, Calendar, ArrowRight } from 'lucide-react';
-import { acceptStudentAction, rejectStudentAction } from './actions';
+import { acceptStudentAction, rejectStudentAction } from '@/app/actions/project-actions';
 
 // Tipado de la postulación
 type Application = {
