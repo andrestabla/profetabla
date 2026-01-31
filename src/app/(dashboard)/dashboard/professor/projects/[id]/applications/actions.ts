@@ -62,11 +62,14 @@ export async function acceptStudentAction(formData: FormData) {
         }
     });
 
-    console.log("✅ [Action] DB Update success. Sending email...");
+    const session = await import('@/lib/auth').then(m => import('next-auth').then(na => na.getServerSession(m.authOptions))); // lazy load session for email copy
+
+    console.log("✅ [Action] DB Update success. Sending emails...");
 
     // Send Email Notification
     if (student?.email && project?.title) {
         try {
+            // 1. Email to Student
             await sendEmail({
                 to: student.email,
                 subject: `¡Has sido aceptado! - ${project.title}`,
@@ -76,9 +79,6 @@ export async function acceptStudentAction(formData: FormData) {
                         <p>Tu solicitud para unirte al proyecto <strong>${project.title}</strong> ha sido aceptada.</p>
                         <p>Ahora tienes acceso al Tablero Kanban y a los recursos del proyecto.</p>
                         <br/>
-                        <br/>
-                        <br/>
-                        <br/>
                         <a href="${process.env.NEXTAUTH_URL || 'https://profetabla.com'}/dashboard" 
                            style="background-color: #2563EB; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;">
                            Ir al Dashboard
@@ -86,10 +86,28 @@ export async function acceptStudentAction(formData: FormData) {
                     </div>
                 `
             });
-            console.log(`✅ [Email Sent] To: ${student.email}`);
+            console.log(`✅ [Email Sent] Acceptance to Student: ${student.email}`);
+
+            // 2. Email Copy to Professor (Confirmation)
+            if (session?.user?.email) {
+                await sendEmail({
+                    to: session.user.email,
+                    subject: `[Copia] Aceptaste a ${student.name} en ${project.title}`,
+                    html: `
+                        <div style="font-family: sans-serif; color: #555;">
+                            <p>Has aceptado exitosamente a <strong>${student.name}</strong> (${student.email}) en el proyecto.</p>
+                        </div>
+                    `
+                });
+                console.log(`✅ [Email Sent] Copy to Professor: ${session.user.email}`);
+            }
+
         } catch (error) {
             console.error("❌ [Email Error] Failed to send acceptance email:", error);
+            // Don't fail the action, but log critical error
         }
+    } else {
+        console.error("❌ [Email Error] Missing student email or project title", { studentEmail: student?.email, projectTitle: project?.title });
     }
 
     // 2. Redirigir al profesor al Tablero Kanban de este proyecto, que ya está activo
