@@ -31,46 +31,107 @@ export default function PoliciesModal() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                    <section className="flex gap-4">
-                        <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
-                            <GraduationCap className="w-6 h-6" />
+                <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                    <p className="text-slate-600 leading-relaxed text-sm">
+                        Profe Tabla es una plataforma educativa diseñada bajo principios de ética digital, protección de datos personales y responsabilidad pedagógica, orientada a fortalecer los procesos de enseñanza y aprendizaje en entornos presenciales, virtuales e híbridos.
+                    </p>
+
+                    <section className="space-y-4">
+                        <div className="flex gap-4 items-center">
+                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                                <GraduationCap className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold text-slate-800 text-lg">1. Finalidad Educativa</h3>
                         </div>
-                        <div>
-                            <h3 className="font-bold text-slate-800 text-lg">Finalidad Educativa</h3>
-                            <p className="text-slate-600 leading-relaxed">
-                                Esta plataforma ha sido diseñada exclusivamente para el apoyo pedagógico y la gestión de proyectos de aprendizaje. Los datos recopilados tienen como único fin facilitar la interacción docente-estudiante y mejorar los resultados académicos.
+                        <div className="pl-14 space-y-3">
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                                La plataforma Profe Tabla tiene como finalidad exclusiva el apoyo a procesos pedagógicos, académicos y formativos, incluyendo:
+                            </p>
+                            <ul className="list-disc list-inside text-slate-600 text-sm space-y-1 pl-2">
+                                <li>La gestión de proyectos de aprendizaje.</li>
+                                <li>La interacción docente–estudiante.</li>
+                                <li>El acompañamiento, seguimiento y evaluación de procesos educativos.</li>
+                                <li>La mejora continua de los resultados académicos y formativos.</li>
+                            </ul>
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                                Los datos personales y académicos recolectados se utilizan únicamente con fines educativos, en coherencia con el principio de finalidad establecido en la normativa de protección de datos personales.
+                            </p>
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">📚 Marco normativo de referencia:</p>
+                                <ul className="text-xs text-slate-500 space-y-1 italic">
+                                    <li>• Ley 1581 de 2012 (Colombia) – Principio de finalidad y necesidad.</li>
+                                    <li>• Decreto 1377 de 2013 (Colombia).</li>
+                                    <li>• Recomendaciones de la UNESCO sobre ética de la IA y protección de datos en educación (2021–2024).</li>
+                                    <li>• Reglamento General de Protección de Datos (RGPD – UE), como estándar internacional de buenas prácticas.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="space-y-4">
+                        <div className="flex gap-4 items-center">
+                            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+                                <Lock className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold text-slate-800 text-lg">2. Uso No Comercial de la Información</h3>
+                        </div>
+                        <div className="pl-14 space-y-3">
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                                Profe Tabla no comercializa, vende, cede ni comparte datos personales, académicos o institucionales con terceros para publicidad, marketing, perfilamiento comercial o fines distintos a los estrictamente pedagógicos.
+                            </p>
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                                La información gestionada dentro de la plataforma es considerada propiedad de la comunidad educativa (instituciones, docentes y estudiantes), y su uso se limita al cumplimiento de los objetivos formativos declarados.
+                            </p>
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">📚 Marco normativo de referencia:</p>
+                                <ul className="text-xs text-slate-500 space-y-1 italic">
+                                    <li>• Ley 1581 de 2012 (Colombia).</li>
+                                    <li>• Convención sobre los Derechos del Niño (ONU), en lo relativo a la protección de datos de menores.</li>
+                                    <li>• Principios de privacidad por diseño y por defecto (Privacy by Design).</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="space-y-4">
+                        <div className="flex gap-4 items-center">
+                            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+                                <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold text-slate-800 text-lg">3. Protección de Datos Personales</h3>
+                        </div>
+                        <div className="pl-14 space-y-3">
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                                El tratamiento de la información se realiza conforme a las leyes vigentes, garantizando el derecho a la intimidad, confidencialidad, seguridad técnica de los datos y el derecho a conocer, actualizar y rectificar la información.
+                            </p>
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">📚 Marco normativo de referencia:</p>
+                                <ul className="text-xs text-slate-500 space-y-1 italic">
+                                    <li>• Ley 1581 de 2012 y Decreto 1074 de 2015 (Colombia).</li>
+                                    <li>• RGPD (UE) – Principios de seguridad y minimización de datos.</li>
+                                    <li>• Lineamientos de protección de datos en plataformas educativas (UNESCO, OCDE).</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="space-y-4">
+                        <div className="flex gap-4 items-center">
+                            <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center shrink-0">
+                                <ShieldCheck className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold text-slate-800 text-lg">4. Enfoque Ético</h3>
+                        </div>
+                        <div className="pl-14">
+                            <p className="text-slate-600 text-sm leading-relaxed italic">
+                                Profe Tabla adopta un enfoque ético asegurando que la tecnología sirva al aprendizaje, respete la dignidad y autonomía de los usuarios, y potencie el rol pedagógico del docente.
                             </p>
                         </div>
                     </section>
 
-                    <section className="flex gap-4">
-                        <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
-                            <Lock className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-slate-800 text-lg">Uso No Comercial</h3>
-                            <p className="text-slate-600 leading-relaxed text-sm">
-                                <strong className="text-slate-900">Profe Tabla</strong> se compromete a no comercializar, vender ni compartir tus datos personales con terceros para fines publicitarios o de marketing. La información pertenece a la comunidad educativa.
-                            </p>
-                        </div>
-                    </section>
-
-                    <section className="flex gap-4">
-                        <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
-                            <AlertTriangle className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-slate-800 text-lg">Protección de Datos</h3>
-                            <p className="text-slate-600 leading-relaxed text-sm italic">
-                                El tratamiento de la información se realiza conforme a las leyes vigentes de protección de datos personales, garantizando el derecho a la intimidad y la seguridad de la información institucional.
-                            </p>
-                        </div>
-                    </section>
-
-                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mt-4">
-                        <p className="text-slate-500 text-sm italic">
-                            Al hacer clic en el botón de abajo, confirmas que has leído y aceptas los términos de uso y la política de privacidad pedagógica de la plataforma.
+                    <div className="bg-blue-600/5 p-6 rounded-2xl border border-blue-600/10 mt-4 text-center">
+                        <p className="text-blue-700 text-sm font-medium">
+                            Al hacer clic abajo, confirmas que has leído y aceptas los términos de uso y la política de privacidad pedagógica de Profe Tabla.
                         </p>
                     </div>
                 </div>

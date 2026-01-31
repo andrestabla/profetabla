@@ -241,35 +241,62 @@ export default function ProfilePageClient({ user }: { user: any }) {
                             <button onClick={() => setShowPolicies(false)} className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full z-10">
                                 <X className="w-5 h-5 text-slate-500" />
                             </button>
-                            <div className="flex-1 overflow-auto p-8 custom-scrollbar">
+                            <div className="flex-1 overflow-auto p-8 custom-scrollbar space-y-8">
                                 <div className="text-center mb-8">
                                     <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                         <ShieldCheck className="w-10 h-10" />
                                     </div>
                                     <h2 className="text-2xl font-bold text-slate-900">Políticas de Uso Pedagógico</h2>
-                                    <p className="text-slate-500">Consulta los términos que aceptaste al ingresar.</p>
+                                    <p className="text-slate-500">Consulta los términos que rigen el uso ético de Profe Tabla.</p>
                                 </div>
-                                <div className="space-y-6">
-                                    <section>
-                                        <h3 className="font-bold text-slate-800 mb-1">Finalidad Educativa</h3>
-                                        <p className="text-sm text-slate-600 leading-relaxed">
-                                            Plataforma diseñada para el apoyo docente y la gestión de proyectos de aprendizaje.
+
+                                <section className="space-y-4">
+                                    <h3 className="font-bold text-slate-800 text-lg">1. Finalidad Educativa</h3>
+                                    <div className="space-y-3">
+                                        <p className="text-slate-600 text-sm leading-relaxed">
+                                            Apoyo exclusivo a procesos pedagógicos, académicos y formativos (Gestión de proyectos, interacción docente-estudiante, seguimiento y evaluación).
                                         </p>
-                                    </section>
-                                    <section>
-                                        <h3 className="font-bold text-slate-800 mb-1">Uso No Comercial</h3>
-                                        <p className="text-sm text-slate-600 leading-relaxed">
-                                            Prohibido el uso de los datos personales para comunicación comercial o marketing externo.
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Normativa:</p>
+                                            <p className="text-[11px] text-slate-500 italic">Ley 1581 (2012), Decreto 1377 (2013), RGPD (UE), Recomendaciones UNESCO IA.</p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section className="space-y-4">
+                                    <h3 className="font-bold text-slate-800 text-lg">2. Uso No Comercial</h3>
+                                    <div className="space-y-3">
+                                        <p className="text-slate-600 text-sm leading-relaxed">
+                                            Prohibida la comercialización, venta o cesión de datos para publicidad o marketing. La información es propiedad de la comunidad educativa.
                                         </p>
-                                    </section>
-                                    <section>
-                                        <h3 className="font-bold text-slate-800 mb-1">Protección de Datos</h3>
-                                        <p className="text-sm text-slate-600 leading-relaxed">
-                                            Tratamiento conforme a las leyes de protección de datos actuales y locales.
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Normativa:</p>
+                                            <p className="text-[11px] text-slate-500 italic">Ley 1581 (2012), Convención Niños (ONU), Privacy by Design.</p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section className="space-y-4">
+                                    <h3 className="font-bold text-slate-800 text-lg">3. Protección de Datos</h3>
+                                    <div className="space-y-3">
+                                        <p className="text-slate-600 text-sm leading-relaxed">
+                                            Garantizamos privacidad, confidencialidad y seguridad. Los usuarios conservan derechos de acceso, rectificación y supresión.
                                         </p>
-                                    </section>
-                                </div>
-                                <button onClick={() => setShowPolicies(false)} className="w-full mt-8 py-3 bg-slate-900 text-white font-bold rounded-xl">Entendido</button>
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Normativa:</p>
+                                            <p className="text-[11px] text-slate-500 italic">Ley 1581 y Decreto 1074 (Colombia), RGPD (UE).</p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section className="space-y-2 border-t pt-4">
+                                    <h3 className="font-bold text-slate-800 text-lg">4. Enfoque Ético</h3>
+                                    <p className="text-slate-600 text-sm leading-relaxed italic">
+                                        Adoptamos un enfoque ético asegurando que la tecnología sirva al aprendizaje humano y respete la autonomía de los usuarios.
+                                    </p>
+                                </section>
+
+                                <button onClick={() => setShowPolicies(false)} className="w-full mt-8 py-3 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-black transition-all">Entendido</button>
                             </div>
                         </div>
                     </div>
