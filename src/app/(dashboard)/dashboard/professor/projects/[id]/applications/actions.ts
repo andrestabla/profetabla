@@ -10,6 +10,15 @@ export async function acceptStudentAction(formData: FormData) {
     const projectId = formData.get('projectId') as string;
     const studentId = formData.get('studentId') as string;
 
+    // LOG START
+    await prisma.activityLog.create({
+        data: {
+            action: 'ACCEPT_STUDENT_START',
+            description: `Starting acceptance for student ${studentId} in project ${projectId}`,
+            metadata: { applicationId, projectId, studentId }
+        }
+    });
+
     console.log(`🚀 [Action] Accepting Student: App=${applicationId}, Project=${projectId}, Student=${studentId}`);
 
     // Fetch necessary data for email
@@ -19,23 +28,26 @@ export async function acceptStudentAction(formData: FormData) {
     ]);
 
     if (!student || !project) {
+        await prisma.activityLog.create({
+            data: {
+                action: 'ACCEPT_STUDENT_ERROR',
+                description: 'Student or Project not found',
+                metadata: { studentId, projectId, foundStudent: !!student, foundProject: !!project }
+            }
+        });
         console.error("❌ [Action] Student or Project not found for email");
     }
 
-    // 1. Iniciar una transacción de Prisma (para asegurar que todos los cambios ocurran a la vez)
+    // 1. Iniciar una transacción de Prisma
     await prisma.$transaction(async (tx) => {
+        // ... transaction code ...
         // A. Actualizar la postulación seleccionada a ACCEPTED
         await tx.projectApplication.update({
             where: { id: applicationId },
             data: { status: 'ACCEPTED' },
         });
 
-        // B. (REMOVED) Previously we rejected all other applications. 
-        // With M-N support, we allow multiple students to be accepted. 
-        // The professor can manually reject others if needed.
-
-        // C. El cambio principal: Asignar el estudiante al Proyecto y cambiar estado a IN_PROGRESS
-        const projectData = await tx.project.findUnique({ where: { id: projectId }, include: { students: true } });
+        // const projectData = await tx.project.findUnique({ where: { id: projectId }, include: { students: true } }); // Unused
 
         await tx.project.update({
             where: { id: projectId },
@@ -43,12 +55,11 @@ export async function acceptStudentAction(formData: FormData) {
                 students: {
                     connect: { id: studentId }
                 },
-                status: 'IN_PROGRESS' // Keep this for now as it was there
+                status: 'IN_PROGRESS'
             },
         });
 
-
-        // D. (Opcional) Crear la primera tarea automática en el Kanban del proyecto
+        // D. Create Task
         const existingTasks = await tx.task.count({ where: { projectId } });
         if (existingTasks === 0) {
             await tx.task.create({
@@ -62,15 +73,21 @@ export async function acceptStudentAction(formData: FormData) {
         }
     });
 
-    const session = await import('@/lib/auth').then(m => import('next-auth').then(na => na.getServerSession(m.authOptions))); // lazy load session for email copy
-
-    console.log("✅ [Action] DB Update success. Sending emails...");
+    const session = await import('@/lib/auth').then(m => import('next-auth').then(na => na.getServerSession(m.authOptions)));
 
     // Send Email Notification
     if (student?.email && project?.title) {
         try {
+            await prisma.activityLog.create({
+                data: {
+                    action: 'ACCEPT_STUDENT_EMAIL_ATTEMPT',
+                    description: `Sending email to ${student.email}`,
+                    metadata: { studentEmail: student.email }
+                }
+            });
+
             // 1. Email to Student
-            await sendEmail({
+            const emailResult = await sendEmail({
                 to: student.email,
                 subject: `¡Has sido aceptado! - ${project.title}`,
                 html: `
@@ -86,9 +103,17 @@ export async function acceptStudentAction(formData: FormData) {
                     </div>
                 `
             });
-            console.log(`✅ [Email Sent] Acceptance to Student: ${student.email}`);
 
-            // 2. Email Copy to Professor (Confirmation)
+            await prisma.activityLog.create({
+                data: {
+                    action: 'ACCEPT_STUDENT_EMAIL_RESULT',
+                    description: emailResult.success ? 'Success' : 'Failed',
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    metadata: emailResult as any
+                }
+            });
+
+            // 2. Email Copy to Professor
             if (session?.user?.email) {
                 await sendEmail({
                     to: session.user.email,
@@ -99,18 +124,29 @@ export async function acceptStudentAction(formData: FormData) {
                         </div>
                     `
                 });
-                console.log(`✅ [Email Sent] Copy to Professor: ${session.user.email}`);
             }
 
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            await prisma.activityLog.create({
+                data: {
+                    action: 'ACCEPT_STUDENT_EMAIL_EXCEPTION',
+                    description: errorMessage,
+                    metadata: { error: errorMessage }
+                }
+            });
             console.error("❌ [Email Error] Failed to send acceptance email:", error);
-            // Don't fail the action, but log critical error
         }
     } else {
-        console.error("❌ [Email Error] Missing student email or project title", { studentEmail: student?.email, projectTitle: project?.title });
+        await prisma.activityLog.create({
+            data: {
+                action: 'ACCEPT_STUDENT_EMAIL_SKIPPED',
+                description: 'Missing email or title',
+                metadata: { studentEmail: student?.email, projectTitle: project?.title }
+            }
+        });
     }
 
-    // 2. Redirigir al profesor al Tablero Kanban de este proyecto, que ya está activo
     redirect(`/dashboard/professor/projects/${projectId}/kanban`);
 }
 
