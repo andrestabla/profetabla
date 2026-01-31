@@ -77,9 +77,10 @@ export async function acceptStudentAction(formData: FormData) {
                         <p>Ahora tienes acceso al Tablero Kanban y a los recursos del proyecto.</p>
                         <br/>
                         <br/>
-                        <a href="${process.env.NEXTAUTH_URL || 'https://profetabla.com'}/dashboard/student/projects/${projectId}/kanban" 
+                        <br/>
+                        <a href="${process.env.NEXTAUTH_URL || 'https://profetabla.com'}/dashboard/market?currentFilter=MINE" 
                            style="background-color: #2563EB; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 8px;">
-                           Ir al Tablero Kanban
+                           Ir a Mis Proyectos
                         </a>
                     </div>
                 `
