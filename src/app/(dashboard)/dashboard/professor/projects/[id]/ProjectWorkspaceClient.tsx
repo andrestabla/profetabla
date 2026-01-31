@@ -3,9 +3,10 @@
 
 import { useState } from 'react';
 import { KanbanBoard } from '@/components/KanbanBoard';
-import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users } from 'lucide-react';
+import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search } from 'lucide-react';
 import Link from 'next/link';
 import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, extractResourceMetadataAction, updateProjectResourceAction } from './actions';
+import { searchStudentsAction, addStudentToProjectAction, removeStudentFromProjectAction } from '@/app/actions/project-enrollment';
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
 import { SubmissionCard } from '@/components/SubmissionCard';
@@ -39,7 +40,7 @@ type Project = {
     evaluation: string | null;
     kpis: string | null;
     googleDriveFolderId: string | null;
-    students: { name: string | null; avatarUrl: string | null }[];
+    students: { id: string; name: string | null; email: string | null; avatarUrl: string | null }[];
     teachers: { name: string | null; avatarUrl: string | null }[];
     type: string;
     teams: any[]; // Using any for simplicity as it matches TeamManagement props
@@ -59,6 +60,43 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [driveMode, setDriveMode] = useState<'LINK' | 'UPLOAD'>('LINK');
     const [viewerResource, setViewerResource] = useState<Resource | null>(null);
     const [isExtracting, setIsExtracting] = useState(false);
+
+    // Student Search State
+    const [studentSearchQuery, setStudentSearchQuery] = useState('');
+    const [studentSearchResults, setStudentSearchResults] = useState<any[]>([]);
+    const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+
+    const handleSearchStudents = async (query: string) => {
+        setStudentSearchQuery(query);
+        if (query.length < 2) {
+            setStudentSearchResults([]);
+            return;
+        }
+        setIsSearchingStudents(true);
+        try {
+            const res = await searchStudentsAction(query, project.id);
+            if (res.success) {
+                setStudentSearchResults(res.data || []);
+            }
+        } finally {
+            setIsSearchingStudents(false);
+        }
+    };
+
+    const handleAddStudent = async (studentId: string) => {
+        await addStudentToProjectAction(project.id, studentId);
+        setStudentSearchQuery('');
+        setStudentSearchResults([]);
+        // Optional: Trigger a refresh or local update? Since action revalidates path, client might need router.refresh() if not using it already.
+        // But since this is a client component receiving props, a hard refresh might be needed or we rely on revalidatePath actually causing a re-render if using router.refresh()
+        window.location.reload(); // Simple brute force for now to ensure props update
+    };
+
+    const handleRemoveStudent = async (studentId: string) => {
+        if (!confirm("¿Estás seguro de querer expulsar a este estudiante del proyecto?")) return;
+        await removeStudentFromProjectAction(project.id, studentId);
+        window.location.reload();
+    };
 
     // Metadata form states
     const [metaTitle, setMetaTitle] = useState('');
@@ -206,20 +244,73 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                     {project.students && project.students.length > 0 ? (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             {project.students.map((student, i) => (
-                                                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                                                        {student.avatarUrl ? <img src={student.avatarUrl} alt={student.name || ''} className="w-full h-full rounded-full object-cover" /> : (student.name?.[0] || 'E')}
+                                                <div key={i} className="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 group">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold overflow-hidden">
+                                                            {student.avatarUrl ? <img src={student.avatarUrl} alt={student.name || ''} className="w-full h-full object-cover" /> : (student.name?.[0] || 'E')}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-800 text-sm">{student.name}</p>
+                                                            <p className="text-xs text-slate-500 truncate max-w-[120px]" title={student.email || ''}>{student.email}</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-bold text-slate-800 text-sm">{student.name}</p>
-                                                        <p className="text-xs text-slate-500">Estudiante</p>
-                                                    </div>
+                                                    <button
+                                                        onClick={() => handleRemoveStudent(student.id)}
+                                                        className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                        title="Expulsar del proyecto"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
                                         <p className="text-sm text-slate-500 italic">No hay estudiantes vinculados aún.</p>
                                     )}
+
+                                    {/* Smart Search for Adding Students */}
+                                    <div className="mt-8 pt-6 border-t border-slate-100">
+                                        <h4 className="font-bold text-slate-700 text-sm mb-3">Vincular Estudiante Existente</h4>
+                                        <div className="relative">
+                                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                                                <Search className="w-4 h-4 text-slate-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Buscar por nombre o correo..."
+                                                    className="bg-transparent border-none outline-none text-sm w-full"
+                                                    value={studentSearchQuery}
+                                                    onChange={(e) => handleSearchStudents(e.target.value)}
+                                                />
+                                                {isSearchingStudents && <div className="w-3 h-3 rounded-full border-2 border-slate-300 border-t-blue-500 animate-spin" />}
+                                            </div>
+
+                                            {/* Search Results Dropdown */}
+                                            {studentSearchResults.length > 0 && (
+                                                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-20 max-h-60 overflow-y-auto">
+                                                    {studentSearchResults.map(student => (
+                                                        <button
+                                                            key={student.id}
+                                                            onClick={() => handleAddStudent(student.id)}
+                                                            className="w-full flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group transition-colors text-left"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 overflow-hidden">
+                                                                    {student.avatarUrl ? <img src={student.avatarUrl} className="w-full h-full object-cover" /> : student.name?.[0]}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-slate-700">{student.name}</p>
+                                                                    <p className="text-[10px] text-slate-400">{student.email}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <Plus className="w-4 h-4" />
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div>

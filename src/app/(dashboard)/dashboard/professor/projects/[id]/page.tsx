@@ -25,7 +25,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             googleDriveFolderId: true,
             accessCode: true,
             students: {
-                select: { name: true, avatarUrl: true }
+                select: { id: true, name: true, email: true, avatarUrl: true }
             },
             teachers: {
                 select: { name: true, avatarUrl: true }
