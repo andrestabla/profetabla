@@ -79,6 +79,7 @@ export async function submitAssignmentAction(formData: FormData) {
 
         revalidatePath('/dashboard/assignments');
         revalidatePath('/dashboard/kanban'); // Sync kanban
+        revalidatePath('/dashboard/grades');
         return { success: true };
 
     } catch (e: unknown) {

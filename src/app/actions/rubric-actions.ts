@@ -106,7 +106,7 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
             // 3. Auto-move task to REVIEWED
             if (submission.assignment?.task?.id && submission.assignment.task.status !== 'REVIEWED') {
                 // Explicitly cast to any if TS is still complaining, though generate should fix it
-                 
+
                 await tx.task.update({
                     where: { id: submission.assignment.task.id },
                     data: { status: 'REVIEWED' }
@@ -157,6 +157,7 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
 
         revalidatePath('/dashboard/assignments');
         revalidatePath('/dashboard/kanban');
+        revalidatePath('/dashboard/grades');
         return { success: true };
     } catch (e: unknown) {
         console.error("Error grading submission:", e);

@@ -295,11 +295,14 @@ model Submission {
   feedback     String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   rubricScores RubricScore[]
   teamId       String?
   team         Team?      @relation(fields: [teamId], references: [id])
+
+  @@index([studentId])
+  @@index([assignmentId])
 }
 
 model RubricItem {
