@@ -73,7 +73,8 @@ export async function submitAssignmentAction(formData: FormData) {
             // Auto-move task to SUBMITTED
             prisma.task.update({
                 where: { id: assignment.task?.id }, // Needs include task in assignment fetch
-                data: { status: 'SUBMITTED' }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                data: { status: 'SUBMITTED' as any }
             })
         ]);
 
