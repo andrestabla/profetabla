@@ -39,9 +39,9 @@ export function ProjectListActions({ projectId, projectTitle, projectType }: Pro
             <Link
                 href={getProjectRoute(projectId, projectType)}
                 className="flex-1 bg-white border border-slate-200 text-slate-700 font-bold py-2 rounded-lg text-sm flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
-                title="Ver y Editar Detalles"
+                title="Ver y Gestionar Detalles"
             >
-                <Eye className="w-4 h-4" /> Editar
+                <Eye className="w-4 h-4" /> Gestionar
             </Link>
             <Link
                 href={`${getProjectRoute(projectId, projectType)}/kanban`}

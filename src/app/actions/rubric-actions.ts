@@ -55,7 +55,7 @@ export async function saveRubricAction(assignmentId: string, items: { criterion:
     }
 }
 
-export async function gradeSubmissionAction(submissionId: string, scores: { rubricItemId: string; score: number; feedback?: string }[]) {
+export async function gradeSubmissionAction(submissionId: string, scores: { rubricItemId: string; score: number; feedback?: string }[], generalFeedback?: string) {
     const session = await getServerSession(authOptions);
     if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
         return { success: false, error: 'No autorizado' };
@@ -92,7 +92,7 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
                 where: { id: submissionId },
                 data: {
                     grade: totalGrade,
-                    feedback: `Calificación final calculada por rúbrica: ${totalGrade}`
+                    feedback: generalFeedback || `Calificación final calculada por rúbrica: ${totalGrade}`
                 },
                 include: { assignment: { include: { task: true } } }
             });

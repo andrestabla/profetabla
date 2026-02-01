@@ -21,6 +21,7 @@ type Submission = {
         email: string;
     };
     rubricScores: { rubricItemId: string; score: number; feedback: string | null }[];
+    feedback?: string | null;
 };
 
 export function GradingModal({ submission, rubricItems, onClose }: { submission: Submission; rubricItems: RubricItem[]; onClose: () => void }) {
@@ -35,6 +36,7 @@ export function GradingModal({ submission, rubricItems, onClose }: { submission:
         });
         return initialScores;
     });
+    const [generalFeedback, setGeneralFeedback] = useState(submission.feedback || '');
     const [isSaving, setIsSaving] = useState(false);
 
     const handleScoreChange = (itemId: string, val: number) => {
@@ -59,7 +61,7 @@ export function GradingModal({ submission, rubricItems, onClose }: { submission:
             feedback: data.feedback
         }));
 
-        const res = await gradeSubmissionAction(submission.id, scoresPayload);
+        const res = await gradeSubmissionAction(submission.id, scoresPayload, generalFeedback);
         if (res.success) {
             alert("Calificación guardada");
             onClose();
@@ -158,6 +160,17 @@ export function GradingModal({ submission, rubricItems, onClose }: { submission:
                                 );
                             })
                         )}
+
+                        {/* General Feedback Section */}
+                        <div className="pt-6 border-t border-slate-100">
+                            <h4 className="font-bold text-slate-800 mb-2">Feedback General</h4>
+                            <textarea
+                                value={generalFeedback}
+                                onChange={(e) => setGeneralFeedback(e.target.value)}
+                                placeholder="Comentarios generales sobre la entrega..."
+                                className="w-full text-sm border-slate-200 rounded-lg focus:ring-blue-500 min-h-[100px] resize-y bg-white placeholder-slate-400 p-3 shadow-sm border"
+                            />
+                        </div>
                     </div>
 
                     <div className="p-6 border-t border-slate-100 bg-slate-50">
