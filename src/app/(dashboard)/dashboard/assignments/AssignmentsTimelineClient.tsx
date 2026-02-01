@@ -206,8 +206,13 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
             {/* Modal de Detalles y Entrega */}
             {selectedAssignment && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col md:flex-row animate-in zoom-in-95 duration-200">
-
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col md:flex-row animate-in zoom-in-95 duration-200 relative">
+                        <button
+                            onClick={() => setSelectedAssignment(null)}
+                            className="absolute top-4 right-4 p-2 bg-slate-100/50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-full transition-colors z-10"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
                         {/* LEFT COLUMN: Details */}
                         <div className={`p-8 ${showSubmissionForm ? 'hidden md:block md:w-1/2 border-r border-slate-100' : 'w-full'}`}>
                             <div className="flex justify-between items-start mb-6">
