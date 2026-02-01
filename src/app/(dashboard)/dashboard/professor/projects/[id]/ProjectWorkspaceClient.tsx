@@ -106,6 +106,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [editingResource, setEditingResource] = useState<Resource | null>(null);
     const [isOAModalOpen, setIsOAModalOpen] = useState(false);
 
+    // Filter State
+    const [filterStudentId, setFilterStudentId] = useState('ALL');
+
     // Fetch drive files if configured
     const handleFetchDriveFiles = async () => {
         if (!project.googleDriveFolderId) return;
@@ -650,9 +653,54 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                 activeTab === 'ASSIGNMENTS' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">
                         <div className="lg:col-span-1"><CreateAssignmentForm projectId={project.id} /></div>
-                        <div className="lg:col-span-2 space-y-4">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><FileCheck className="w-5 h-5 text-emerald-600" /> Entregas Recientes</h3>
-                            {assignments.map(a => <SubmissionCard key={a.id} assignment={a} />)}
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><FileCheck className="w-5 h-5 text-emerald-600" /> Entregas Recientes</h3>
+
+                                {assignments.some(a => a.submissions.length > 0) && (
+                                    <div className="relative z-20 w-full sm:w-auto">
+                                        <select
+                                            value={filterStudentId}
+                                            onChange={(e) => setFilterStudentId(e.target.value)}
+                                            className="w-full sm:w-auto appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 shadow-sm transition-all cursor-pointer hover:bg-slate-50"
+                                        >
+                                            <option value="ALL">Todos los Estudiantes</option>
+                                            {project.students.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400">
+                                            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-4">
+                                {assignments.length === 0 ? (
+                                    <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                                        <p className="text-slate-500 font-medium">No hay entregables configurados aún.</p>
+                                    </div>
+                                ) : assignments.map(a => {
+                                    // Filter submissions based on selection
+                                    let filteredAssignment = a;
+
+                                    if (filterStudentId !== 'ALL') {
+                                        const studentSubmission = a.submissions.find((s: any) => s.student?.id === filterStudentId);
+                                        filteredAssignment = {
+                                            ...a,
+                                            submissions: studentSubmission ? [studentSubmission] : []
+                                        };
+                                    }
+
+                                    return (
+                                        <SubmissionCard
+                                            key={`${a.id}-${filterStudentId}`}
+                                            assignment={filteredAssignment}
+                                        />
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 )
