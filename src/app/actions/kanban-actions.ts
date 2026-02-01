@@ -133,7 +133,7 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
                         assignment: {
                             create: {
                                 title: `Entrega: ${t.title}`,
-                                description: `Entrega generada por IA para: ${t.title}`,
+                                description: t.description || `Entrega asociada a la tarea: ${t.title}`,
                                 projectId: projectId,
                                 evaluationCriteria: t.rubric ? t.rubric.map((r: any) => `- ${r.criterion}`).join('\n') : null,
                                 rubricItems: t.rubric ? {
