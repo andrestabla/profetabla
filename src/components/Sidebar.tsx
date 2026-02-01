@@ -2,24 +2,20 @@
 
 import {
     LayoutDashboard,
-    BookOpen,
     Users,
     Settings,
     LogOut,
     GraduationCap,
     Briefcase,
     Calendar,
-    Plus,
     Trophy,
     ShoppingBag,
     ChevronLeft,
-    ChevronRight,
     Menu,
     UserCheck,
     FileText,
     Kanban,
     Terminal,
-    Database,
     AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
@@ -48,6 +44,7 @@ export function Sidebar({ config }: { config?: any }) {
         { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard, roles: ['STUDENT'] },
         { name: 'Kanban', href: '/dashboard/kanban', icon: Kanban, roles: ['STUDENT'] },
         { name: 'Entregas', href: '/dashboard/assignments', icon: FileText, roles: ['STUDENT'] },
+        { name: 'Calificaciones', href: '/dashboard/grades', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Mercado de Proyectos', href: '/dashboard/market', icon: ShoppingBag, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
@@ -103,7 +100,7 @@ export function Sidebar({ config }: { config?: any }) {
                 <div className="p-4 border-b border-slate-800 bg-slate-900/50">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
-                            {session.user.image ? <img src={session.user.image} className="w-full h-full rounded-full" /> : session.user.name?.[0]}
+                            {session.user.image ? <img src={session.user.image} alt={session.user.name || "User"} className="w-full h-full rounded-full" /> : session.user.name?.[0]}
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-white truncate">{session.user.name}</p>
@@ -119,7 +116,7 @@ export function Sidebar({ config }: { config?: any }) {
             {isCollapsed && session?.user && (
                 <div className="p-4 border-b border-slate-800 flex justify-center">
                     <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600" title={session.user.name || ''}>
-                        {session.user.image ? <img src={session.user.image} className="w-full h-full rounded-full" /> : session.user.name?.[0]}
+                        {session.user.image ? <img src={session.user.image} alt={session.user.name || "User"} className="w-full h-full rounded-full" /> : session.user.name?.[0]}
                     </div>
                 </div>
             )}
