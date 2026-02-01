@@ -1,4 +1,5 @@
-import { auth } from '@/auth';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import StudentGradesClient from './StudentGradesClient';
@@ -7,7 +8,7 @@ import ProfessorGradesClient from './ProfessorGradesClient';
 export const dynamic = 'force-dynamic';
 
 export default async function GradesPage() {
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     if (!session?.user) return notFound();
 
     const role = session.user.role;
