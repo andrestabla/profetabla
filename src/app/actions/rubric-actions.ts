@@ -88,16 +88,26 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
             }
 
             // 2. Update total grade on submission
-            await tx.submission.update({
+            const submission = await tx.submission.update({
                 where: { id: submissionId },
                 data: {
                     grade: totalGrade,
                     feedback: `Calificación final calculada por rúbrica: ${totalGrade}`
-                }
+                },
+                include: { assignment: { include: { task: true } } }
             });
+
+            // 3. Auto-move task to REVIEWED
+            if (submission.assignment?.task?.id) {
+                await tx.task.update({
+                    where: { id: submission.assignment.task.id },
+                    data: { status: 'REVIEWED' }
+                });
+            }
         });
 
         revalidatePath('/dashboard/assignments');
+        revalidatePath('/dashboard/kanban');
         return { success: true };
     } catch (e) {
         console.error("Error grading submission:", e);

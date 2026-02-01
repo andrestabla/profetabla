@@ -19,7 +19,7 @@ export async function submitAssignmentAction(formData: FormData) {
     try {
         const assignment = await prisma.assignment.findUnique({
             where: { id: assignmentId },
-            include: { project: true }
+            include: { project: true, task: { select: { id: true } } }
         });
 
         if (!assignment) return { success: false, error: 'Asignación no encontrada' };
@@ -59,18 +59,26 @@ export async function submitAssignmentAction(formData: FormData) {
         }
 
         // Save to DB
-        await prisma.submission.create({
-            data: {
-                assignmentId,
-                studentId: session.user.id,
-                fileUrl,
-                fileName,
-                fileType,
-                fileSize
-            }
-        });
+        await prisma.$transaction([
+            prisma.submission.create({
+                data: {
+                    assignmentId,
+                    studentId: session.user.id,
+                    fileUrl,
+                    fileName,
+                    fileType,
+                    fileSize
+                }
+            }),
+            // Auto-move task to SUBMITTED
+            prisma.task.update({
+                where: { id: assignment.task?.id }, // Needs include task in assignment fetch
+                data: { status: 'SUBMITTED' }
+            })
+        ]);
 
         revalidatePath('/dashboard/assignments');
+        revalidatePath('/dashboard/kanban'); // Sync kanban
         return { success: true };
 
     } catch (e: unknown) {

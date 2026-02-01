@@ -15,7 +15,7 @@ type Task = {
     id: string;
     title: string;
     description: string | null;
-    status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+    status: 'TODO' | 'IN_PROGRESS' | 'SUBMITTED' | 'REVIEWED' | 'DONE';
     priority: 'LOW' | 'MEDIUM' | 'HIGH';
     dueDate: string | null;
     maxDate: string | null;
@@ -36,7 +36,8 @@ type Task = {
 const COLUMNS = [
     { id: 'TODO', title: 'Por Hacer', color: 'bg-slate-100 border-slate-200' },
     { id: 'IN_PROGRESS', title: 'En Progreso', color: 'bg-blue-50 border-blue-100' },
-    { id: 'DONE', title: 'Terminado', color: 'bg-green-50 border-green-100' },
+    { id: 'SUBMITTED', title: 'Entregado', color: 'bg-purple-50 border-purple-100' },
+    { id: 'REVIEWED', title: 'Revisado', color: 'bg-emerald-50 border-emerald-100' },
 ];
 
 export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: string; userRole: string; allProjects?: Array<{ id: string; title: string; type: string; industry: string | null }> }) {
@@ -80,10 +81,6 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
 
     function handleDragStart(event: DragStartEvent) {
         if (!isEditMode) return;
-        const task = tasks.find(t => t.id === event.active.id);
-        if (userRole === 'STUDENT' && task?.isMandatory) {
-            return; // Students cannot move mandatory tasks
-        }
         setActiveId(event.active.id as string);
     }
 
@@ -104,12 +101,25 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
             }
         }
 
-        if (activeTask.status !== newStatus) {
-            const updatedTasks = tasks.map(t =>
-                t.id === activeTask.id ? { ...t, status: newStatus } : t
-            );
-            setTasks(updatedTasks);
-            // In Edit Mode, we DO NOT auto-save. Changes are buffered.
+        // PERMISSION CHECK for Students regarding Mandatory Tasks
+        if (userRole === 'STUDENT' && activeTask.isMandatory) {
+            // Can only move to IN_PROGRESS or back to TODO
+            if (newStatus !== 'IN_PROGRESS' && newStatus !== 'TODO') {
+                return;
+            }
+        }
+
+        if (active.id !== over.id || activeTask.status !== newStatus) {
+            setTasks((items) => {
+                const oldIndex = items.findIndex((t) => t.id === active.id);
+                const newIndex = items.findIndex((t) => t.id === over.id);
+
+                // We map to update status and then we could use arrayMove for sorting if needed.
+                // For this simple implementation, just mapping status is enough as this is not a fully ordered list persistence.
+                // However, dnd-kit likes arrayMove for visual feedback.
+
+                return items.map(t => t.id === active.id ? { ...t, status: newStatus } : t);
+            });
         }
         setActiveId(null);
     }

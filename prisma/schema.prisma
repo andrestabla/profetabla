@@ -508,6 +508,8 @@ enum ApplicationStatus {
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  SUBMITTED
+  REVIEWED
   DONE
 }
 
