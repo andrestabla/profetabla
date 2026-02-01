@@ -70,14 +70,52 @@ export async function GET(request: Request) {
                 tags: true,
                 assignees: true,
                 team: true,
-                assignment: { select: { id: true } }
+                assignment: {
+                    include: {
+                        submissions: {
+                            select: { id: true, grade: true }
+                        }
+                    }
+                }
             },
             orderBy: { createdAt: 'desc' }
         });
 
-        // Map author to user for frontend compatibility
+        // Post-processing for Status Synchronization
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mappedTasks = (tasks as any[]).map(task => ({
+        const syncedTasks = await Promise.all((tasks as any[]).map(async (task) => {
+            let newStatus = task.status;
+            let shouldUpdate = false;
+
+            const hasSubmission = task.assignment?.submissions?.length > 0;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const hasGrade = task.assignment?.submissions?.some((s: any) => s.grade !== null);
+
+            // Sync Logic
+            if (task.isMandatory) {
+                if (hasGrade && task.status !== 'REVIEWED' && task.status !== 'DONE') {
+                    newStatus = 'REVIEWED';
+                    shouldUpdate = true;
+                } else if (hasSubmission && !hasGrade && (task.status === 'TODO' || task.status === 'IN_PROGRESS')) {
+                    newStatus = 'SUBMITTED';
+                    shouldUpdate = true;
+                }
+            }
+
+            if (shouldUpdate) {
+                await prisma.task.update({
+                    where: { id: task.id },
+                    data: { status: newStatus }
+                });
+                return { ...task, status: newStatus };
+            }
+
+            return task;
+        }));
+
+        // Map author to user for frontend compatibility
+         
+        const mappedTasks = syncedTasks.map(task => ({
             ...task,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             comments: (task.comments || []).map((comment: any) => ({
@@ -87,7 +125,8 @@ export async function GET(request: Request) {
         }));
 
         return NextResponse.json(mappedTasks);
-    } catch {
+    } catch (e) {
+        console.error(e);
         return NextResponse.json({ error: 'Error fetching tasks' }, { status: 500 });
     }
 }

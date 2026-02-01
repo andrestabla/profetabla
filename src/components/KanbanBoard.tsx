@@ -111,8 +111,6 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
 
         if (active.id !== over.id || activeTask.status !== newStatus) {
             setTasks((items) => {
-                const oldIndex = items.findIndex((t) => t.id === active.id);
-                const newIndex = items.findIndex((t) => t.id === over.id);
 
                 // We map to update status and then we could use arrayMove for sorting if needed.
                 // For this simple implementation, just mapping status is enough as this is not a fully ordered list persistence.
@@ -435,7 +433,7 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
 function SortableTask({ task, isEditMode, userRole, onClick, onDelete }: { task: Task; isEditMode: boolean; userRole: string; onClick: () => void; onDelete: () => void }) {
     const isStudent = userRole === 'STUDENT';
     const isMandatory = task.isMandatory;
-    const canMove = isEditMode && (!isStudent || !isMandatory);
+    const canMove = isEditMode;
 
     const {
         attributes,
