@@ -18,11 +18,11 @@ export default function MentorshipRoomClient({ booking, student, project }: { bo
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
                         <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl">
-                            {student.name ? student.name.charAt(0) : 'E'}
+                            {student?.name ? student.name.charAt(0) : 'E'}
                         </div>
                         <div>
-                            <h2 className="font-bold text-slate-800">{student.name}</h2>
-                            <p className="text-sm text-slate-500">{project.title}</p>
+                            <h2 className="font-bold text-slate-800">{student?.name || 'Sin Nombre'}</h2>
+                            <p className="text-sm text-slate-500">{project?.title || 'Proyecto'}</p>
                         </div>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-lg text-sm text-slate-600 border border-slate-100">

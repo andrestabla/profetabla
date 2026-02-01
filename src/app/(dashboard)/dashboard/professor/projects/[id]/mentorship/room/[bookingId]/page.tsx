@@ -35,10 +35,12 @@ export default async function Page({ params }: { params: Promise<{ id: string, b
 
     if (!bookingWithStudents) return notFound();
 
+    const student = bookingWithStudents.students?.[0] || { name: 'Estudiante no asignado', id: 'na' };
+
     return (
         <MentorshipRoomClient
             booking={bookingWithStudents}
-            student={bookingWithStudents.students[0]}
+            student={student}
             project={project}
         />
     );
