@@ -35,9 +35,10 @@ export default async function DashboardPage() {
             },
         });
 
-        const citations = await prisma.mentorshipBooking.findMany({
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        const citations = await (prisma.mentorshipBooking as any).findMany({
             where: {
-                studentId: user.id,
+                students: { some: { id: user.id } },
                 initiatedBy: 'TEACHER', // Priority notice
                 status: 'CONFIRMED',
                 slot: { startTime: { gte: new Date() } }
@@ -47,9 +48,9 @@ export default async function DashboardPage() {
             take: 1
         });
 
-        const nextMentorship = await prisma.mentorshipBooking.findFirst({
+        const nextMentorship = await (prisma.mentorshipBooking as any).findFirst({
             where: {
-                studentId: user.id,
+                students: { some: { id: user.id } },
                 status: 'CONFIRMED',
                 slot: { startTime: { gte: new Date() } }
             },
@@ -59,7 +60,7 @@ export default async function DashboardPage() {
 
         let citation = null;
         if (citations.length > 0) {
-            const cit = citations[0];
+            const cit = citations[0] as any;
             citation = {
                 teacherName: cit.slot.teacher.name || 'Tutor',
                 date: cit.slot.startTime.toLocaleDateString(),
@@ -67,6 +68,7 @@ export default async function DashboardPage() {
                 meetingUrl: cit.slot.meetingUrl || '#'
             };
         }
+        /* eslint-enable @typescript-eslint/no-explicit-any */
 
         return (
             <StudentDashboard
