@@ -55,6 +55,8 @@ export async function saveRubricAction(assignmentId: string, items: { criterion:
     }
 }
 
+import { sendEmail } from '@/lib/email';
+
 export async function gradeSubmissionAction(submissionId: string, scores: { rubricItemId: string; score: number; feedback?: string }[], generalFeedback?: string) {
     const session = await getServerSession(authOptions);
     if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
@@ -64,7 +66,8 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
     try {
         const totalGrade = scores.reduce((sum, s) => sum + s.score, 0);
 
-        await prisma.$transaction(async (tx) => {
+        // Transaction to save scores and update submission/task
+        const result = await prisma.$transaction(async (tx) => {
             // 1. Save individual rubric scores
             for (const s of scores) {
                 await tx.rubricScore.upsert({
@@ -94,23 +97,70 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
                     grade: totalGrade,
                     feedback: generalFeedback || `Calificación final calculada por rúbrica: ${totalGrade}`
                 },
-                include: { assignment: { include: { task: true } } }
+                include: {
+                    assignment: { include: { task: true } },
+                    student: { select: { email: true, name: true } }
+                }
             });
 
             // 3. Auto-move task to REVIEWED
-            if (submission.assignment?.task?.id) {
+            if (submission.assignment?.task?.id && submission.assignment.task.status !== 'REVIEWED') {
+                // Explicitly cast to any if TS is still complaining, though generate should fix it
+                 
                 await tx.task.update({
                     where: { id: submission.assignment.task.id },
                     data: { status: 'REVIEWED' }
                 });
             }
+
+            return { email: submission.student.email, name: submission.student.name, taskTitle: submission.assignment.task?.title || submission.assignment.title };
         });
+
+        // 4. Send Email Notification (Outside transaction)
+        if (result?.email) {
+            try {
+                const html = `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #2563EB;">¡Tu entrega ha sido calificada!</h2>
+                        <p>Hola <strong>${result.name || 'Estudiante'}</strong>,</p>
+                        <p>Tu entrega para la tarea <strong>"${result.taskTitle}"</strong> ha sido revisada y calificada por el profesor.</p>
+                        
+                        <div style="background-color: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                            <p style="margin: 0; font-size: 18px; font-weight: bold;">Calificación: <span style="color: #2563EB;">${totalGrade} pts</span></p>
+                        </div>
+
+                        ${generalFeedback ? `
+                        <div style="background-color: #EFF6FF; padding: 15px; border-radius: 8px; border-left: 4px solid #2563EB; margin-bottom: 20px;">
+                            <h4 style="margin-top: 0; color: #1E40AF;">Feedback General:</h4>
+                            <p style="margin-bottom: 0; font-style: italic;">"${generalFeedback}"</p>
+                        </div>
+                        ` : ''}
+
+                        <p>Puedes ver el detalle de la rúbrica y los comentarios específicos en la plataforma.</p>
+                        
+                        <div style="text-align: center; margin-top: 30px;">
+                            <a href="https://profetabla.com/dashboard/student" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Ver Calificación</a>
+                        </div>
+                    </div>
+                `;
+
+                await sendEmail({
+                    to: result.email,
+                    subject: `Calificación: ${result.taskTitle}`,
+                    html
+                });
+                console.log(`Notification email sent to ${result.email}`);
+            } catch (emailError) {
+                console.error("Error sending notification email:", emailError);
+            }
+        }
 
         revalidatePath('/dashboard/assignments');
         revalidatePath('/dashboard/kanban');
         return { success: true };
-    } catch (e) {
+    } catch (e: unknown) {
         console.error("Error grading submission:", e);
-        return { success: false, error: 'Error al calificar' };
+        const errorMessage = e instanceof Error ? e.message : 'Error al calificar';
+        return { success: false, error: errorMessage };
     }
 }
