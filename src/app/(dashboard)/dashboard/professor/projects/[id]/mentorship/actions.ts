@@ -37,6 +37,7 @@ export async function summonStudentAction(formData: FormData) {
     }
 
     // Use transaction for consistency
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     await prisma.$transaction(async (tx: any) => {
         // Atomic update check for existing slot or use the new one created
         const updateResult = await tx.mentorshipSlot.updateMany({
@@ -58,7 +59,9 @@ export async function summonStudentAction(formData: FormData) {
         await tx.mentorshipBooking.create({
             data: {
                 slotId,
-                studentId,
+                students: {
+                    connect: { id: studentId }
+                },
                 projectId,
                 note: `CITACIÓN OBLIGATORIA: ${reason}`,
                 initiatedBy: 'TEACHER',

@@ -761,7 +761,15 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                     </div>
                 )
             }
-            {activeTab === 'MENTORSHIP' && <div className="animate-in fade-in duration-300"><BookingList defaultProjectId={project.id} /></div>}
+            {activeTab === 'MENTORSHIP' && (
+                <div className="animate-in fade-in duration-300">
+                    <BookingList
+                        defaultProjectId={project.id}
+                        projectTeacherIds={project.teachers.map(t => t.id)}
+                        projectStudents={session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN' ? project.students.map(s => ({ id: s.id, name: s.name || 'Sin nombre' })) : undefined}
+                    />
+                </div>
+            )}
             {
                 activeTab === 'ASSIGNMENTS' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">

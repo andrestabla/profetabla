@@ -10,7 +10,7 @@ export async function GET() {
                 teacher: true,
                 booking: {
                     include: {
-                        student: true,
+                        students: true,
                         project: { select: { title: true } }
                     }
                 }
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json(slot);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error creating slot' }, { status: 500 });
     }
 }

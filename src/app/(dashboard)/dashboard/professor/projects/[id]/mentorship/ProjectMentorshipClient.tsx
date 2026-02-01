@@ -9,6 +9,7 @@ type Booking = {
     slot: { startTime: Date };
     status: string;
     initiatedBy: string;
+    students: { name: string | null }[];
 }
 
 type ProjectSimple = {
@@ -71,6 +72,9 @@ export default function ProjectMentorshipClient({ project, riskLevel, upcomingSe
                                     <h4 className="font-bold text-slate-800">{session.initiatedBy === 'TEACHER' ? '🔴 Citación de Seguimiento' : '🔵 Mentoría Regular'}</h4>
                                     <p className="text-sm text-slate-500 flex items-center gap-1">
                                         <Clock className="w-3 h-3" /> {new Date(session.slot.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                        Estudiantes: {session.students.map(s => s.name).join(', ')}
                                     </p>
                                 </div>
                             </div>

@@ -14,10 +14,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
     if (!project || project.students.length === 0) return notFound();
 
-    // Fetch Bookings
-    const bookings = await prisma.mentorshipBooking.findMany({
+    // Fetch Bookings with students and teacher info
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const bookings = await (prisma.mentorshipBooking as any).findMany({
         where: { projectId: id },
-        include: { slot: true },
+        include: {
+            slot: { include: { teacher: true } },
+            students: { select: { name: true, avatarUrl: true } }
+        },
         orderBy: { slot: { startTime: 'asc' } }
     });
 
@@ -26,5 +30,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     // For MVP demo, if there are NO bookings, we assume 'HIGH' risk to show the button
     const riskLevel = bookings.length === 0 ? 'HIGH' : 'NORMAL';
 
-    return <ProjectMentorshipClient project={project} riskLevel={riskLevel} upcomingSessions={bookings} />;
+    return (
+        <ProjectMentorshipClient
+            project={project}
+            riskLevel={riskLevel}
+            upcomingSessions={bookings as any[]}
+        />
+    );
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 }

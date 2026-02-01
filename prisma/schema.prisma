@@ -29,7 +29,7 @@ model User {
   itemInteractions       ItemInteraction[]
   languages              Language[]
   createdLearningObjects LearningObject[]
-  bookings               MentorshipBooking[]
+  mentorships            MentorshipBooking[]   @relation("MentorshipStudents")
   mentorshipSlots        MentorshipSlot[]
   projectsAsStudent      Project[]             @relation("ProjectStudents")
   projectsAsTeacher      Project[]             @relation("ProjectTeachers")
@@ -194,7 +194,6 @@ model MentorshipSlot {
 model MentorshipBooking {
   id          String         @id @default(uuid())
   slotId      String         @unique
-  studentId   String
   projectId   String?
   note        String?
   status      BookingStatus  @default(PENDING)
@@ -206,9 +205,8 @@ model MentorshipBooking {
   updatedAt   DateTime       @updatedAt
   project     Project?       @relation("ProjectMentorships", fields: [projectId], references: [id])
   slot        MentorshipSlot @relation(fields: [slotId], references: [id])
-  student     User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  students    User[]         @relation("MentorshipStudents")
 
-  @@index([studentId])
   @@index([projectId])
   @@index([status])
 }

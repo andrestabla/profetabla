@@ -14,7 +14,7 @@ interface Slot {
     teacher: { name: string; avatarUrl: string };
     booking?: {
         id: string;
-        student: { name: string };
+        students: { name: string }[];
         project?: { title: string };
         note: string;
         minutes: string | null;
@@ -25,40 +25,59 @@ interface Slot {
 interface BookingListProps {
     defaultProjectId?: string;
     defaultNote?: string;
+    projectTeacherIds?: string[];
+    projectStudents?: { id: string, name: string }[];
 }
 
-export function BookingList({ defaultProjectId, defaultNote }: BookingListProps) {
+export function BookingList({ defaultProjectId, defaultNote, projectTeacherIds, projectStudents }: BookingListProps) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _ignore = defaultNote;
     const [slots, setSlots] = useState<Slot[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+    const [isBooking, setIsBooking] = useState(false);
 
     useEffect(() => {
         fetch('/api/mentorship/slots')
             .then(res => res.json())
             .then(data => {
-                if (Array.isArray(data)) setSlots(data);
+                if (Array.isArray(data)) {
+                    // Filter slots by project teachers if provided
+                    const filtered = projectTeacherIds
+                        ? data.filter(s => projectTeacherIds.includes(s.teacherId))
+                        : data;
+                    setSlots(filtered);
+                }
                 setLoading(false);
             });
-    }, []);
+    }, [projectTeacherIds]);
 
     const handleBook = async (slotId: string) => {
         const note = prompt("Motivo de la sesión:");
         if (!note) return;
 
-        const res = await fetch('/api/mentorship/book', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                slotId,
-                note,
-                projectId: defaultProjectId
-            })
-        });
+        setIsBooking(true);
+        try {
+            const res = await fetch('/api/mentorship/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    slotId,
+                    note,
+                    projectId: defaultProjectId,
+                    studentIds: selectedStudentIds.length > 0 ? selectedStudentIds : undefined
+                })
+            });
 
-        if (res.ok) {
-            alert("Reserva confirmada");
-            window.location.reload();
+            if (res.ok) {
+                alert("Reserva confirmada");
+                window.location.reload();
+            } else {
+                const error = await res.json();
+                alert(error.error || "Error al reservar");
+            }
+        } finally {
+            setIsBooking(false);
         }
     };
 
@@ -108,7 +127,7 @@ export function BookingList({ defaultProjectId, defaultNote }: BookingListProps)
                                 {slot.isBooked && slot.booking && (
                                     <div className="bg-white/60 p-3 rounded-lg text-sm mb-4">
                                         <div className="flex justify-between items-center mb-1">
-                                            <p className="font-semibold text-slate-700">Estudiante: {slot.booking.student.name}</p>
+                                            <p className="font-semibold text-slate-700">Estudiantes: {slot.booking.students.map(s => s.name).join(', ')}</p>
                                             {slot.booking.project && (
                                                 <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold uppercase">
                                                     {slot.booking.project.title}
@@ -119,6 +138,32 @@ export function BookingList({ defaultProjectId, defaultNote }: BookingListProps)
                                     </div>
                                 )}
                             </div>
+
+                            {projectStudents && projectStudents.length > 0 && !slot.isBooked && (
+                                <div className="mb-4">
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Vincular Estudiantes</label>
+                                    <div className="max-h-24 overflow-y-auto space-y-1 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                                        {projectStudents.map(student => (
+                                            <label key={student.id} className="flex items-center gap-2 text-xs text-slate-600 hover:text-slate-900 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                    checked={selectedStudentIds.includes(student.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedStudentIds([...selectedStudentIds, student.id]);
+                                                        } else {
+                                                            setSelectedStudentIds(selectedStudentIds.filter(id => id !== student.id));
+                                                        }
+                                                    }}
+                                                />
+                                                {student.name}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
 
                             <div className="pt-4 border-t border-slate-200/50">
                                 {slot.isBooked ? (
@@ -145,9 +190,10 @@ export function BookingList({ defaultProjectId, defaultNote }: BookingListProps)
                                 ) : (
                                     <button
                                         onClick={() => handleBook(slot.id)}
-                                        className="w-full bg-slate-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-slate-800"
+                                        disabled={isBooking}
+                                        className="w-full bg-slate-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
                                     >
-                                        Reservar
+                                        {isBooking ? 'Procesando...' : 'Reservar'}
                                     </button>
                                 )}
                             </div>
@@ -157,38 +203,40 @@ export function BookingList({ defaultProjectId, defaultNote }: BookingListProps)
             </div>
 
             {/* Past */}
-            {pastSlots.length > 0 && (
-                <div className="opacity-75">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4">Historial</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {pastSlots.map(slot => (
-                            <div key={slot.id} className="p-5 rounded-xl border border-slate-200 bg-slate-50">
-                                <div className="flex justify-between mb-2">
-                                    <span className="font-semibold text-slate-600">{format(new Date(slot.startTime), "d MMM yyyy", { locale: es })}</span>
-                                    <span className="text-xs text-slate-400">Finalizado</span>
-                                </div>
-                                {slot.booking ? (
-                                    <>
-                                        <div className="text-sm text-slate-600 mb-2">
-                                            Sesión con <b>{slot.booking.student.name}</b>
-                                        </div>
-                                        {slot.booking.minutes ? (
-                                            <div className="bg-yellow-50 p-3 rounded border border-yellow-100 text-sm text-yellow-800">
-                                                <span className="font-bold block mb-1">Acuerdos:</span>
-                                                {slot.booking.minutes}
+            {
+                pastSlots.length > 0 && (
+                    <div className="opacity-75">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Historial</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {pastSlots.map(slot => (
+                                <div key={slot.id} className="p-5 rounded-xl border border-slate-200 bg-slate-50">
+                                    <div className="flex justify-between mb-2">
+                                        <span className="font-semibold text-slate-600">{format(new Date(slot.startTime), "d MMM yyyy", { locale: es })}</span>
+                                        <span className="text-xs text-slate-400">Finalizado</span>
+                                    </div>
+                                    {slot.booking ? (
+                                        <>
+                                            <div className="text-sm text-slate-600 mb-2">
+                                                Sesión con <b>{slot.booking.students.map(s => s.name).join(', ')}</b>
                                             </div>
-                                        ) : (
-                                            <p className="text-xs text-slate-400 italic">Sin minuta registrada.</p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-slate-400">No reservado</p>
-                                )}
-                            </div>
-                        ))}
+                                            {slot.booking.minutes ? (
+                                                <div className="bg-yellow-50 p-3 rounded border border-yellow-100 text-sm text-yellow-800">
+                                                    <span className="font-bold block mb-1">Acuerdos:</span>
+                                                    {slot.booking.minutes}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 italic">Sin minuta registrada.</p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <p className="text-sm text-slate-400">No reservado</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
