@@ -18,13 +18,16 @@ type Task = {
     status: 'TODO' | 'IN_PROGRESS' | 'DONE';
     priority: 'LOW' | 'MEDIUM' | 'HIGH';
     dueDate: string | null;
+    maxDate: string | null;
     deliverable: string | null;
+    allowedFileTypes: string[];
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    rubric: any;
     evaluationCriteria: string | null;
     isApproved: boolean;
     approvalNotes: string | null;
     isMandatory: boolean;
     assignment?: { id: string } | null;
-    /* eslint-disable @typescript-eslint/no-explicit-any */
     comments: any[];
     tags: any[];
     /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -182,7 +185,10 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
             status,
             priority,
             dueDate: null,
+            maxDate: null,
             deliverable: null,
+            allowedFileTypes: [],
+            rubric: null,
             evaluationCriteria: null,
             isApproved: false,
             approvalNotes: null,
