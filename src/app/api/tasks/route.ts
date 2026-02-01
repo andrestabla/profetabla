@@ -33,11 +33,15 @@ export async function GET(request: Request) {
         const isTeacher = project.teachers.some(t => t.id === session.user.id) || session.user.role === 'ADMIN';
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let whereClause: any = {
-            projectId
-        };
+        let whereClause: any;
 
-        if (!isTeacher) {
+        if (isTeacher) {
+            // Teacher/Admin Logic: ONLY see mandatory tasks (protect student privacy)
+            whereClause = {
+                projectId,
+                isMandatory: true
+            };
+        } else {
             // Student Logic: See mandatory tasks OR tasks assigned to them/their team
             const userTeam = await prisma.team.findFirst({
                 where: {
