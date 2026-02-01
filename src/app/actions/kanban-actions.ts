@@ -59,8 +59,12 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
                     "title": "Título corto y orientado a la acción (máx 50 caracteres)",
                     "description": "Instrucción clara de qué hacer.",
                     "priority": "HIGH" | "MEDIUM" | "LOW",
-                    "deliverable": "El producto tangible de esta tarea (ej: Documento PDF, Diagrama, Código)",
-                    "evaluationCriteria": "Criterio breve para aprobar la tarea (ej: Cumple formato IEEE, Sin errores de compilación)"
+                    "deliverable": "El producto tangible de esta tarea (ej: Documento PDF, Diagrama)",
+                    "allowedFileTypes": ["PDF", "URL", "DOC", "PPTX", "XLS"], // Array de strings. Elegir 1 o más según el entregable.
+                    "rubric": [
+                        { "criterion": "Criterio 1", "maxPoints": 10 },
+                        { "criterion": "Criterio 2", "maxPoints": 10 }
+                    ]
                 }
             ]
         `;
@@ -76,7 +80,8 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
         ];
         const uniqueModels = Array.from(new Set(candidateModels));
 
-        let aiTasks: AITask[] = [];
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        let aiTasks: any[] = [];
         let successInfo = false;
 
         for (const modelName of uniqueModels) {
@@ -117,7 +122,9 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
                     description: t.description,
                     priority: t.priority,
                     deliverable: t.deliverable || null,
-                    evaluationCriteria: t.evaluationCriteria || null,
+                    evaluationCriteria: t.rubric ? t.rubric.map((r: any) => `- ${r.criterion}`).join('\n') : null,
+                    rubric: t.rubric || undefined,
+                    allowedFileTypes: t.allowedFileTypes || [],
                     status: 'TODO',
                     projectId: projectId,
                     isMandatory: true,
@@ -128,7 +135,14 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
                                 title: `Entrega: ${t.title}`,
                                 description: `Entrega generada por IA para: ${t.title}`,
                                 projectId: projectId,
-                                evaluationCriteria: t.evaluationCriteria || null
+                                evaluationCriteria: t.rubric ? t.rubric.map((r: any) => `- ${r.criterion}`).join('\n') : null,
+                                rubricItems: t.rubric ? {
+                                    create: t.rubric.map((r: any, idx: number) => ({
+                                        criterion: r.criterion,
+                                        maxPoints: r.maxPoints || 10,
+                                        order: idx
+                                    }))
+                                } : undefined
                             }
                         }
                     } : {})

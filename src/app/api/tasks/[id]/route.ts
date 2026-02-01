@@ -40,10 +40,13 @@ export async function PATCH(
                 ...(description !== undefined && { description }),
                 ...(priority && { priority }),
                 ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+                ...(body.maxDate !== undefined && { maxDate: body.maxDate ? new Date(body.maxDate) : null }),
                 ...(isApproved !== undefined && { isApproved }),
                 ...(approvalNotes !== undefined && { approvalNotes }),
                 ...(body.deliverable !== undefined && { deliverable: body.deliverable }),
+                ...(body.allowedFileTypes !== undefined && { allowedFileTypes: body.allowedFileTypes }),
                 ...(body.evaluationCriteria !== undefined && { evaluationCriteria: body.evaluationCriteria }),
+                ...(body.rubric !== undefined && { rubric: body.rubric }),
             },
         });
 
@@ -51,7 +54,7 @@ export async function PATCH(
         const taskDeliverable = body.deliverable !== undefined ? body.deliverable : task.deliverable;
 
         if (taskDeliverable && typeof taskDeliverable === 'string' && taskDeliverable.trim().length > 0) {
-            await prisma.assignment.upsert({
+            const assignment = await prisma.assignment.upsert({
                 where: { taskId: id },
                 create: {
                     title: `Entrega: ${task.title}`,
@@ -68,6 +71,26 @@ export async function PATCH(
                     description: `Entrega asociada a la tarea: ${task.title}. ${task.description || ''}`,
                 }
             });
+
+            // Sync Rubric if provided
+            if (body.rubric && Array.isArray(body.rubric)) {
+                // Delete existing rubric items
+                await prisma.rubricItem.deleteMany({
+                    where: { assignmentId: assignment.id }
+                });
+
+                // Create new ones
+                /* eslint-disable @typescript-eslint/no-explicit-any */
+                await prisma.rubricItem.createMany({
+                    data: body.rubric.map((item: any, index: number) => ({
+                        assignmentId: assignment.id,
+                        criterion: item.criterion || item.text || 'Criterio sin nombre',
+                        maxPoints: item.points || item.maxPoints || 10, // Default to 10 if not specified
+                        order: index
+                    }))
+                });
+            }
+
         } else if (body.deliverable === '' || body.deliverable === null) {
             // If deliverable is explicitly cleared, delete the assignment
             await prisma.assignment.deleteMany({
@@ -76,25 +99,20 @@ export async function PATCH(
         }
 
         return NextResponse.json(task);
-    } catch (error) {
-        return NextResponse.json(
-            { error: 'Error updating task' },
-            { status: 500 }
-        );
+    } catch (e) {
+        console.error("Error updating task:", e);
+        return NextResponse.json({ error: 'Error updating task' }, { status: 500 });
     }
 }
 
-export async function DELETE(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || !session.user) {
+        if (!session || !session.user || !['ADMIN', 'PROFESSOR'].includes(session.user.role)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id } = await params;
+        const { id } = params;
 
         const task = await prisma.task.findUnique({ where: { id } });
         if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
@@ -104,7 +122,7 @@ export async function DELETE(
         }
 
         await prisma.task.delete({
-            where: { id },
+            where: { id }
         });
 
         return NextResponse.json({ success: true });
