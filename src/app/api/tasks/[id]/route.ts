@@ -105,14 +105,14 @@ export async function PATCH(
     }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await getServerSession(authOptions);
         if (!session || !session.user || !['ADMIN', 'PROFESSOR'].includes(session.user.role)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id } = params;
+        const { id } = await params;
 
         const task = await prisma.task.findUnique({ where: { id } });
         if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
