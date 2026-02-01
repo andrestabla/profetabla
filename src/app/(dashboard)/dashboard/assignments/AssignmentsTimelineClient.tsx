@@ -181,11 +181,12 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                     filteredAssignments.map((assignment, index) => {
                         const isSubmitted = assignment.submissions && assignment.submissions.length > 0;
                         const submission = isSubmitted ? assignment.submissions[0] : null;
+                        const isGraded = submission && submission.grade != null;
 
                         return (
                             <div key={assignment.id} className="relative pl-8 animate-in slide-in-from-bottom-5 duration-500" style={{ animationDelay: `${index * 100}ms` }}>
                                 {/* Dot */}
-                                <div className={`absolute -left-[9px] top-6 w-5 h-5 rounded-full border-4 border-white shadow-sm ${isSubmitted ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                                <div className={`absolute -left-[9px] top-6 w-5 h-5 rounded-full border-4 border-white shadow-sm ${isGraded ? 'bg-indigo-500' : isSubmitted ? 'bg-emerald-500' : 'bg-blue-500'}`} />
 
                                 {/* Date Label */}
                                 <div className="absolute -left-[140px] top-6 w-[120px] text-right hidden md:block">
@@ -198,7 +199,7 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                                 </div>
 
                                 {/* Card */}
-                                <div className={`rounded-2xl border p-6 transition-all hover:shadow-md ${isSubmitted ? 'bg-emerald-50/50 border-emerald-100' : 'bg-white border-slate-200'}`}>
+                                <div className={`rounded-2xl border p-6 transition-all hover:shadow-md ${isGraded ? 'bg-indigo-50/50 border-indigo-100' : isSubmitted ? 'bg-emerald-50/50 border-emerald-100' : 'bg-white border-slate-200'}`}>
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
@@ -213,7 +214,11 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                                             </div>
                                             <h3 className="text-lg font-bold text-slate-800">{assignment.title}</h3>
                                         </div>
-                                        {isSubmitted ? (
+                                        {isGraded ? (
+                                            <div className="flex items-center gap-1.5 text-indigo-600 bg-indigo-100 px-3 py-1 rounded-lg text-xs font-bold">
+                                                <CheckCircle className="w-4 h-4" /> Revisado
+                                            </div>
+                                        ) : isSubmitted ? (
                                             <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-100 px-3 py-1 rounded-lg text-xs font-bold">
                                                 <CheckCircle className="w-4 h-4" /> Entregado
                                             </div>
@@ -233,19 +238,19 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                                             <div className="flex gap-2">
                                                 {/* If URL, open directly */}
                                                 {submission.fileType === 'URL' ? (
-                                                    <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold hover:bg-emerald-200 transition-colors">
-                                                        <ExternalLink className="w-4 h-4" /> Ir al Enlace
+                                                    <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">
+                                                        <ExternalLink className="w-4 h-4" /> Ver Enlace
                                                     </a>
                                                 ) : (
-                                                    <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold hover:bg-emerald-200 transition-colors">
+                                                    <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">
                                                         <FileText className="w-4 h-4" /> Ver Archivo
                                                     </a>
                                                 )}
                                                 <button
                                                     onClick={() => handleSelectAssignment(assignment)}
-                                                    className="px-4 py-2 border border-emerald-200 text-emerald-600 rounded-lg text-sm font-bold hover:bg-emerald-50 transition-colors"
+                                                    className={`px-4 py-2 border rounded-lg text-sm font-bold transition-colors ${isGraded ? 'border-indigo-200 text-indigo-600 hover:bg-indigo-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}
                                                 >
-                                                    Ver Detalles
+                                                    {isGraded ? 'Ver Retroalimentación' : 'Ver Detalles'}
                                                 </button>
                                             </div>
                                         ) : (
@@ -275,90 +280,136 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                         </button>
                         {/* LEFT COLUMN: Details */}
                         <div className={`p-8 ${showSubmissionForm ? 'hidden md:block md:w-1/2 border-r border-slate-100' : 'w-full'}`}>
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Actividad</span>
-                                    <h2 className="text-xl font-bold text-slate-800 mt-1">{selectedAssignment.title}</h2>
-                                </div>
-                                {!showSubmissionForm && (
-                                    <button onClick={() => setSelectedAssignment(null)} className="text-slate-400 hover:text-slate-600 md:hidden">
-                                        <X className="w-6 h-6" />
-                                    </button>
-                                )}
-                            </div>
+                            {(() => {
+                                const sub = selectedAssignment.submissions && selectedAssignment.submissions.length > 0 ? selectedAssignment.submissions[0] : null;
+                                const isGraded = sub && sub.grade != null;
 
-                            <div className="space-y-6">
-                                <div>
-                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Descripción</h4>
-                                    <p className="text-sm text-slate-600 leading-relaxed">{selectedAssignment.description}</p>
-                                </div>
-
-                                <div className="flex gap-4">
-                                    <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                        <div className="flex items-center gap-2 text-slate-400 mb-1">
-                                            <Calendar className="w-3 h-3" />
-                                            <span className="text-[10px] font-bold uppercase">Entrega</span>
+                                return (
+                                    <>
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div>
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Actividad</span>
+                                                <h2 className="text-xl font-bold text-slate-800 mt-1">{selectedAssignment.title}</h2>
+                                            </div>
+                                            {!showSubmissionForm && (
+                                                <button onClick={() => setSelectedAssignment(null)} className="text-slate-400 hover:text-slate-600 md:hidden">
+                                                    <X className="w-6 h-6" />
+                                                </button>
+                                            )}
                                         </div>
-                                        <p className="text-sm font-semibold text-slate-700">
-                                            {selectedAssignment.dueDate ? new Date(selectedAssignment.dueDate).toLocaleDateString() : 'Sin fecha'}
-                                        </p>
-                                    </div>
-                                    <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                        <div className="flex items-center gap-2 text-slate-400 mb-1">
-                                            <AlertCircle className="w-3 h-3" />
-                                            <span className="text-[10px] font-bold uppercase">Límite</span>
-                                        </div>
-                                        <p className="text-sm font-semibold text-slate-700">
-                                            {selectedAssignment.task?.maxDate ? new Date(selectedAssignment.task.maxDate).toLocaleDateString() : 'No definido'}
-                                        </p>
-                                    </div>
-                                </div>
 
-                                {selectedAssignment.rubricItems && selectedAssignment.rubricItems.length > 0 && (
-                                    <div>
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Criterios de Éxito (Rúbrica)</h4>
-                                        <div className="space-y-2">
-                                            {selectedAssignment.rubricItems.map((item: any, i: number) => (
-                                                <div key={i} className="flex justify-between items-start text-sm bg-blue-50/50 p-2 rounded-lg border border-blue-50">
-                                                    <span className="text-slate-700">{item.criterion}</span>
-                                                    <span className="font-bold text-blue-600 text-xs whitespace-nowrap ml-2">{item.maxPoints} pts</span>
+                                        <div className="space-y-6">
+                                            {isGraded && (
+                                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 animate-in slide-in-from-top-2">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <h4 className="font-bold text-indigo-700 flex items-center gap-2">
+                                                            <CheckCircle className="w-4 h-4" /> Calificación
+                                                        </h4>
+                                                        <span className="text-2xl font-black text-indigo-600">{sub.grade} pts</span>
+                                                    </div>
+                                                    {sub.feedback && (
+                                                        <div className="text-sm text-indigo-800 bg-white/50 p-3 rounded-lg border border-indigo-100/50 italic">
+                                                            &quot;{sub.feedback}&quot;
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                            )}
 
-                                <div>
-                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Comentarios</h4>
-                                    {selectedAssignment.task?.comments && selectedAssignment.task.comments.length > 0 ? (
-                                        <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
-                                            {selectedAssignment.task.comments.map((c: any) => (
-                                                <div key={c.id} className="text-xs border-l-2 border-slate-200 pl-2">
-                                                    <p className="text-slate-600">{c.content}</p>
-                                                    <p className="text-[10px] text-slate-400 mt-1">{c.user?.name} &bull; {new Date(c.createdAt).toLocaleDateString()}</p>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Descripción</h4>
+                                                <p className="text-sm text-slate-600 leading-relaxed">{selectedAssignment.description}</p>
+                                            </div>
+
+                                            <div className="flex gap-4">
+                                                <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                    <div className="flex items-center gap-2 text-slate-400 mb-1">
+                                                        <Calendar className="w-3 h-3" />
+                                                        <span className="text-[10px] font-bold uppercase">Entrega</span>
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-slate-700">
+                                                        {selectedAssignment.dueDate ? new Date(selectedAssignment.dueDate).toLocaleDateString() : 'Sin fecha'}
+                                                    </p>
                                                 </div>
-                                            ))}
+                                                <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                    <div className="flex items-center gap-2 text-slate-400 mb-1">
+                                                        <AlertCircle className="w-3 h-3" />
+                                                        <span className="text-[10px] font-bold uppercase">Límite</span>
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-slate-700">
+                                                        {selectedAssignment.task?.maxDate ? new Date(selectedAssignment.task.maxDate).toLocaleDateString() : 'No definido'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {selectedAssignment.rubricItems && selectedAssignment.rubricItems.length > 0 && (
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Criterios de Éxito (Rúbrica)</h4>
+                                                    <div className="space-y-2">
+                                                        {selectedAssignment.rubricItems.map((item: any, i: number) => {
+                                                            const score = sub?.rubricScores?.find((s: any) => s.rubricItemId === item.id);
+                                                            return (
+                                                                <div key={i} className={`flex flex-col text-sm p-2 rounded-lg border ${score ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100'}`}>
+                                                                    <div className="flex justify-between items-start w-full">
+                                                                        <span className="text-slate-700 font-medium">{item.criterion}</span>
+                                                                        <span className={`font-bold text-xs whitespace-nowrap ml-2 ${score ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                                                            {score ? `${score.score} / ` : ''}{item.maxPoints} pts
+                                                                        </span>
+                                                                    </div>
+                                                                    {score?.feedback && (
+                                                                        <p className="text-xs text-indigo-500 mt-1 italic pl-2 border-l-2 border-indigo-200">
+                                                                            {score.feedback}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Comentarios</h4>
+                                                {selectedAssignment.task?.comments && selectedAssignment.task.comments.length > 0 ? (
+                                                    <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                                                        {selectedAssignment.task.comments.map((c: any) => (
+                                                            <div key={c.id} className="text-xs border-l-2 border-slate-200 pl-2">
+                                                                <p className="text-slate-600">{c.content}</p>
+                                                                <p className="text-[10px] text-slate-400 mt-1">{c.user?.name} &bull; {new Date(c.createdAt).toLocaleDateString()}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-slate-400 italic">No hay comentarios en la tarea.</p>
+                                                )}
+                                            </div>
+
+                                            <div className="pt-4 flex flex-col gap-3">
+                                                <Link href="/dashboard/mentorship" className="w-full py-2 border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl font-bold text-center text-sm transition-colors flex items-center justify-center gap-2">
+                                                    <HelpCircle className="w-4 h-4" /> Solicitar Mentoría
+                                                </Link>
+
+                                                {!showSubmissionForm && !sub && (
+                                                    <button
+                                                        onClick={() => setShowSubmissionForm(true)}
+                                                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 transition-all"
+                                                    >
+                                                        Hacer Entrega
+                                                    </button>
+                                                )}
+
+                                                {!showSubmissionForm && sub && !isGraded && (
+                                                    <button
+                                                        onClick={() => setShowSubmissionForm(true)}
+                                                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all"
+                                                    >
+                                                        Editar Entrega
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <p className="text-xs text-slate-400 italic">No hay comentarios en la tarea.</p>
-                                    )}
-                                </div>
-
-                                <div className="pt-4 flex flex-col gap-3">
-                                    <Link href="/dashboard/mentorship" className="w-full py-2 border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl font-bold text-center text-sm transition-colors flex items-center justify-center gap-2">
-                                        <HelpCircle className="w-4 h-4" /> Solicitar Mentoría
-                                    </Link>
-
-                                    {!showSubmissionForm && (
-                                        <button
-                                            onClick={() => setShowSubmissionForm(true)}
-                                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 transition-all"
-                                        >
-                                            Hacer Entrega
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
+                                    </>
+                                );
+                            })()}
                         </div>
 
                         {/* RIGHT COLUMN: Submission Form */}
@@ -479,7 +530,8 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                         )}
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Status Modal for Success/Error */}
             <StatusModal
@@ -489,6 +541,6 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                 title={statusModal?.title || ''}
                 message={statusModal?.message || ''}
             />
-        </div>
+        </div >
     );
 }
