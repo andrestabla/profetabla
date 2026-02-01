@@ -32,7 +32,15 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
                 include: { rubricScores: true }
             },
             task: {
-                select: { status: true, priority: true }
+                select: {
+                    status: true,
+                    priority: true,
+                    allowedFileTypes: true,
+                    maxDate: true,
+                    comments: {
+                        include: { author: true }
+                    }
+                }
             },
             rubricItems: {
                 orderBy: { order: 'asc' }

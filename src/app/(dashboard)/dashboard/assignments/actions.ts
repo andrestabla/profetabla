@@ -5,7 +5,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { uploadFileToR2 } from '@/lib/r2';
-import { Readable } from 'stream';
 
 
 export async function submitAssignmentAction(formData: FormData) {
@@ -13,9 +12,9 @@ export async function submitAssignmentAction(formData: FormData) {
     if (!session) return { success: false, error: 'No autorizado' };
 
     const assignmentId = formData.get('assignmentId') as string;
-    const file = formData.get('file') as File;
+    const submissionType = formData.get('submissionType') as 'FILE' | 'URL' || 'FILE';
 
-    if (!assignmentId || !file) return { success: false, error: 'Faltan datos' };
+    if (!assignmentId) return { success: false, error: 'Falta ID de asignación' };
 
     try {
         const assignment = await prisma.assignment.findUnique({
@@ -25,27 +24,49 @@ export async function submitAssignmentAction(formData: FormData) {
 
         if (!assignment) return { success: false, error: 'Asignación no encontrada' };
 
-        // LEGACY: We no longer create 'Entregas' folder in Drive because we use R2 (Plan C)
-        // and the Service Account might not have enough quota/permissions.
-        // const projectDriveId = assignment.project.googleDriveFolderId;
+        let fileUrl = '';
+        let fileName = '';
+        let fileType = '';
+        let fileSize = 0;
 
+        if (submissionType === 'URL') {
+            const url = formData.get('url') as string;
+            if (!url) return { success: false, error: 'Falta la URL' };
+            // Simple validation
+            try {
+                new URL(url);
+            } catch {
+                return { success: false, error: 'URL inválida' };
+            }
+            fileUrl = url;
+            fileName = 'Enlace Externo';
+            fileType = 'URL';
+            fileSize = 0;
+        } else {
+            const file = formData.get('file') as File;
+            if (!file) return { success: false, error: 'Falta el archivo' };
 
-        // Create buffer
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+            // Create buffer
+            const arrayBuffer = await file.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
 
-        // Upload to R2 (Plan C)
-        const { url, key } = await uploadFileToR2(buffer, file.name, file.type, 'submissions');
+            // Upload to R2 (Plan C)
+            const result = await uploadFileToR2(buffer, file.name, file.type, 'submissions');
+            fileUrl = result.url;
+            fileName = file.name;
+            fileType = file.type;
+            fileSize = file.size;
+        }
 
         // Save to DB
         await prisma.submission.create({
             data: {
                 assignmentId,
                 studentId: session.user.id,
-                fileUrl: url, // Storing key/url
-                fileName: file.name,
-                fileType: file.type,
-                fileSize: file.size
+                fileUrl,
+                fileName,
+                fileType,
+                fileSize
             }
         });
 
