@@ -49,6 +49,16 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
         orderBy: { dueDate: 'asc' }
     });
 
+    // Extract unique projects for filtering
+    const projectsMap = new Map();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return <AssignmentsTimelineClient assignments={assignments as any} initialSelectedId={selectedId} />;
+    (assignments as any[]).forEach(a => {
+        if (a.project && !projectsMap.has(a.project.id)) {
+            projectsMap.set(a.project.id, { id: a.project.id, title: a.project.title });
+        }
+    });
+    const projects = Array.from(projectsMap.values());
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return <AssignmentsTimelineClient assignments={assignments as any} initialSelectedId={selectedId} projects={projects} />;
 }
