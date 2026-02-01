@@ -26,13 +26,21 @@ export default async function Page({ params }: { params: Promise<{ id: string, b
     // However, the booking ITSELF has a studentId (MentorshipBooking model). 
     // And we already fetched booking with `include: { slot: true }`. Let's add student to booking include.
 
-    // Changing approach slightly: Fetch student from Booking, not Project.
-    const bookingWithStudent = await prisma.mentorshipBooking.findUnique({
+    // Changing approach slightly: Fetch students from Booking, not Project.
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const bookingWithStudents = await (prisma.mentorshipBooking as any).findUnique({
         where: { id: bookingId },
-        include: { slot: true, student: true }
+        include: { slot: true, students: true }
     });
 
-    if (!bookingWithStudent) return notFound();
+    if (!bookingWithStudents) return notFound();
 
-    return <MentorshipRoomClient booking={bookingWithStudent} student={bookingWithStudent.student} project={project} />;
+    return (
+        <MentorshipRoomClient
+            booking={bookingWithStudents}
+            student={bookingWithStudents.students[0]}
+            project={project}
+        />
+    );
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 }
