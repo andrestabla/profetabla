@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { generateMeetLink } from '@/lib/google-meet';
+import { generateMeetLink, generateMeetLinkWithEvent } from '@/lib/google-meet';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,30 +41,70 @@ export async function POST(request: Request) {
         if (!slot) return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
 
         // Check if teacher is part of the project
-        const isProjectTeacher = await prisma.project.findFirst({
+        const project = await prisma.project.findFirst({
             where: {
                 id: projectId,
                 teachers: { some: { id: slot.teacherId } }
+            },
+            include: {
+                teachers: { select: { id: true, name: true, email: true } },
+                students: { select: { id: true, name: true, email: true } }
             }
         });
 
-        if (!isProjectTeacher) {
+        if (!project) {
             return NextResponse.json({ error: 'El profesor seleccionado no forma parte de este proyecto' }, { status: 403 });
         }
 
-        // Student Booking Limit Logic: At least 3 tasks required
+        // REFINED BOOKING LIMIT LOGIC
         if (session.user.role === 'STUDENT') {
-            const taskCount = await prisma.task.count({ where: { projectId } });
+            // Count tasks created by/assigned to this student in this project
+            const taskCount = await prisma.task.count({
+                where: {
+                    projectId,
+                    assignees: { some: { id: session.user.id } }
+                }
+            });
 
-            if (taskCount < 3) {
+            // Count existing bookings for this student in this project
+            const bookingCount = await prisma.mentorshipBooking.count({
+                where: {
+                    projectId,
+                    students: { some: { id: session.user.id } }
+                }
+            });
+
+            // Students can book 1 mentorship per task they have
+            if (bookingCount >= taskCount) {
                 return NextResponse.json({
-                    error: `Debes tener al menos 3 tareas creadas en tu tablero Kanban para solicitar una mentoría (Actualmente: ${taskCount}).`
+                    error: `Has alcanzado el límite de mentorías (${bookingCount}/${taskCount}). Crea más tareas en tu tablero Kanban para solicitar más mentorías.`
                 }, { status: 400 });
             }
         }
 
+        // For teachers/admins: no booking limits
+
         const studentIds = overtStudentIds || [session.user.id];
-        const meetingUrl = generateMeetLink();
+
+        // Get student emails for calendar event
+        const students = project.students.filter(s => studentIds.includes(s.id));
+        const studentEmails = students.map(s => s.email).filter((e): e is string => !!e);
+
+        // Generate Google Meet link with calendar event
+        let meetingUrl: string;
+        try {
+            meetingUrl = await generateMeetLinkWithEvent({
+                summary: `Mentoría - ${project.title}`,
+                description: `Mentoría para el proyecto "${project.title}".\n\nEstudiantes: ${students.map(s => s.name).join(', ')}\nProfesor: ${slot.teacher.name}\n\nNotas: ${note || 'Sin notas'}`,
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+                attendees: [...studentEmails, slot.teacher.email].filter((e): e is string => !!e)
+            });
+        } catch (error) {
+            console.error('Error generating Meet link with event:', error);
+            // Fallback to simple mock URL
+            meetingUrl = generateMeetLink();
+        }
 
         const booking = await prisma.$transaction(async (tx) => {
             // Optimistic Update: Check isBooked

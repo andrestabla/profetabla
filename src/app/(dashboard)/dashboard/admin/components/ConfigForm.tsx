@@ -187,6 +187,80 @@ export function ConfigForm({ config }: { config: any }) {
                 </div>
             </div>
 
+            {/* Google Meet / Calendar Integration */}
+            <div className="space-y-4 mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center justify-between border-b pb-2">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-green-600" /> Google Meet / Calendar
+                    </h3>
+                    <StatusBadge isConfigured={!!config?.googleCalendarServiceAccountJson && !!config?.googleCalendarEnabled} />
+                </div>
+                <p className="text-xs text-slate-500">
+                    Integra Google Calendar para crear eventos automáticos con enlaces de Google Meet en las mentorías.
+                </p>
+                <div className="flex items-center gap-2 p-3 bg-white rounded border">
+                    <input
+                        type="checkbox"
+                        name="googleCalendarEnabled"
+                        defaultChecked={config?.googleCalendarEnabled}
+                        className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                    />
+                    <label className="text-sm font-medium text-slate-700">
+                        Habilitar integración con Google Calendar
+                    </label>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Client ID (OAuth)</label>
+                    <input
+                        type="text"
+                        name="googleCalendarClientId"
+                        defaultValue={config?.googleCalendarClientId || ''}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="...apps.googleusercontent.com"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                        Opcional: Para flujos OAuth si decides implementarlos en el futuro
+                    </p>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Client Secret (OAuth)</label>
+                    <input
+                        type="password"
+                        name="googleCalendarClientSecret"
+                        defaultValue={config?.googleCalendarClientSecret || ''}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="..."
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Service Account (JSON) - Recomendado</label>
+                    <textarea
+                        name="googleCalendarServiceAccountJson"
+                        defaultValue={config?.googleCalendarServiceAccountJson || ''}
+                        className="w-full px-3 py-2 border rounded-lg h-32 font-mono text-xs"
+                        placeholder='{ &quot;type&quot;: &quot;service_account&quot;, &quot;project_id&quot;: &quot;...&quot;, &quot;private_key&quot;: &quot;...&quot;, ... }'
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                        Pega aquí el contenido completo del archivo JSON de credenciales de la cuenta de servicio.
+                    </p>
+                    <p className="text-[10px] text-green-600 mt-1 font-medium">
+                        ✓ Recomendado: Permite crear eventos de calendario sin intervención del usuario
+                    </p>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                    <p className="text-xs text-amber-800 font-medium mb-1">📋 Pasos para configurar:</p>
+                    <ol className="text-[10px] text-amber-700 space-y-1 ml-4 list-decimal">
+                        <li>Ve a <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                        <li>Crea un proyecto o selecciona uno existente</li>
+                        <li>Habilita la <strong>Google Calendar API</strong></li>
+                        <li>Crea una <strong>Cuenta de Servicio</strong> en &quot;Credenciales&quot;</li>
+                        <li>Descarga el archivo JSON de la cuenta de servicio</li>
+                        <li>Copia y pega el contenido completo del JSON arriba</li>
+                        <li>Marca la casilla &quot;Habilitar integración&quot; y guarda</li>
+                    </ol>
+                </div>
+            </div>
+
             {/* 1. Integración GEMINI AI */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">

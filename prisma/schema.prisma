@@ -439,6 +439,12 @@ model PlatformConfig {
   r2SecretAccessKey             String?
   r2BucketName                  String?
   
+  // Google Calendar / Meet Integration
+  googleCalendarClientId        String?
+  googleCalendarClientSecret    String?
+  googleCalendarServiceAccountJson String?
+  googleCalendarEnabled         Boolean  @default(false)
+  
   loadingUrl                    String?  @default("https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif")
   timezone                      String   @default("UTC")
 }
