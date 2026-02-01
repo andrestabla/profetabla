@@ -28,7 +28,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 select: { id: true, name: true, email: true, avatarUrl: true }
             },
             teachers: {
-                select: { name: true, avatarUrl: true }
+                select: { id: true, name: true, email: true, avatarUrl: true }
             },
             learningObjects: {
                 include: { items: { take: 1 } }

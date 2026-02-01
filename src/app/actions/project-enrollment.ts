@@ -110,3 +110,98 @@ export async function removeStudentFromProjectAction(projectId: string, studentI
         return { success: false, error: 'Failed to remove student' };
     }
 }
+/**
+ * Search for teachers NOT enrolled in the given project
+ */
+export async function searchTeachersAction(query: string, projectId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    if (!query || query.length < 2) return { success: true, data: [] };
+
+    try {
+        const teachers = await prisma.user.findMany({
+            where: {
+                role: 'TEACHER',
+                OR: [
+                    { name: { contains: query, mode: 'insensitive' } },
+                    { email: { contains: query, mode: 'insensitive' } }
+                ],
+                // Exclude teachers who are ALREADY in this project
+                NOT: {
+                    projectsAsTeacher: {
+                        some: { id: projectId }
+                    }
+                }
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true
+            },
+            take: 5
+        });
+
+        return { success: true, data: teachers };
+    } catch (error) {
+        console.error('Error searching teachers:', error);
+        return { success: false, error: 'Failed to search teachers' };
+    }
+}
+
+/**
+ * Add a teacher to the project
+ */
+export async function addTeacherToProjectAction(projectId: string, teacherId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    try {
+        await prisma.project.update({
+            where: { id: projectId },
+            data: {
+                teachers: {
+                    connect: { id: teacherId }
+                }
+            }
+        });
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error adding teacher:', error);
+        return { success: false, error: 'Failed to add teacher' };
+    }
+}
+
+/**
+ * Remove a teacher from the project
+ */
+export async function removeTeacherFromProjectAction(projectId: string, teacherId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    try {
+        await prisma.project.update({
+            where: { id: projectId },
+            data: {
+                teachers: {
+                    disconnect: { id: teacherId }
+                }
+            }
+        });
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error removing teacher:', error);
+        return { success: false, error: 'Failed to remove teacher' };
+    }
+}

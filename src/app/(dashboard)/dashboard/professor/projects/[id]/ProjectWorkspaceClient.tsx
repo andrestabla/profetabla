@@ -6,7 +6,7 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search } from 'lucide-react';
 import Link from 'next/link';
 import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, extractResourceMetadataAction, updateProjectResourceAction } from './actions';
-import { searchStudentsAction, addStudentToProjectAction, removeStudentFromProjectAction } from '@/app/actions/project-enrollment';
+import { searchStudentsAction, addStudentToProjectAction, removeStudentFromProjectAction, searchTeachersAction, addTeacherToProjectAction, removeTeacherFromProjectAction } from '@/app/actions/project-enrollment';
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
 import { SubmissionCard } from '@/components/SubmissionCard';
@@ -41,7 +41,7 @@ type Project = {
     kpis: string | null;
     googleDriveFolderId: string | null;
     students: { id: string; name: string | null; email: string | null; avatarUrl: string | null }[];
-    teachers: { name: string | null; avatarUrl: string | null }[];
+    teachers: { id: string; name: string | null; email: string | null; avatarUrl: string | null }[];
     type: string;
     teams: any[]; // Using any for simplicity as it matches TeamManagement props
 };
@@ -65,6 +65,11 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [studentSearchQuery, setStudentSearchQuery] = useState('');
     const [studentSearchResults, setStudentSearchResults] = useState<any[]>([]);
     const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+
+    // Teacher Search State
+    const [teacherSearchQuery, setTeacherSearchQuery] = useState('');
+    const [teacherSearchResults, setTeacherSearchResults] = useState<any[]>([]);
+    const [isSearchingTeachers, setIsSearchingTeachers] = useState(false);
 
     const handleSearchStudents = async (query: string) => {
         setStudentSearchQuery(query);
@@ -95,6 +100,37 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const handleRemoveStudent = async (studentId: string) => {
         if (!confirm("¿Estás seguro de querer expulsar a este estudiante del proyecto?")) return;
         await removeStudentFromProjectAction(project.id, studentId);
+        window.location.reload();
+    };
+
+    const handleSearchTeachers = async (query: string) => {
+        setTeacherSearchQuery(query);
+        if (query.length < 2) {
+            setTeacherSearchResults([]);
+            return;
+        }
+        setIsSearchingTeachers(true);
+        try {
+            const res = await searchTeachersAction(query, project.id);
+            if (res.success) {
+                setTeacherSearchResults(res.data || []);
+            }
+        } finally {
+            setIsSearchingTeachers(false);
+        }
+    };
+
+    const handleAddTeacher = async (teacherId: string) => {
+        await addTeacherToProjectAction(project.id, teacherId);
+        setTeacherSearchQuery('');
+        setTeacherSearchResults([]);
+        window.location.reload();
+    };
+
+    const handleRemoveTeacher = async (teacherId: string) => {
+        if (!confirm("¿Estás seguro de querer retirar a este profesor del proyecto?")) return;
+        // Optional: Check if it's the current user?
+        await removeTeacherFromProjectAction(project.id, teacherId);
         window.location.reload();
     };
 
@@ -239,7 +275,84 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                         )}
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="md:col-span-2">
+                            <div className="md:col-span-2 space-y-8">
+                                {/* Professors Section */}
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200">
+                                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-indigo-600" /> Profesores del Proyecto
+                                    </h3>
+                                    {project.teachers && project.teachers.length > 0 ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {project.teachers.map((teacher, i) => (
+                                                <div key={i} className="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 group">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold overflow-hidden">
+                                                            {teacher.avatarUrl ? <img src={teacher.avatarUrl} alt={teacher.name || ''} className="w-full h-full object-cover" /> : (teacher.name?.[0] || 'P')}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-800 text-sm">{teacher.name}</p>
+                                                            <p className="text-xs text-slate-500 truncate max-w-[120px]" title={teacher.email || ''}>{teacher.email}</p>
+                                                        </div>
+                                                    </div>
+                                                    {/* Don't allow removing oneself? Or just allow it with a warning */}
+                                                    <button
+                                                        onClick={() => handleRemoveTeacher(teacher.id)}
+                                                        className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                        title="Retirar del proyecto"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-slate-500 italic">No hay profesores vinculados (error?).</p>
+                                    )}
+
+                                    {/* Search for Adding Teachers */}
+                                    <div className="mt-8 pt-6 border-t border-slate-100">
+                                        <h4 className="font-bold text-slate-700 text-sm mb-3">Vincular Co-Profesor</h4>
+                                        <div className="relative">
+                                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+                                                <Search className="w-4 h-4 text-slate-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Buscar profesor por nombre o correo..."
+                                                    className="bg-transparent border-none outline-none text-sm w-full"
+                                                    value={teacherSearchQuery}
+                                                    onChange={(e) => handleSearchTeachers(e.target.value)}
+                                                />
+                                                {isSearchingTeachers && <div className="w-3 h-3 rounded-full border-2 border-slate-300 border-t-indigo-500 animate-spin" />}
+                                            </div>
+
+                                            {/* Teacher Search Results */}
+                                            {teacherSearchResults.length > 0 && (
+                                                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-20 max-h-60 overflow-y-auto">
+                                                    {teacherSearchResults.map(teacher => (
+                                                        <button
+                                                            key={teacher.id}
+                                                            onClick={() => handleAddTeacher(teacher.id)}
+                                                            className="w-full flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group transition-colors text-left"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 overflow-hidden">
+                                                                    {teacher.avatarUrl ? <img src={teacher.avatarUrl} alt={teacher.name || ''} className="w-full h-full object-cover" /> : (teacher.name?.[0] || 'P')}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-slate-800 text-sm">{teacher.name}</p>
+                                                                    <p className="text-xs text-slate-500">{teacher.email}</p>
+                                                                </div>
+                                                            </div>
+                                                            <Plus className="w-4 h-4 text-slate-300 group-hover:text-indigo-600" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Students Section */}
                                 <div className="bg-white p-6 rounded-2xl border border-slate-200">
                                     <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
                                         <Users className="w-5 h-5 text-blue-600" /> Listado General de Estudiantes
