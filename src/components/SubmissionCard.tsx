@@ -9,7 +9,7 @@ import { useSession } from 'next-auth/react';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function SubmissionCard({ assignment }: { assignment: any }) {
     const { data: session } = useSession();
-     
+
     const [submission] = useState<any | null>(
         assignment.submissions?.[0] || null
     );
@@ -53,6 +53,19 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                             </div>
                             <div>
                                 <h4 className="font-semibold text-slate-700">Tarea Enviada</h4>
+                                {submission.student && (
+                                    <div className="flex items-center gap-2 mt-1 mb-1">
+                                        {submission.student.avatarUrl ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img src={submission.student.avatarUrl} alt={submission.student.name} className="w-5 h-5 rounded-full object-cover" />
+                                        ) : (
+                                            <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">
+                                                {submission.student.name?.charAt(0) || '?'}
+                                            </div>
+                                        )}
+                                        <span className="text-sm font-medium text-slate-600">{submission.student.name}</span>
+                                    </div>
+                                )}
                                 <p className="text-xs text-slate-400">
                                     {new Date(submission.createdAt).toLocaleString()}
                                 </p>

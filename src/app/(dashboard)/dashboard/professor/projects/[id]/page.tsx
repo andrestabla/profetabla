@@ -59,7 +59,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 orderBy: { createdAt: 'desc' },
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
-                include: { rubricScores: true }
+                include: { rubricScores: true, student: { select: { name: true, avatarUrl: true, email: true } } }
             },
             rubricItems: {
                 orderBy: { order: 'asc' }
