@@ -36,23 +36,24 @@ export default async function DashboardPage() {
             },
         });
 
-        // Then, fetch tasks for each project based on team or assignees
-        const projectsWithTasks = await Promise.all(
+        // Then, fetch assignments with submissions for each project
+        const projectsWithAssignments = await Promise.all(
             projects.map(async (project) => {
                 const studentTeam = project.teams[0];
 
-                // Fetch tasks based on project type
-                const tasks = await prisma.task.findMany({
-                    where: {
-                        projectId: project.id,
-                        ...(studentTeam
-                            ? { teamId: studentTeam.id }  // Group project: team's tasks
-                            : { assignees: { some: { id: user.id } } }  // Individual: assigned tasks
-                        )
+                // Fetch assignments for this project
+                const assignments = await prisma.assignment.findMany({
+                    where: { projectId: project.id },
+                    include: {
+                        submissions: {
+                            where: studentTeam
+                                ? { teamId: studentTeam.id }
+                                : { studentId: user.id }
+                        }
                     }
                 });
 
-                return { ...project, tasks };
+                return { ...project, assignments };
             })
         );
 
@@ -94,7 +95,7 @@ export default async function DashboardPage() {
         return (
             <StudentDashboard
                 user={user}
-                projects={projectsWithTasks}
+                projects={projectsWithAssignments}
                 citation={citation}
                 nextMentorship={nextMentorship}
             />

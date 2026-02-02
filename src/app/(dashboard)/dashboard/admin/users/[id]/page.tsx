@@ -73,55 +73,52 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
 
     if (!user) return notFound();
 
-    // Fetch student's tasks for progress calculation
+    // Fetch student's assignments for progress calculation
     const userProjectIds = user.projectsAsStudent.map(p => p.id);
     const studentTeamIds = user.projectsAsStudent.flatMap(p => p.teams.map(t => t.id));
 
-    const studentTasks = await prisma.task.findMany({
+    // Fetch all assignments for user's projects
+    const projectAssignments = await prisma.assignment.findMany({
         where: {
-            projectId: { in: userProjectIds },
-            OR: [
-                // Tasks assigned to student
-                { assignees: { some: { id: user.id } } },
-                // Tasks for student's teams
-                { teamId: { in: studentTeamIds } }
-            ]
+            projectId: { in: userProjectIds }
         },
-        select: {
-            id: true,
-            status: true,
-            projectId: true,
-            teamId: true
+        include: {
+            submissions: {
+                where: {
+                    OR: [
+                        { studentId: user.id },
+                        { teamId: { in: studentTeamIds } }
+                    ]
+                }
+            }
         }
     });
 
-    // Group tasks by project
-    const tasksByProject = studentTasks.reduce((acc, task) => {
-        if (!acc[task.projectId]) acc[task.projectId] = [];
-        acc[task.projectId].push(task);
+    // Group assignments by project and calculate stats
+    const assignmentsByProject = projectAssignments.reduce((acc, assignment) => {
+        if (!acc[assignment.projectId]) {
+            acc[assignment.projectId] = { total: 0, completed: 0 };
+        }
+        acc[assignment.projectId].total++;
+        if (assignment.submissions.length > 0) {
+            acc[assignment.projectId].completed++;
+        }
         return acc;
-    }, {} as Record<string, typeof studentTasks>);
+    }, {} as Record<string, { total: number; completed: number }>);
 
     // Helper function to calculate project progress
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const calculateProjectProgress = (project: any) => {
-        // Use pre-fetched tasks filtered by assignees/team
-        const relevantTasks = tasksByProject[project.id] || [];
+        const stats = assignmentsByProject[project.id] || { total: 0, completed: 0 };
 
-        const totalTasks = relevantTasks.length;
-        if (totalTasks === 0) {
+        if (stats.total === 0) {
             return { percentage: 0, completed: 0, total: 0 };
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const completedTasks = relevantTasks.filter((t: any) =>
-            t.status === 'DONE' || t.status === 'REVIEWED'
-        ).length;
-
         return {
-            percentage: Math.round((completedTasks / totalTasks) * 100),
-            completed: completedTasks,
-            total: totalTasks
+            percentage: Math.round((stats.completed / stats.total) * 100),
+            completed: stats.completed,
+            total: stats.total
         };
     };
 

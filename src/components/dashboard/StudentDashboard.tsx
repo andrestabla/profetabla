@@ -42,11 +42,11 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
     const currentProject = projects.find(p => p.id === selectedProjectId) || projects[0];
 
     // Compute stats for current project
-    const totalTasks = currentProject.tasks?.length || 0;
-    const completedTasks = currentProject.tasks?.filter((t: any) =>
-        t.status === 'DONE' || t.status === 'REVIEWED'
+    const totalAssignments = currentProject.assignments?.length || 0;
+    const completedAssignments = currentProject.assignments?.filter((a: any) =>
+        a.submissions && a.submissions.length > 0
     ).length || 0;
-    const pendingTasks = totalTasks - completedTasks;
+    const pendingAssignments = totalAssignments - completedAssignments;
 
     // Filter priority tasks
     const priorityTasks = currentProject.tasks?.filter((t: any) =>
@@ -114,7 +114,7 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
                             <h2 className="text-2xl font-bold text-slate-800 mb-4">{currentProject.title}</h2>
                             <p className="text-slate-500 mb-8 line-clamp-2 max-w-2xl">{currentProject.description}</p>
 
-                            <ProgressBar total={totalTasks} completed={completedTasks} />
+                            <ProgressBar total={totalAssignments} completed={completedAssignments} />
 
                             <div className="mt-8 flex flex-wrap gap-4">
                                 <Link href={`/dashboard/student/projects/${currentProject.id}/kanban`} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-black transition-all">
@@ -162,7 +162,7 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
                                 ))}
                                 {/* TODO: Update Kanban link to be project specific if needed, or global */}
                                 <Link href={`/dashboard/student/projects/${currentProject.id}/kanban`} className="block text-center text-sm font-bold text-blue-600 hover:underline mt-4">
-                                    Ver todas las tareas ({pendingTasks})
+                                    Ver todas las entregas ({pendingAssignments})
                                 </Link>
                             </div>
                         ) : (
