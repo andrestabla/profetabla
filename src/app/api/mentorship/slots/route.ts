@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { addMinutes, isBefore, parseISO } from 'date-fns';
 import { generateMeetLinkWithEvent, generateMeetLink } from '@/lib/google-meet';
+import { deleteGoogleCalendarEvent } from '@/lib/google-calendar';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,31 +47,28 @@ export async function POST(request: Request) {
         const teacherId = session.user.id;
         const slotsCreated: any[] = [];
 
-        // Transaction is better if we are creating multiple or bookings
         return await prisma.$transaction(async (tx) => {
             let currentStart = start;
 
             while (isBefore(currentStart, end)) {
                 const currentEnd = addMinutes(currentStart, SLOT_DURATION);
 
-                // If the next slot would go beyond the end time, we stop (or we could truncate, but 45m policy is better)
                 if (currentEnd > end && currentStart !== start) break;
 
-                // Create Slot
                 const slot = await tx.mentorshipSlot.create({
                     data: {
                         teacherId,
                         startTime: currentStart,
-                        endTime: currentEnd > end ? end : currentEnd, // Allow the last one to be shorter if it's the ONLY one or requested
+                        endTime: currentEnd > end ? end : currentEnd,
                         meetingUrl: meetingUrl || null,
                         isBooked: !!studentIds && studentIds.length > 0
                     }
                 });
 
-                // If direct booking
                 if (studentIds && studentIds.length > 0 && projectId) {
-                    // Generate Meet link if requested
                     let finalMeetingUrl = meetingUrl;
+                    let googleEventId: string | undefined;
+
                     if (!meetingUrl) {
                         try {
                             const project = await tx.project.findUnique({
@@ -83,26 +81,30 @@ export async function POST(request: Request) {
                                 session.user.email
                             ].filter((e): e is string => !!e);
 
-                            finalMeetingUrl = await generateMeetLinkWithEvent({
+                            const result = await generateMeetLinkWithEvent({
                                 summary: `Mentoría Directa - ${project?.title || 'Asesoría'}`,
                                 description: `Mentoría programada por el profesor.\n\nNotas: ${note || 'Sin notas'}`,
                                 startTime: currentStart,
                                 endTime: currentEnd,
                                 attendees
-                            });
+                            }, session.user.email);
+
+                            finalMeetingUrl = result.meetLink;
+                            googleEventId = result.googleEventId;
                         } catch (e) {
                             console.error('Meet generation fail:', e);
                             finalMeetingUrl = generateMeetLink();
                         }
                     }
 
-                    // Update slot with meet link if generated
-                    await tx.mentorshipSlot.update({
+                    await (tx.mentorshipSlot as any).update({
                         where: { id: slot.id },
-                        data: { meetingUrl: finalMeetingUrl }
+                        data: {
+                            meetingUrl: finalMeetingUrl,
+                            googleEventId
+                        }
                     });
 
-                    // Create Booking
                     await (tx.mentorshipBooking as any).create({
                         data: {
                             slotId: slot.id,
@@ -119,8 +121,6 @@ export async function POST(request: Request) {
 
                 slotsCreated.push(slot);
                 currentStart = currentEnd;
-
-                // If it was a single fixed slot, break after one
                 if (currentEnd >= end) break;
             }
 
@@ -130,5 +130,47 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.error('Create slot error:', error);
         return NextResponse.json({ error: error.message || 'Error al crear disponibilidad' }, { status: 500 });
+    }
+}
+
+export async function DELETE(request: Request) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        const slotId = searchParams.get('id');
+
+        if (!slotId) {
+            return NextResponse.json({ error: 'Slot ID is required' }, { status: 400 });
+        }
+
+        const slot = await prisma.mentorshipSlot.findUnique({
+            where: { id: slotId },
+            include: { teacher: true }
+        });
+
+        if (!slot) {
+            return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
+        }
+
+        if (session.user.role !== 'ADMIN' && slot.teacherId !== session.user.id) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        if ((slot as any).googleEventId) {
+            await deleteGoogleCalendarEvent((slot as any).googleEventId, slot.teacher.email || 'primary');
+        }
+
+        await prisma.mentorshipSlot.delete({
+            where: { id: slotId }
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Delete slot error:', error);
+        return NextResponse.json({ error: 'Error deleting slot' }, { status: 500 });
     }
 }

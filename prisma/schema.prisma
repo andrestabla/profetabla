@@ -178,17 +178,18 @@ model ResourceInteraction {
 }
 
 model MentorshipSlot {
-  id         String             @id @default(uuid())
-  teacherId  String
-  startTime  DateTime
-  endTime    DateTime
-  isBooked   Boolean            @default(false)
-  meetingUrl String?
-  version    Int                @default(0)
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  booking    MentorshipBooking?
-  teacher    User               @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  id            String             @id @default(uuid())
+  teacherId     String
+  startTime     DateTime
+  endTime       DateTime
+  isBooked      Boolean            @default(false)
+  meetingUrl    String?
+  googleEventId String?            // Added for sync management
+  version       Int                @default(0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  booking       MentorshipBooking?
+  teacher       User               @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 }
 
 model MentorshipBooking {

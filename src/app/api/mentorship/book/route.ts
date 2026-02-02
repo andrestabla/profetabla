@@ -92,17 +92,20 @@ export async function POST(request: Request) {
 
         // Generate Google Meet link with calendar event
         let meetingUrl: string;
+        let googleEventId: string | undefined;
+
         try {
-            meetingUrl = await generateMeetLinkWithEvent({
+            const result = await generateMeetLinkWithEvent({
                 summary: `Mentoría - ${project.title}`,
                 description: `Mentoría para el proyecto "${project.title}".\n\nEstudiantes: ${students.map(s => s.name).join(', ')}\nProfesor: ${slot.teacher.name}\n\nNotas: ${note || 'Sin notas'}`,
                 startTime: slot.startTime,
                 endTime: slot.endTime,
                 attendees: [...studentEmails, slot.teacher.email].filter((e): e is string => !!e)
-            });
+            }, slot.teacher.email);
+            meetingUrl = result.meetLink;
+            googleEventId = result.googleEventId;
         } catch (error) {
             console.error('Error generating Meet link with event:', error);
-            // Fallback to simple mock URL
             meetingUrl = generateMeetLink();
         }
 
@@ -113,6 +116,7 @@ export async function POST(request: Request) {
                 data: {
                     isBooked: true,
                     meetingUrl,
+                    googleEventId,
                     version: { increment: 1 }
                 }
             });

@@ -16,22 +16,29 @@ export function generateMeetLink(): string {
 /**
  * Generates a Google Meet link with calendar event creation
  * @param eventDetails - Details for the calendar event
- * @returns Promise resolving to the Meet link
+ * @param calendarId - Optional calendar ID where the event should be created
+ * @returns Promise resolving to an object with meetLink and optional googleEventId
  */
-export async function generateMeetLinkWithEvent(eventDetails: {
-    summary: string;
-    description?: string;
-    startTime: Date;
-    endTime: Date;
-    attendees?: string[];
-}): Promise<string> {
+export async function generateMeetLinkWithEvent(
+    eventDetails: {
+        summary: string;
+        description?: string;
+        startTime: Date;
+        endTime: Date;
+        attendees?: string[];
+    },
+    calendarId?: string
+): Promise<{ meetLink: string; googleEventId?: string }> {
     // Try to create real Google Meet event
-    const meetLink = await createGoogleMeetEvent(eventDetails);
+    const result = await createGoogleMeetEvent(eventDetails, calendarId);
 
     // Fallback to mock URL if API is not configured or fails
-    if (!meetLink) {
-        return generateMeetLink();
+    if (!result) {
+        return { meetLink: generateMeetLink() };
     }
 
-    return meetLink;
+    return {
+        meetLink: result.meetLink,
+        googleEventId: result.eventId
+    };
 }

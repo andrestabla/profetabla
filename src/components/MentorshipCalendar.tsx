@@ -16,7 +16,7 @@ import {
     parseISO
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Clock, Video, User, BookOpen, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Video, User, BookOpen, Calendar, Trash2, Loader2 } from 'lucide-react';
 
 interface Slot {
     id: string;
@@ -24,7 +24,7 @@ interface Slot {
     endTime: string;
     isBooked: boolean;
     meetingUrl: string | null;
-    teacher: { name: string; avatarUrl: string };
+    teacher: { id: string; name: string; avatarUrl: string };
     booking?: {
         id: string;
         students: { name: string }[];
@@ -36,14 +36,30 @@ interface Slot {
 interface MentorshipCalendarProps {
     slots: Slot[];
     onBook: (slotId: string) => void;
+    onDelete?: (slotId: string) => void;
+    currentUserId?: string;
+    userRole?: string;
 }
 
-export function MentorshipCalendar({ slots, onBook }: MentorshipCalendarProps) {
+export function MentorshipCalendar({ slots, onBook, onDelete, currentUserId, userRole }: MentorshipCalendarProps) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
     const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+
+    const handleDelete = async (slotId: string) => {
+        if (!onDelete) return;
+        if (!confirm('¿Estás seguro de que deseas eliminar este horario? Si hay una reserva, se cancelará y el evento de Google Calendar se eliminará.')) return;
+
+        setIsDeleting(slotId);
+        try {
+            await onDelete(slotId);
+        } finally {
+            setIsDeleting(null);
+        }
+    };
 
     const renderHeader = () => {
         return (
@@ -168,67 +184,84 @@ export function MentorshipCalendar({ slots, onBook }: MentorshipCalendarProps) {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {selectedDaySlots.map(slot => (
-                            <div
-                                key={slot.id}
-                                className={`p-4 rounded-xl border transition-all ${slot.isBooked
-                                    ? "bg-green-50 border-green-200"
-                                    : "bg-white border-slate-200 shadow-sm hover:border-blue-300"
-                                    }`}
-                            >
-                                <div className="flex justify-between items-start mb-3">
-                                    <div className="text-sm font-bold text-slate-700">
-                                        {format(parseISO(slot.startTime), 'HH:mm')} - {format(parseISO(slot.endTime), 'HH:mm')}
+                        {selectedDaySlots.map(slot => {
+                            const canDelete = onDelete && (userRole === 'ADMIN' || slot.teacher.id === currentUserId);
+
+                            return (
+                                <div
+                                    key={slot.id}
+                                    className={`p-4 rounded-xl border transition-all ${slot.isBooked
+                                        ? "bg-green-50 border-green-200"
+                                        : "bg-white border-slate-200 shadow-sm hover:border-blue-300"
+                                        }`}
+                                >
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="text-sm font-bold text-slate-700">
+                                            {format(parseISO(slot.startTime), 'HH:mm')} - {format(parseISO(slot.endTime), 'HH:mm')}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {slot.isBooked && (
+                                                <span className="text-[10px] bg-green-200 text-green-800 px-2 py-0.5 rounded-full font-bold uppercase">
+                                                    Reservado
+                                                </span>
+                                            )}
+                                            {canDelete && (
+                                                <button
+                                                    onClick={() => handleDelete(slot.id)}
+                                                    disabled={isDeleting === slot.id}
+                                                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                                                >
+                                                    {isDeleting === slot.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    {slot.isBooked && (
-                                        <span className="text-[10px] bg-green-200 text-green-800 px-2 py-0.5 rounded-full font-bold uppercase">
-                                            Reservado
-                                        </span>
+
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
+                                            {slot.teacher.avatarUrl ? (
+                                                <img src={slot.teacher.avatarUrl} alt={slot.teacher.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <User className="w-3 h-3 text-slate-500" />
+                                            )}
+                                        </div>
+                                        <span className="text-xs text-slate-600 font-medium">{slot.teacher.name}</span>
+                                    </div>
+
+                                    {slot.isBooked && slot.booking && (
+                                        <div className="mb-4 text-[11px] bg-white/50 p-2 rounded border border-green-100">
+                                            <div className="flex items-center gap-1 text-slate-500 mb-1">
+                                                <BookOpen className="w-3 h-3" />
+                                                <span>{slot.booking.students.map(s => s.name).join(', ')}</span>
+                                            </div>
+                                            <p className="text-slate-700 italic">&ldquo;{slot.booking.note}&rdquo;</p>
+                                        </div>
+                                    )}
+
+                                    {slot.isBooked ? (
+                                        slot.meetingUrl ? (
+                                            <a
+                                                href={slot.meetingUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors"
+                                            >
+                                                <Video className="w-4 h-4" /> Unirse a Meet
+                                            </a>
+                                        ) : (
+                                            <div className="text-[10px] text-center text-slate-400 font-medium py-2">Sin enlace de Meet</div>
+                                        )
+                                    ) : (
+                                        <button
+                                            onClick={() => onBook(slot.id)}
+                                            className="w-full bg-slate-900 text-white py-2 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
+                                        >
+                                            Reservar ahora
+                                        </button>
                                     )}
                                 </div>
-
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-                                        {slot.teacher.avatarUrl ? (
-                                            <img src={slot.teacher.avatarUrl} alt={slot.teacher.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <User className="w-3 h-3 text-slate-500" />
-                                        )}
-                                    </div>
-                                    <span className="text-xs text-slate-600 font-medium">{slot.teacher.name}</span>
-                                </div>
-
-                                {slot.isBooked && slot.booking && (
-                                    <div className="mb-4 text-[11px] bg-white/50 p-2 rounded border border-green-100">
-                                        <div className="flex items-center gap-1 text-slate-500 mb-1">
-                                            <BookOpen className="w-3 h-3" />
-                                            <span>{slot.booking.students.map(s => s.name).join(', ')}</span>
-                                        </div>
-                                        <p className="text-slate-700 italic">&ldquo;{slot.booking.note}&rdquo;</p>
-                                    </div>
-                                )}
-
-                                {slot.isBooked ? (
-                                    slot.meetingUrl && (
-                                        <a
-                                            href={slot.meetingUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors"
-                                        >
-                                            <Video className="w-4 h-4" /> Unirse a Meet
-                                        </a>
-                                    )
-                                ) : (
-                                    <button
-                                        onClick={() => onBook(slot.id)}
-                                        className="w-full bg-slate-900 text-white py-2 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
-                                    >
-                                        Reservar ahora
-                                    </button>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

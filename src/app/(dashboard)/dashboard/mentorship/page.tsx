@@ -16,7 +16,7 @@ interface Slot {
     endTime: string;
     isBooked: boolean;
     meetingUrl: string | null;
-    teacher: { name: string; avatarUrl: string };
+    teacher: { id: string; name: string; avatarUrl: string };
     booking?: {
         id: string;
         students: { name: string }[];
@@ -110,6 +110,24 @@ export default function MentorshipPage() {
         }
     };
 
+    const handleDelete = async (slotId: string) => {
+        try {
+            const res = await fetch(`/api/mentorship/slots?id=${slotId}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                fetchData(); // Refresh list
+            } else {
+                const error = await res.json();
+                alert(error.error || "Error al eliminar el horario");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión al eliminar");
+        }
+    };
+
     if (loading && slots.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -187,6 +205,9 @@ export default function MentorshipPage() {
                 <MentorshipCalendar
                     slots={slots}
                     onBook={handleBook}
+                    onDelete={handleDelete}
+                    currentUserId={session?.user?.id}
+                    userRole={session?.user?.role}
                 />
 
                 {isBooking && (
