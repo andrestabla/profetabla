@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { toggleUserStatusAction, deleteUserAction, updateUserRoleAction, sendMessageAction, resetPasswordAction } from '../../actions';
-import { ArrowLeft, Shield, Clock, Mail, Key, Trash2, Ban, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Shield, Clock, Ban, CheckCircle, FolderKanban } from 'lucide-react';
 import Link from 'next/link';
 import UserActionsClient from './UserActionsClient'; // Client logic for modals/interactions
 
@@ -10,14 +10,82 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
     const user = await prisma.user.findUnique({
         where: { id },
         include: {
-            activityLogs: { orderBy: { createdAt: 'desc' }, take: 20 },
+            activityLogs: { orderBy: { createdAt: 'desc' }, take: 50 },
             _count: {
-                select: { createdLearningObjects: true, comments: true }
+                select: {
+                    createdLearningObjects: true,
+                    comments: true,
+                    submissions: true,
+                    assignedTasks: true
+                }
+            },
+            // Projects as student
+            projectsAsStudent: {
+                select: {
+                    id: true,
+                    title: true,
+                    type: true,
+                    startDate: true,
+                    endDate: true,
+                    status: true,
+                    _count: {
+                        select: { assignments: true }
+                    }
+                }
+            },
+            // Projects as teacher
+            projectsAsTeacher: {
+                select: {
+                    id: true,
+                    title: true,
+                    type: true,
+                    startDate: true,
+                    endDate: true,
+                    status: true
+                }
+            },
+            // Assigned tasks for progress calculation
+            assignedTasks: {
+                select: {
+                    id: true,
+                    title: true,
+                    status: true,
+                    projectId: true,
+                    project: {
+                        select: { title: true, type: true }
+                    }
+                }
+            },
+            // Submissions for grade tracking
+            submissions: {
+                select: {
+                    id: true,
+                    grade: true,
+                    assignment: {
+                        select: {
+                            id: true,
+                            title: true,
+                            projectId: true
+                        }
+                    }
+                }
             }
         }
     });
 
     if (!user) return notFound();
+
+    // Helper function to calculate project progress
+    const calculateProjectProgress = (projectId: string) => {
+        const projectTasks = user.assignedTasks.filter(t => t.projectId === projectId);
+        if (projectTasks.length === 0) return 0;
+
+        const completedTasks = projectTasks.filter(t =>
+            t.status === 'DONE' || t.status === 'REVIEWED'
+        ).length;
+
+        return Math.round((completedTasks / projectTasks.length) * 100);
+    };
 
     return (
         <div className="max-w-6xl mx-auto p-6">
@@ -28,7 +96,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             {/* HEADER PERFIL */}
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row items-center md:items-start gap-8">
                 <div className="w-24 h-24 rounded-full bg-slate-200 border-4 border-white shadow-lg flex items-center justify-center text-3xl font-bold text-slate-500">
-                    {user.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full rounded-full" /> : user.name?.[0]?.toUpperCase()}
+                    {user.avatarUrl ? <img src={user.avatarUrl} alt={user.name || 'Avatar'} className="w-full h-full rounded-full" /> : user.name?.[0]?.toUpperCase()}
                 </div>
 
                 <div className="flex-1 text-center md:text-left">
@@ -59,6 +127,108 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                 </div>
             </div>
 
+            {/* PROJECT PARTICIPATION */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-8">
+                <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <FolderKanban className="w-5 h-5 text-purple-600" />
+                    Proyectos y Retos
+                </h3>
+
+                {/* As Student */}
+                {user.projectsAsStudent.length > 0 && (
+                    <div className="mb-6">
+                        <h4 className="text-sm font-bold text-slate-600 mb-3">
+                            Como Estudiante ({user.projectsAsStudent.length})
+                        </h4>
+                        <div className="space-y-3">
+                            {user.projectsAsStudent.map(project => {
+                                const progress = calculateProjectProgress(project.id);
+                                const projectTasks = user.assignedTasks.filter(t => t.projectId === project.id);
+                                const completedTasks = projectTasks.filter(t =>
+                                    t.status === 'DONE' || t.status === 'REVIEWED'
+                                ).length;
+
+                                return (
+                                    <div key={project.id}
+                                        className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-purple-300 transition">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div className="flex-1">
+                                                <Link href={`/dashboard/projects/${project.id}`}
+                                                    className="font-semibold text-slate-800 hover:text-purple-600 transition">
+                                                    {project.title}
+                                                </Link>
+                                                <div className="flex gap-2 mt-1 flex-wrap">
+                                                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                                                        {project.type}
+                                                    </span>
+                                                    {project.status && (
+                                                        <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-xs">
+                                                            {project.status}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="text-right ml-4">
+                                                <div className="text-2xl font-bold text-purple-600">
+                                                    {progress}%
+                                                </div>
+                                                <div className="text-xs text-slate-500">progreso</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Progress Bar */}
+                                        <div className="w-full bg-slate-200 rounded-full h-2 mt-3 overflow-hidden">
+                                            <div className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-500"
+                                                style={{ width: `${progress}%` }}>
+                                            </div>
+                                        </div>
+
+                                        {/* Stats */}
+                                        <div className="flex gap-4 mt-3 text-xs text-slate-600">
+                                            <span>📝 {project._count.assignments || 0} asignaciones</span>
+                                            <span>✅ {completedTasks}/{projectTasks.length} tareas completadas</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* As Teacher */}
+                {user.projectsAsTeacher.length > 0 && (
+                    <div>
+                        <h4 className="text-sm font-bold text-slate-600 mb-3">
+                            Como Profesor ({user.projectsAsTeacher.length})
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {user.projectsAsTeacher.map(project => (
+                                <Link key={project.id}
+                                    href={`/dashboard/projects/${project.id}`}
+                                    className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:border-blue-400 hover:shadow-sm transition group">
+                                    <div className="font-semibold text-slate-800 group-hover:text-blue-600 transition">
+                                        {project.title}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-xs text-slate-600">{project.type}</span>
+                                        {project.status && (
+                                            <span className="text-xs text-slate-500">• {project.status}</span>
+                                        )}
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* No projects */}
+                {user.projectsAsStudent.length === 0 && user.projectsAsTeacher.length === 0 && (
+                    <p className="text-center text-slate-400 py-8">
+                        No participa en ningún proyecto actualmente
+                    </p>
+                )}
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* COLUMNA IZQUIERDA: Acciones */}
                 <div className="space-y-6">
@@ -82,7 +252,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                             {user.activityLogs.length === 0 ? (
                                 <p className="text-center text-slate-400 py-4">Sin actividad registrada.</p>
                             ) : (
-                                user.activityLogs.map((log: any) => (
+                                user.activityLogs.map((log) => (
                                     <div key={log.id} className="relative pl-10">
                                         <div className={`absolute left-0 top-0 w-7 h-7 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-[10px] font-bold z-10
                                             ${log.level === 'CRITICAL' ? 'bg-red-500 text-white' :
