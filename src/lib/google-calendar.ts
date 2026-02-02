@@ -1,3 +1,7 @@
+/**
+ * Google Calendar Integration - v2.0
+ * Fixed: Domain-Wide Delegation issue by removing attendees field
+ */
 import { google } from 'googleapis';
 import { getSafePlatformConfig } from './config';
 
