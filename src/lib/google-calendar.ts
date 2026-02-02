@@ -76,14 +76,9 @@ export async function createGoogleMeetEvent(
 
         const response = await calendar.events.insert({
             calendarId: calendarId,
-            requestBody: event,
-            conferenceDataVersion: 1,
+            requestBody: event
         });
 
-        // Extract Google Meet link
-        const meetLink = response.data.conferenceData?.entryPoints?.find(
-            ep => ep.entryPointType === 'video'
-        )?.uri;
 
         const eventId = response.data.id;
 
