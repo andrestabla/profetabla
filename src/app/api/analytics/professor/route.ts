@@ -42,6 +42,7 @@ export async function GET() {
                 id: p.id,
                 title: p.title,
                 studentName: p.students?.[0]?.name || 'Sin Asignar',
+                students: p.students.map((s: any) => ({ id: s.id, name: s.name })), // Added for scheduler
                 teacherName: p.teachers?.[0]?.name || 'Sistema',
                 progress,
                 risk,

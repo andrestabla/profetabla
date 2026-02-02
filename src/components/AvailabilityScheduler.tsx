@@ -1,38 +1,114 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Loader2, Calendar, Video, Info } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Loader2, Calendar, Video, Clock, Users } from 'lucide-react';
+import { format, addMinutes, isBefore } from 'date-fns';
+
+interface Project {
+    id: string;
+    title: string;
+    students: { id: string; name: string }[];
+}
 
 export function AvailabilityScheduler() {
     const [loading, setLoading] = useState(false);
-    const [date, setDate] = useState('');
-    const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
-    const [meetingUrl, setMeetingUrl] = useState('');
+    const [mode, setMode] = useState<'OPEN' | 'DIRECT'>('OPEN');
+    const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [startTime, setStartTime] = useState('09:00');
+    const [endTime, setEndTime] = useState('12:00');
     const [autoMeet, setAutoMeet] = useState(true);
+    const [meetingUrl, setMeetingUrl] = useState('');
+    const [note, setNote] = useState('');
 
-    const handleCreateSlot = async (e: React.FormEvent) => {
+    // Direct Booking State
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [selectedProjectId, setSelectedProjectId] = useState('');
+    const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        // Fetch projects for teacher
+        fetch('/api/analytics/professor')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.projects) {
+                    // Analytics only gives summary. We might need a full fetch.
+                    // For now, let's assume we can use a direct fetch or the analytics if it has students.
+                    // Actually, let's create a dedicated fetch for project students.
+                    setProjects(data.projects);
+                }
+            });
+    }, []);
+
+    // Fetch full project details when one is selected
+    useEffect(() => {
+        if (selectedProjectId) {
+            // In a real app, fetch /api/projects/[id]
+            // For now, let's assume the teacher dashboard analytics has enough info or mock it.
+        }
+    }, [selectedProjectId]);
+
+    const calculateSlots = () => {
+        if (!date || !startTime || !endTime) return [];
+        const slots = [];
+        let current = new Date(`${date}T${startTime}`);
+        const end = new Date(`${date}T${endTime}`);
+        const DURATION = 45;
+
+        while (isBefore(current, end)) {
+            const slotEnd = addMinutes(current, DURATION);
+            if (isBefore(end, slotEnd) && slots.length > 0) break; // Don't overflow unless it's the first slot
+            slots.push({
+                start: format(current, 'HH:mm'),
+                end: format(slotEnd, 'HH:mm'),
+                isoStart: current.toISOString(),
+                isoEnd: slotEnd.toISOString()
+            });
+            current = slotEnd;
+        }
+        return slots;
+    };
+
+    const slotsPreview = calculateSlots();
+
+    const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (slotsPreview.length === 0) {
+            alert("No hay franjas horarias válidas en este rango.");
+            return;
+        }
+
+        if (mode === 'DIRECT' && (!selectedProjectId || selectedStudentIds.length === 0)) {
+            alert("Selecciona un proyecto y al menos un estudiante para la sesión directa.");
+            return;
+        }
+
         setLoading(true);
 
-        // Combine date and time
-        const start = new Date(`${date}T${startTime}`);
-        const end = new Date(`${date}T${endTime}`);
-
         try {
+            const startISO = new Date(`${date}T${startTime}`).toISOString();
+            const endISO = new Date(`${date}T${endTime}`).toISOString();
+
             const res = await fetch('/api/mentorship/slots', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    startTime: start.toISOString(),
-                    endTime: end.toISOString(),
-                    meetingUrl: autoMeet ? null : meetingUrl // If auto, we leave it null to be generated at booking
+                    startTime: startISO,
+                    endTime: endISO,
+                    meetingUrl: autoMeet ? null : meetingUrl,
+                    studentIds: mode === 'DIRECT' ? selectedStudentIds : undefined,
+                    projectId: mode === 'DIRECT' ? selectedProjectId : undefined,
+                    note: mode === 'DIRECT' ? note : undefined
                 })
             });
 
             if (res.ok) {
-                alert('Franja horaria creada exitosamente');
+                alert(mode === 'OPEN'
+                    ? `Se han habilitado ${slotsPreview.length} franjas de 45 min.`
+                    : 'Sesión directa agendada exitosamente.');
                 window.location.reload();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Error al procesar la solicitud");
             }
         } catch (error) {
             console.error(error);
@@ -41,101 +117,215 @@ export function AvailabilityScheduler() {
         }
     };
 
-    return (
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm mb-10 overflow-hidden relative">
-            <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
+    const selectedProject = projects.find(p => p.id === selectedProjectId);
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
-                        <Calendar className="w-6 h-6 text-blue-600" />
-                        Configurar Disponibilidad (Office Hours)
-                    </h3>
-                    <p className="text-slate-500 text-sm mt-1">Crea bloques de tiempo para que tus alumnos agenden mentorías.</p>
+    return (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden mb-12">
+            <div className="bg-slate-900 p-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-600 rounded-xl">
+                        <Calendar className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-white font-bold">Gestión de Disponibilidad</h3>
+                        <p className="text-slate-400 text-xs">Define tus horarios o agenda sesiones puntuales.</p>
+                    </div>
+                </div>
+
+                <div className="flex p-1 bg-slate-800 rounded-xl">
+                    <button
+                        onClick={() => setMode('OPEN')}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'OPEN' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                    >
+                        Office Hours
+                    </button>
+                    <button
+                        onClick={() => setMode('DIRECT')}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'DIRECT' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                    >
+                        Sesión Directa
+                    </button>
                 </div>
             </div>
 
-            <form onSubmit={handleCreateSlot} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Fecha sesión</label>
-                        <input
-                            required
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Hora inicio</label>
-                        <input
-                            required
-                            type="time"
-                            value={startTime}
-                            onChange={(e) => setStartTime(e.target.value)}
-                            className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Hora fin</label>
-                        <input
-                            required
-                            type="time"
-                            value={endTime}
-                            onChange={(e) => setEndTime(e.target.value)}
-                            className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-                        />
-                    </div>
-                </div>
-
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Video className="w-5 h-5 text-blue-600" />
-                            <span className="text-sm font-semibold text-slate-700">Integración de Google Meet</span>
+            <form onSubmit={handleCreate} className="p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Left Side: Parameters */}
+                    <div className="lg:col-span-8 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Fecha</label>
+                                <input
+                                    required
+                                    type="date"
+                                    value={date}
+                                    min={format(new Date(), 'yyyy-MM-dd')}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold focus:ring-4 focus:ring-blue-500/10 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Hora Inicio</label>
+                                <div className="relative">
+                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                        required
+                                        type="time"
+                                        value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 pl-12 text-sm font-bold focus:ring-4 focus:ring-blue-500/10 outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Hora Fin</label>
+                                <div className="relative">
+                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                        required
+                                        type="time"
+                                        value={endTime}
+                                        onChange={(e) => setEndTime(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 pl-12 text-sm font-bold focus:ring-4 focus:ring-blue-500/10 outline-none"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={autoMeet}
-                                onChange={(e) => setAutoMeet(e.target.checked)}
-                                className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
+
+                        {mode === 'DIRECT' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-blue-50/50 rounded-3xl border border-blue-100">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest block">Proyecto</label>
+                                    <select
+                                        value={selectedProjectId}
+                                        onChange={(e) => {
+                                            setSelectedProjectId(e.target.value);
+                                            setSelectedStudentIds([]);
+                                        }}
+                                        className="w-full bg-white border border-blue-200 rounded-xl p-3 text-sm font-bold outline-none"
+                                    >
+                                        <option value="">Seleccionar Proyecto...</option>
+                                        {projects.map(p => (
+                                            <option key={p.id} value={p.id}>{p.title}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest block">Estudiantes ({selectedStudentIds.length})</label>
+                                    {!selectedProjectId ? (
+                                        <div className="text-xs text-slate-400 italic py-3">Selecciona un proyecto primero...</div>
+                                    ) : (
+                                        <div className="max-h-32 overflow-y-auto bg-white border border-blue-100 rounded-xl p-3 space-y-1">
+                                            <p className="text-[10px] text-slate-400 mb-2">Selecciona participantes:</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedProject?.students.map(s => (
+                                                    <button
+                                                        key={s.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedStudentIds(prev =>
+                                                                prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                                            );
+                                                        }}
+                                                        className={`text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all ${selectedStudentIds.includes(s.id)
+                                                            ? 'bg-blue-600 border-blue-600 text-white'
+                                                            : 'bg-white border-blue-200 text-blue-600 hover:bg-blue-50'
+                                                            }`}
+                                                    >
+                                                        {s.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="md:col-span-2 space-y-2">
+                                    <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest block">Motivo / Notas</label>
+                                    <textarea
+                                        value={note}
+                                        onChange={(e) => setNote(e.target.value)}
+                                        placeholder="Ej: Revisión de avance sprint 2..."
+                                        className="w-full bg-white border border-blue-200 rounded-xl p-3 text-sm outline-none h-20 resize-none"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Video className="w-5 h-5 text-blue-600" />
+                                    <span className="text-sm font-bold text-slate-700">Integración de Google Meet</span>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={autoMeet}
+                                        onChange={(e) => setAutoMeet(e.target.checked)}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+
+                            {autoMeet ? (
+                                <div className="text-[11px] text-blue-600 font-medium">
+                                    Enlace dinámico generado por la API de Google Cloud para cada sesión.
+                                </div>
+                            ) : (
+                                <input
+                                    type="text"
+                                    placeholder="https://meet.google.com/..."
+                                    value={meetingUrl}
+                                    onChange={(e) => setMeetingUrl(e.target.value)}
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm outline-none"
+                                />
+                            )}
+                        </div>
                     </div>
 
-                    {autoMeet ? (
-                        <div className="flex items-start gap-2 text-[11px] text-blue-700 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
-                            <Info className="w-4 h-4 mt-0.5 shrink-0" />
-                            <p>
-                                El enlace de <strong>Google Meet</strong> se generará automáticamente a través de la API de Google Cloud cuando un alumno agende este espacio.
-                            </p>
+                    {/* Right Side: Preview */}
+                    <div className="lg:col-span-4 bg-slate-50/50 rounded-3xl border border-slate-200 p-6 flex flex-col">
+                        <div className="flex items-center gap-2 mb-6">
+                            <Users className="w-5 h-5 text-slate-400" />
+                            <h4 className="font-bold text-slate-800 text-sm italic">Vista previa de franjas</h4>
                         </div>
-                    ) : (
-                        <div className="space-y-2">
-                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Link de Sesión Manual</label>
-                            <input
-                                type="text"
-                                placeholder="https://meet.google.com/..."
-                                value={meetingUrl}
-                                onChange={(e) => setMeetingUrl(e.target.value)}
-                                className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all"
-                            />
-                        </div>
-                    )}
-                </div>
 
-                <div className="flex justify-end">
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 shadow-lg shadow-blue-500/20"
-                    >
-                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-                        Habilitar este horario
-                    </button>
+                        <div className="flex-1 space-y-3 overflow-y-auto max-h-[300px] pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+                            {slotsPreview.length === 0 ? (
+                                <div className="text-center py-12 text-slate-400 italic text-xs">
+                                    Define un horario válido...
+                                </div>
+                            ) : (
+                                slotsPreview.map((s, i) => (
+                                    <div key={i} className="bg-white border border-slate-200 p-3 rounded-2xl flex items-center justify-between shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-[10px] font-black">
+                                                {i + 1}
+                                            </div>
+                                            <div className="text-xs font-bold text-slate-700">
+                                                {s.start} - {s.end}
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-slate-400">45m</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="mt-8">
+                            <button
+                                type="submit"
+                                disabled={loading || slotsPreview.length === 0}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:grayscale"
+                            >
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                                {mode === 'OPEN' ? 'Publicar Disponibilidad' : 'Agendar Sesión'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
