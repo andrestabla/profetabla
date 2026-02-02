@@ -30,7 +30,7 @@ export async function createGoogleMeetEvent(
         let credentials;
         try {
             credentials = JSON.parse(config.googleCalendarServiceAccountJson);
-        } catch (_) {
+        } catch {
             console.error('CRITICAL: Failed to parse Google Calendar Service Account JSON. Check if it is a valid single-line string in .env');
             return null;
         }
@@ -65,7 +65,13 @@ export async function createGoogleMeetEvent(
             },
         };
 
-        console.log(`Attempting to create event in calendar: ${calendarId}`);
+        console.log(`[Calendar] Creating event in calendar: "${calendarId}"`);
+        console.log(`[Calendar] Event details:`, {
+            summary: event.summary,
+            start: event.start.dateTime,
+            end: event.end.dateTime,
+            attendees: event.attendees?.map(a => a.email)
+        });
 
         const response = await calendar.events.insert({
             calendarId: calendarId,
@@ -80,17 +86,21 @@ export async function createGoogleMeetEvent(
 
         const eventId = response.data.id;
 
-        console.log(`Generated Meet link: ${meetLink} / EventID: ${eventId} in calendar ${calendarId}`);
+        console.log(`[Calendar] ✅ Event created successfully!`);
+        console.log(`[Calendar] Event ID: ${eventId}`);
+        console.log(`[Calendar] Meet link: ${meetLink}`);
+        console.log(`[Calendar] Calendar used: ${calendarId}`);
 
         if (meetLink && eventId) {
             return { meetLink, eventId };
         }
         return null;
-    } catch (error) {
-        console.error('Error creating Google Meet event:', error);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[Calendar] ❌ Error creating event in calendar "${calendarId}":`, errorMessage);
         // If specific calendar fails (e.g. not shared), try primary as fallback
         if (calendarId !== 'primary') {
-            console.log('Retrying with primary calendarId...');
+            console.log(`[Calendar] ⚠️ Retrying with 'primary' calendar as fallback...`);
             return createGoogleMeetEvent(eventDetails, 'primary');
         }
         return null;

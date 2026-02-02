@@ -96,6 +96,7 @@ export async function POST(request: Request) {
         let googleEventId: string | undefined;
 
         try {
+            console.log(`[Booking] Generating Meet link for teacher: ${slot.teacher.email || 'NO EMAIL'}`);
             const result = await generateMeetLinkWithEvent({
                 summary: `Mentoría - ${project.title}`,
                 description: `Mentoría para el proyecto "${project.title}".\n\nEstudiantes: ${students.map(s => s.name).join(', ')}\nProfesor: ${slot.teacher.name}\n\nNotas: ${note || 'Sin notas'}`,
