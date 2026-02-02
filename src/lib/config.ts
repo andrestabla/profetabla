@@ -7,10 +7,10 @@ interface PartialConfig {
     openaiApiKey?: string | null;
     geminiModel?: string;
     openaiModel?: string;
-    googleCalendarEnabled?: boolean;
-    googleCalendarServiceAccountJson?: string;
-    googleCalendarClientId?: string;
-    googleCalendarClientSecret?: string;
+    googleCalendarEnabled?: boolean | null;
+    googleCalendarServiceAccountJson?: string | null;
+    googleCalendarClientId?: string | null;
+    googleCalendarClientSecret?: string | null;
 }
 
 export async function getSafePlatformConfig(): Promise<PartialConfig> {
