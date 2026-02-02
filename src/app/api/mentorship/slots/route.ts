@@ -79,7 +79,7 @@ export async function POST(request: Request) {
                             });
 
                             const attendees = [
-                                ...project?.students.filter(s => ((studentIds as string[]) || []).includes(s.id)).map(s => s.email),
+                                ...(project?.students.filter(s => ((studentIds as string[]) || []).includes(s.id)).map(s => s.email) || []),
                                 session.user.email
                             ].filter((e): e is string => !!e);
 
