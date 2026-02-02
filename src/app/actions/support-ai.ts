@@ -56,9 +56,9 @@ export async function getSupportResponse(message: string, history: { role: 'user
             
             CONTEXTO DEL USUARIO ACTUAL:
             - Nombre: ${user?.name || 'Usuario'}
-            - Proyectos Activos: ${user?.projectsAsStudent.map(p => `${p.title} (${p.type})`).join(', ') || 'Ninguno'}
-            - Tareas Pendientes: ${user?.assignedTasks.map(t => `${t.title} (${t.status})`).join(', ') || 'Ninguna'}
-            - Próximas Mentorías: ${user?.mentorships.map(m => m.slot.startTime.toLocaleString()).join(', ') || 'Ninguna'}
+            - Proyectos Activos: ${(user?.projectsAsStudent || []).map(p => `${p.title} (${p.type})`).join(', ') || 'Ninguno'}
+            - Tareas Pendientes: ${(user?.assignedTasks || []).map(t => `${t.title} (${t.status})`).join(', ') || 'Ninguna'}
+            - Próximas Mentorías: ${(user?.mentorships || []).map(m => m.slot.startTime.toLocaleString()).join(', ') || 'Ninguna'}
             
             REGLAS DE RESPUESTA:
             - Sé profesional pero amable.
@@ -72,10 +72,14 @@ export async function getSupportResponse(message: string, history: { role: 'user
 
     try {
         const chat = model.startChat({
-            history: history.map(h => ({
-                role: h.role,
-                parts: [{ text: h.parts }]
-            }))
+            history: (history || []).map(h => ({
+                role: h.role === 'user' ? 'user' : 'model',
+                parts: [{ text: h.parts || '' }]
+            })),
+            generationConfig: {
+                maxOutputTokens: 1000,
+                temperature: 0.7,
+            }
         });
 
         const result = await chat.sendMessage(message);
@@ -84,6 +88,8 @@ export async function getSupportResponse(message: string, history: { role: 'user
         return { success: true, response: responseText };
     } catch (e) {
         console.error("Gemini Support Error:", e);
-        return { success: false, error: "Hubo un error al procesar tu solicitud." };
+        // Include more error info for debugging if possible without leaking secrets
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        return { success: false, error: `Error en la IA: ${errorMessage.substring(0, 100)}` };
     }
 }
