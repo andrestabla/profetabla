@@ -41,22 +41,23 @@ export function AvailabilityScheduler() {
     });
 
     useEffect(() => {
-        // Fetch projects for teacher
-        fetch('/api/analytics/professor')
+        // Fetch projects for teacher/admin
+        fetch('/api/mentorship/projects')
             .then(res => res.json())
             .then(data => {
-                if (data && data.projects) {
-                    setProjects(data.projects);
+                if (Array.isArray(data)) {
+                    setProjects(data);
                 }
-            });
+            })
+            .catch(err => console.error('Error fetching mentorship projects:', err));
 
         // Fetch platform config to get service account email
-        fetch('/api/mentorship/quota') // This endpoint might have it or I'll add it
+        fetch('/api/mentorship/quota')
             .then(res => res.json())
             .then(data => {
-                // I'll update the quota API to return this
                 if (data.serviceAccountEmail) setServiceAccountEmail(data.serviceAccountEmail);
-            });
+            })
+            .catch(err => console.error('Error fetching service account email:', err));
     }, []);
 
     // Fetch full project details when one is selected
