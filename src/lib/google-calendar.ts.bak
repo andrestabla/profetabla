@@ -68,10 +68,9 @@ export async function createGoogleMeetEvent(
             // We'll generate a simple Meet link instead
         };
 
-        // Use instant Meet link (creates new room when clicked)
-        // Professor should replace with permanent link from Google Calendar
-        const meetLink = 'https://meet.google.com/new';
-        event.description = `${event.description}\n\n📹 Google Meet: ${meetLink}\n\n⚠️ NOTA: Este link crea una sala temporal. Por favor, abre este evento en Google Calendar y agrega un link de Meet permanente usando el botón "Agregar Google Meet".`;
+        // Generate a simple Google Meet link (service accounts can't use conferenceData API)
+        const meetLink = generateMeetLink();
+        event.description = `${event.description}\\n\\nGoogle Meet: ${meetLink}`;
 
         console.log(`[Calendar] Creating event in calendar: "${calendarId}"`);
         console.log(`[Calendar] Event details:`, {
