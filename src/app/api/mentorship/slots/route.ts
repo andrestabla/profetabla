@@ -69,10 +69,11 @@ export async function POST(request: Request) {
                 if (studentIds && studentIds.length > 0 && projectId) {
                     let finalMeetingUrl = meetingUrl;
                     let googleEventId: string | undefined;
+                    let project: any; // Needed for email notifications
 
                     if (!meetingUrl) {
                         try {
-                            const project = await tx.project.findUnique({
+                            project = await tx.project.findUnique({
                                 where: { id: projectId },
                                 include: { students: true }
                             });
