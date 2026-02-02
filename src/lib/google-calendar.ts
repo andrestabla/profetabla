@@ -56,7 +56,9 @@ export async function createGoogleMeetEvent(
                 dateTime: eventDetails.endTime.toISOString(),
                 timeZone: 'America/Bogota',
             },
-            attendees: eventDetails.attendees?.map(email => ({ email })) || [],
+            // NOTE: Service accounts cannot invite attendees without Domain-Wide Delegation
+            // Students will access the Meet link through the platform instead
+            // attendees: eventDetails.attendees?.map(email => ({ email })) || [],
             conferenceData: {
                 createRequest: {
                     requestId: `meet-${Date.now()}`,
@@ -69,8 +71,7 @@ export async function createGoogleMeetEvent(
         console.log(`[Calendar] Event details:`, {
             summary: event.summary,
             start: event.start.dateTime,
-            end: event.end.dateTime,
-            attendees: event.attendees?.map(a => a.email)
+            end: event.end.dateTime
         });
 
         const response = await calendar.events.insert({
