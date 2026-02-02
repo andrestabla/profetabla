@@ -101,7 +101,7 @@ export async function POST(request: Request) {
                 startTime: slot.startTime,
                 endTime: slot.endTime,
                 attendees: [...studentEmails, slot.teacher.email].filter((e): e is string => !!e)
-            }, slot.teacher.email);
+            }, slot.teacher.email || undefined);
             meetingUrl = result.meetLink;
             googleEventId = result.googleEventId;
         } catch (error) {

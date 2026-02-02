@@ -87,7 +87,7 @@ export async function POST(request: Request) {
                                 startTime: currentStart,
                                 endTime: currentEnd,
                                 attendees
-                            }, session.user.email);
+                            }, session.user.email || undefined);
 
                             finalMeetingUrl = result.meetLink;
                             googleEventId = result.googleEventId;
