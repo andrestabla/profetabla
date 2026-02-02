@@ -43,8 +43,8 @@ export async function getSupportResponse(message: string, history: { role: 'user
         return { success: false, error: "Configuración de IA no disponible (API Key faltante)." };
     }
 
-    // Force gemini-1.5-flash for support as it is more robust with systemInstructions
-    const modelName = "gemini-1.5-flash";
+    // Force gemini-2.0-flash as per user environment requirements
+    const modelName = "gemini-2.0-flash";
 
     console.log(`AI Support Chatbot: Using model ${modelName}. API Key starts with: ${apiKey.substring(0, 5)}...`);
 
