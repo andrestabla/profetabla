@@ -17,7 +17,8 @@ import {
     Kanban,
     Terminal,
     AlertCircle,
-    BarChart3
+    BarChart3,
+    HelpCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -55,6 +56,7 @@ export function Sidebar({ config }: { config?: any }) {
         { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Mercado de Proyectos', href: '/dashboard/market', icon: ShoppingBag, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Unirse con Código', href: '/dashboard/join', icon: Terminal, roles: ['STUDENT'] },
+        { name: 'Centro de ayuda', href: '/dashboard/help', icon: HelpCircle, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
     ];
 
     const adminItems = [
