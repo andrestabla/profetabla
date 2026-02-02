@@ -67,6 +67,10 @@ export async function createGoogleMeetEvent(
             // We'll generate a simple Meet link instead
         };
 
+        // Generate a simple Google Meet link (service accounts can't use conferenceData API)
+        const meetLink = generateMeetLink();
+        event.description = `${event.description}\\n\\nGoogle Meet: ${meetLink}`;
+
         console.log(`[Calendar] Creating event in calendar: "${calendarId}"`);
         console.log(`[Calendar] Event details:`, {
             summary: event.summary,
