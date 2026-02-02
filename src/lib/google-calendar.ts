@@ -63,12 +63,8 @@ export async function createGoogleMeetEvent(
             // NOTE: Service accounts cannot invite attendees without Domain-Wide Delegation
             // Students will access the Meet link through the platform instead
             // attendees: eventDetails.attendees?.map(email => ({ email })) || [],
-            conferenceData: {
-                createRequest: {
-                    requestId: `meet-${Date.now()}`,
-                    conferenceSolutionKey: { type: 'hangoutsMeet' },
-                },
-            },
+            // NOTE: Service accounts cannot create Google Meet conferences
+            // We'll generate a simple Meet link instead
         };
 
         console.log(`[Calendar] Creating event in calendar: "${calendarId}"`);
