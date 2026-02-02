@@ -20,20 +20,41 @@ export default async function DashboardPage() {
 
     // 1. STUDENT DASHBOARD
     if (user.role === 'STUDENT') {
+        // First, fetch projects with teams
         const projects = await prisma.project.findMany({
             where: {
                 students: { some: { id: user.id } },
-                // Allow OPEN too? The user was worried about visibility.
-                // "Join by code" adds them. Status might be "OPEN" or "IN_PROGRESS".
-                // Let's show OPEN too just in case.
                 status: { in: ['IN_PROGRESS', 'OPEN'] }
             },
             include: {
-                tasks: true, // Fetch all for stats
                 teachers: true,
-                students: true
+                students: true,
+                teams: {
+                    where: { members: { some: { id: user.id } } },
+                    select: { id: true }
+                }
             },
         });
+
+        // Then, fetch tasks for each project based on team or assignees
+        const projectsWithTasks = await Promise.all(
+            projects.map(async (project) => {
+                const studentTeam = project.teams[0];
+
+                // Fetch tasks based on project type
+                const tasks = await prisma.task.findMany({
+                    where: {
+                        projectId: project.id,
+                        ...(studentTeam
+                            ? { teamId: studentTeam.id }  // Group project: team's tasks
+                            : { assignees: { some: { id: user.id } } }  // Individual: assigned tasks
+                        )
+                    }
+                });
+
+                return { ...project, tasks };
+            })
+        );
 
         /* eslint-disable @typescript-eslint/no-explicit-any */
         const citations = await (prisma.mentorshipBooking as any).findMany({
@@ -73,7 +94,7 @@ export default async function DashboardPage() {
         return (
             <StudentDashboard
                 user={user}
-                projects={projects}
+                projects={projectsWithTasks}
                 citation={citation}
                 nextMentorship={nextMentorship}
             />

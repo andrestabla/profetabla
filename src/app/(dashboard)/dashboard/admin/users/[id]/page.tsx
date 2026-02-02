@@ -29,13 +29,6 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                     startDate: true,
                     endDate: true,
                     status: true,
-                    tasks: {
-                        select: {
-                            id: true,
-                            status: true,
-                            teamId: true
-                        }
-                    },
                     teams: {
                         where: {
                             members: { some: { id } }
@@ -80,25 +73,40 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
 
     if (!user) return notFound();
 
+    // Fetch student's tasks for progress calculation
+    const userProjectIds = user.projectsAsStudent.map(p => p.id);
+    const studentTeamIds = user.projectsAsStudent.flatMap(p => p.teams.map(t => t.id));
+
+    const studentTasks = await prisma.task.findMany({
+        where: {
+            projectId: { in: userProjectIds },
+            OR: [
+                // Tasks assigned to student
+                { assignees: { some: { id: user.id } } },
+                // Tasks for student's teams
+                { teamId: { in: studentTeamIds } }
+            ]
+        },
+        select: {
+            id: true,
+            status: true,
+            projectId: true,
+            teamId: true
+        }
+    });
+
+    // Group tasks by project
+    const tasksByProject = studentTasks.reduce((acc, task) => {
+        if (!acc[task.projectId]) acc[task.projectId] = [];
+        acc[task.projectId].push(task);
+        return acc;
+    }, {} as Record<string, typeof studentTasks>);
+
     // Helper function to calculate project progress
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const calculateProjectProgress = (project: any) => {
-        let relevantTasks;
-
-        if (project.isGroup) {
-            // Group project: filter by student's team
-            const studentTeam = project.teams?.[0];
-            if (!studentTeam) {
-                // Student has no team assigned yet
-                relevantTasks = [];
-            } else {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                relevantTasks = project.tasks.filter((t: any) => t.teamId === studentTeam.id);
-            }
-        } else {
-            // Individual project: all tasks are relevant
-            relevantTasks = project.tasks || [];
-        }
+        // Use pre-fetched tasks filtered by assignees/team
+        const relevantTasks = tasksByProject[project.id] || [];
 
         const totalTasks = relevantTasks.length;
         if (totalTasks === 0) {
