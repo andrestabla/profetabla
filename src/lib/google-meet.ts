@@ -6,11 +6,12 @@ import { createGoogleMeetEvent } from './google-calendar';
  * Otherwise, generates a mock URL for development/testing.
  */
 export function generateMeetLink(): string {
-    // Generate mock URL as fallback
-    const randomId = Math.random().toString(36).substring(2, 5) + '-' +
-        Math.random().toString(36).substring(2, 6) + '-' +
-        Math.random().toString(36).substring(2, 5);
-    return `https://meet.google.com/${randomId}`;
+    // Generate a valid Google Meet code format: xxx-yyyy-zzz
+    // Each segment uses lowercase letters only (Google Meet format)
+    const segment1 = Math.random().toString(36).substring(2, 5); // 3 chars
+    const segment2 = Math.random().toString(36).substring(2, 6); // 4 chars  
+    const segment3 = Math.random().toString(36).substring(2, 5); // 3 chars
+    return `https://meet.google.com/${segment1}-${segment2}-${segment3}`;
 }
 
 /**
