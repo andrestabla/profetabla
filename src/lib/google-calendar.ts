@@ -4,6 +4,7 @@
  */
 import { google } from 'googleapis';
 import { getSafePlatformConfig } from './config';
+import { generateMeetLink } from './google-meet';
 
 /**
  * Creates a Google Calendar event with a Google Meet link
