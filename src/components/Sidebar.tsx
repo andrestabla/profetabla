@@ -35,9 +35,14 @@ export function Sidebar({ config }: { config?: any }) {
     const logo = config?.logoUrl;
     const title = config?.institutionName || 'Profe Tabla';
 
+
     const isActive = (path: string) => {
+        // Exact match for base routes to prevent parent highlighting
         if (path === '/dashboard') return pathname === '/dashboard';
         if (path === '/dashboard/professor') return pathname === '/dashboard/professor';
+        if (path === '/dashboard/admin') return pathname === '/dashboard/admin';
+
+        // For all other routes, check exact match or direct child
         return pathname === path || pathname?.startsWith(path + '/');
     };
 
