@@ -67,7 +67,8 @@ export async function POST(request: Request) {
             });
 
             // Count existing bookings for this student in this project
-            const bookingCount = await prisma.mentorshipBooking.count({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const bookingCount = await (prisma.mentorshipBooking as any).count({
                 where: {
                     projectId,
                     students: { some: { id: session.user.id } }
@@ -118,12 +119,14 @@ export async function POST(request: Request) {
                     meetingUrl,
                     googleEventId,
                     version: { increment: 1 }
-                }
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any
             });
 
             if (updateResult.count === 0) throw new Error('SLOT_ALREADY_BOOKED');
 
-            return await tx.mentorshipBooking.create({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return await (tx.mentorshipBooking as any).create({
                 data: {
                     slotId,
                     projectId,
@@ -138,9 +141,46 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json(booking);
-    } // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    catch (e: any) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
         console.error("Booking error:", e);
         return NextResponse.json({ error: e.message || 'Error booking slot' }, { status: 500 });
+    }
+}
+
+export async function PATCH(request: Request) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { slotId, note } = body;
+
+        // Ensure user owns the booking or is teacher/admin
+        const booking = await prisma.mentorshipBooking.findUnique({
+            where: { slotId }
+        });
+
+        if (!booking) {
+            return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+        }
+
+        const isTeacher = session.user.role === 'TEACHER' || session.user.role === 'ADMIN';
+        if (!isTeacher) {
+            return NextResponse.json({ error: 'Only teachers or admins can edit session notes currently' }, { status: 403 });
+        }
+
+        const updated = await prisma.mentorshipBooking.update({
+            where: { slotId },
+            data: { note }
+        });
+
+        return NextResponse.json(updated);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+        console.error("Update booking error:", e);
+        return NextResponse.json({ error: e.message || 'Error updating booking' }, { status: 500 });
     }
 }

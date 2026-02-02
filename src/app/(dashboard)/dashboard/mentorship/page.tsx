@@ -7,8 +7,9 @@ import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, Loader2, History } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { MentorshipActionModal, MentorshipActionType } from '@/components/MentorshipActionModal';
 
 interface Slot {
     id: string;
@@ -44,11 +45,23 @@ export default function MentorshipPage() {
     const [loading, setLoading] = useState(true);
     const [isBooking, setIsBooking] = useState(false);
 
-    const projectIdFromUrl = searchParams.get('projectId') || undefined;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const noteFromUrl = searchParams.get('note') || undefined;
-
     const isTeacher = session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN';
+
+    const projectIdFromUrl = searchParams.get('projectId') || undefined;
+
+    // Modal State
+    const [modal, setModal] = useState<{
+        isOpen: boolean;
+        type: MentorshipActionType;
+        slotId: string | null;
+        title: string;
+        message?: string;
+    }>({
+        isOpen: false,
+        type: 'BOOK',
+        slotId: null,
+        title: ''
+    });
 
     const fetchData = async () => {
         setLoading(true);
@@ -79,52 +92,161 @@ export default function MentorshipPage() {
         }
     }, [session]);
 
-    const handleBook = async (slotId: string) => {
-        const note = prompt("Motivo de la sesión o temas a tratar:");
-        if (!note) return;
-
-        setIsBooking(true);
-        try {
-            const res = await fetch('/api/mentorship/book', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    slotId,
-                    note,
-                    projectId: projectIdFromUrl || quotaData?.projectId
-                })
-            });
-
-            if (res.ok) {
-                alert("¡Mentoría reservada exitosamente!");
-                fetchData(); // Refresh data
-            } else {
-                const error = await res.json();
-                alert(error.error || "Error al reservar la mentoría");
-            }
-        } catch (error) {
-            console.error(error);
-            alert("Error de conexión al reservar");
-        } finally {
-            setIsBooking(false);
-        }
+    const handleBook = (slotId: string) => {
+        setModal({
+            isOpen: true,
+            type: 'BOOK',
+            slotId,
+            title: 'Reservar Mentoría',
+            message: 'Registra el tema que deseas tratar en esta sesión.'
+        });
     };
 
-    const handleDelete = async (slotId: string) => {
-        try {
-            const res = await fetch(`/api/mentorship/slots?id=${slotId}`, {
-                method: 'DELETE'
-            });
+    const handleDelete = (slotId: string) => {
+        setModal({
+            isOpen: true,
+            type: 'DELETE',
+            slotId,
+            title: '¿Eliminar horario?',
+            message: 'Esta acción no se puede deshacer.'
+        });
+    };
 
-            if (res.ok) {
-                fetchData(); // Refresh list
-            } else {
-                const error = await res.json();
-                alert(error.error || "Error al eliminar el horario");
+    const handleEdit = (slotId: string) => {
+        setModal({
+            isOpen: true,
+            type: 'EDIT',
+            slotId,
+            title: 'Editar Notas de Sesión',
+            message: 'Actualiza los temas o el motivo de esta mentoría.'
+        });
+        // We'll pass the currentNote via a ref or state if needed, but for now 
+        // MentorshipActionModal takes initialNote. I should handle it.
+    };
+
+    const handleConfirmAction = async (note?: string) => {
+        const slotId = modal.slotId;
+        if (!slotId) return;
+
+        if (modal.type === 'BOOK') {
+            setIsBooking(true);
+            try {
+                const res = await fetch('/api/mentorship/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        slotId,
+                        note,
+                        projectId: projectIdFromUrl || quotaData?.projectId
+                    })
+                });
+
+                if (res.ok) {
+                    setModal({
+                        isOpen: true,
+                        type: 'SUCCESS',
+                        slotId: null,
+                        title: '¡Reservada!',
+                        message: 'Tu sesión ha sido agendada y el enlace de Meet se ha generado.'
+                    });
+                    fetchData();
+                } else {
+                    const error = await res.json();
+                    setModal({
+                        isOpen: true,
+                        type: 'ERROR',
+                        slotId: null,
+                        title: 'Error al reservar',
+                        message: error.error || 'No se pudo completar la reserva.'
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+                setModal({
+                    isOpen: true,
+                    type: 'ERROR',
+                    slotId: null,
+                    title: 'Error de conexión',
+                    message: 'Hubo un fallo al contactar con el servidor.'
+                });
+            } finally {
+                setIsBooking(false);
             }
-        } catch (error) {
-            console.error(error);
-            alert("Error de conexión al eliminar");
+        } else if (modal.type === 'DELETE') {
+            try {
+                const res = await fetch(`/api/mentorship/slots?id=${slotId}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    setModal({
+                        isOpen: true,
+                        type: 'SUCCESS',
+                        slotId: null,
+                        title: 'Horario eliminado',
+                        message: 'El horario y el evento de calendario han sido borrados.'
+                    });
+                    fetchData();
+                } else {
+                    const error = await res.json();
+                    setModal({
+                        isOpen: true,
+                        type: 'ERROR',
+                        slotId: null,
+                        title: 'Error al eliminar',
+                        message: error.error || 'No se pudo borrar el horario.'
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+                setModal({
+                    isOpen: true,
+                    type: 'ERROR',
+                    slotId: null,
+                    title: 'Error de conexión',
+                    message: 'Hubo un fallo al contactar con el servidor.'
+                });
+            }
+        } else if (modal.type === 'EDIT') {
+            try {
+                const res = await fetch('/api/mentorship/book', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        slotId,
+                        note
+                    })
+                });
+
+                if (res.ok) {
+                    setModal({
+                        isOpen: true,
+                        type: 'SUCCESS',
+                        slotId: null,
+                        title: 'Cambios guardados',
+                        message: 'La nota de la mentoría ha sido actualizada.'
+                    });
+                    fetchData();
+                } else {
+                    const error = await res.json();
+                    setModal({
+                        isOpen: true,
+                        type: 'ERROR',
+                        slotId: null,
+                        title: 'Error al actualizar',
+                        message: error.error || 'No se pudo guardar la nota.'
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+                setModal({
+                    isOpen: true,
+                    type: 'ERROR',
+                    slotId: null,
+                    title: 'Error de conexión',
+                    message: 'Hubo un fallo al contactar con el servidor.'
+                });
+            }
         }
     };
 
@@ -206,8 +328,28 @@ export default function MentorshipPage() {
                     slots={slots}
                     onBook={handleBook}
                     onDelete={handleDelete}
+                    onEdit={handleEdit}
                     currentUserId={session?.user?.id}
                     userRole={session?.user?.role}
+                />
+
+                <MentorshipActionModal
+                    isOpen={modal.isOpen}
+                    onClose={() => setModal({ ...modal, isOpen: false })}
+                    type={modal.type}
+                    title={modal.title}
+                    message={modal.message}
+                    initialNote={slots.find(s => s.id === modal.slotId)?.booking?.note}
+                    onConfirm={modal.type === 'SUCCESS' || modal.type === 'ERROR' ? undefined : handleConfirmAction}
+                    slotInfo={(() => {
+                        const s = slots.find(slot => slot.id === modal.slotId);
+                        if (!s) return undefined;
+                        return {
+                            time: `${format(parseISO(s.startTime), 'HH:mm')} - ${format(parseISO(s.endTime), 'HH:mm')}`,
+                            teacherName: s.teacher.name,
+                            date: format(parseISO(s.startTime), "d 'de' MMMM", { locale: es })
+                        };
+                    })()}
                 />
 
                 {isBooking && (

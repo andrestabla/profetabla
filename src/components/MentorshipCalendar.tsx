@@ -16,7 +16,7 @@ import {
     parseISO
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Clock, Video, User, BookOpen, Calendar, Trash2, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Video, User, BookOpen, Calendar, Trash2, Loader2, Edit3 } from 'lucide-react';
 
 interface Slot {
     id: string;
@@ -37,28 +37,21 @@ interface MentorshipCalendarProps {
     slots: Slot[];
     onBook: (slotId: string) => void;
     onDelete?: (slotId: string) => void;
+    onEdit?: (slotId: string, currentNote: string) => void;
     currentUserId?: string;
     userRole?: string;
 }
 
-export function MentorshipCalendar({ slots, onBook, onDelete, currentUserId, userRole }: MentorshipCalendarProps) {
+export function MentorshipCalendar({ slots, onBook, onDelete, onEdit, currentUserId, userRole }: MentorshipCalendarProps) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
     const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
 
-    const handleDelete = async (slotId: string) => {
+    const handleDelete = (slotId: string) => {
         if (!onDelete) return;
-        if (!confirm('¿Estás seguro de que deseas eliminar este horario? Si hay una reserva, se cancelará y el evento de Google Calendar se eliminará.')) return;
-
-        setIsDeleting(slotId);
-        try {
-            await onDelete(slotId);
-        } finally {
-            setIsDeleting(null);
-        }
+        onDelete(slotId);
     };
 
     const renderHeader = () => {
@@ -206,13 +199,24 @@ export function MentorshipCalendar({ slots, onBook, onDelete, currentUserId, use
                                                 </span>
                                             )}
                                             {canDelete && (
-                                                <button
-                                                    onClick={() => handleDelete(slot.id)}
-                                                    disabled={isDeleting === slot.id}
-                                                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                                                >
-                                                    {isDeleting === slot.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    {slot.isBooked && onEdit && (
+                                                        <button
+                                                            onClick={() => onEdit(slot.id, slot.booking?.note || '')}
+                                                            className="text-slate-400 hover:text-indigo-500 transition-colors p-1"
+                                                            title="Editar nota"
+                                                        >
+                                                            <Edit3 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDelete(slot.id)}
+                                                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                                                        title="Eliminar"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
