@@ -71,11 +71,18 @@ export async function getSupportResponse(message: string, history: { role: 'user
     });
 
     try {
+        const sanitizedHistory = (history || []).map(h => ({
+            role: h.role === 'user' ? 'user' : 'model',
+            parts: [{ text: h.parts || '' }]
+        }));
+
+        // Gemini requires the first message in history to be 'user'
+        while (sanitizedHistory.length > 0 && sanitizedHistory[0].role !== 'user') {
+            sanitizedHistory.shift();
+        }
+
         const chat = model.startChat({
-            history: (history || []).map(h => ({
-                role: h.role === 'user' ? 'user' : 'model',
-                parts: [{ text: h.parts || '' }]
-            })),
+            history: sanitizedHistory,
             generationConfig: {
                 maxOutputTokens: 1000,
                 temperature: 0.7,
