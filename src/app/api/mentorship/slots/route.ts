@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { addMinutes, isBefore, parseISO } from 'date-fns';
 import { generateMeetLinkWithEvent, generateMeetLink } from '@/lib/google-meet';
+import { sendMentorshipNotification } from '@/lib/email';
 import { deleteGoogleCalendarEvent } from '@/lib/google-calendar';
 
 export const dynamic = 'force-dynamic';
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
                         }
                     });
 
-                    await (tx.mentorshipBooking as any).create({
+                    const booking = await (tx.mentorshipBooking as any).create({
                         data: {
                             slotId: slot.id,
                             projectId,
@@ -111,8 +112,31 @@ export async function POST(request: Request) {
                             students: {
                                 connect: (studentIds as string[]).map((id: string) => ({ id }))
                             }
+                        },
+                        include: {
+                            students: { select: { id: true, name: true, email: true } }
                         }
                     });
+
+                    // Send email notifications to all students
+                    for (const student of booking.students) {
+                        try {
+                            await sendMentorshipNotification({
+                                studentName: student.name || 'Estudiante',
+                                studentEmail: student.email,
+                                teacherName: session.user.name || 'Profesor',
+                                projectTitle: project?.title || 'Asesoría',
+                                startTime: currentStart,
+                                endTime: currentEnd > end ? end : currentEnd,
+                                meetLink: finalMeetingUrl,
+                                note: note
+                            });
+                            console.log(`[Email] ✅ Notification sent to ${student.email}`);
+                        } catch (emailError) {
+                            console.error(`[Email] ❌ Failed to send notification to ${student.email}:`, emailError);
+                            // Don't fail the booking if email fails
+                        }
+                    }
                 }
 
                 slotsCreated.push(slot);

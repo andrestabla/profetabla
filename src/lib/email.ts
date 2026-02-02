@@ -102,3 +102,89 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
         html
     });
 };
+
+interface MentorshipNotificationOptions {
+    studentName: string;
+    studentEmail: string;
+    teacherName: string;
+    projectTitle: string;
+    startTime: Date;
+    endTime: Date;
+    meetLink: string;
+    note?: string;
+}
+
+export const sendMentorshipNotification = async ({
+    studentName,
+    studentEmail,
+    teacherName,
+    projectTitle,
+    startTime,
+    endTime,
+    meetLink,
+    note
+}: MentorshipNotificationOptions) => {
+    // Format date and time in Spanish (Colombia timezone)
+    const formattedDate = new Intl.DateTimeFormat('es-CO', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'America/Bogota'
+    }).format(startTime);
+
+    const formattedTime = `${new Intl.DateTimeFormat('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Bogota'
+    }).format(startTime)} - ${new Intl.DateTimeFormat('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Bogota'
+    }).format(endTime)}`;
+
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2563EB;">🎓 Nueva Sesión de Mentoría Programada</h2>
+        
+        <p>Hola <strong>${studentName}</strong>,</p>
+        
+        <p>Se te ha programado una sesión de mentoría con los siguientes detalles:</p>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 8px 0;"><strong>📚 Proyecto:</strong> ${projectTitle}</p>
+            <p style="margin: 8px 0;"><strong>👨‍🏫 Profesor:</strong> ${teacherName}</p>
+            <p style="margin: 8px 0;"><strong>📅 Fecha:</strong> ${formattedDate}</p>
+            <p style="margin: 8px 0;"><strong>⏰ Hora:</strong> ${formattedTime}</p>
+            ${note ? `<p style="margin: 8px 0;"><strong>📝 Notas:</strong> ${note}</p>` : ''}
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="${meetLink}" 
+               style="background: #4285f4; color: white; padding: 14px 28px; 
+                      text-decoration: none; border-radius: 6px; display: inline-block;
+                      font-weight: bold;">
+                📹 Unirse a Google Meet
+            </a>
+        </div>
+        
+        <p style="color: #666; font-size: 14px; line-height: 1.6;">
+            También puedes acceder a esta sesión desde tu panel de mentoría en la plataforma.
+            <br><br>
+            <strong>Recuerda:</strong> Llega puntual y prepara tus preguntas con anticipación.
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 30px 0;">
+        
+        <p style="color: #999; font-size: 12px; text-align: center;">
+            Este es un correo automático. Por favor no respondas a este mensaje.
+        </p>
+    </div>
+    `;
+
+    return sendEmail({
+        to: studentEmail,
+        subject: `Nueva sesión de mentoría - ${projectTitle}`,
+        html
+    });
+};
