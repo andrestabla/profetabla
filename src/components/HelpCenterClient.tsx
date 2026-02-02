@@ -35,7 +35,7 @@ const SECTIONS: Section[] = [
                 <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl shadow-blue-500/20">
                     <h2 className="text-3xl font-black mb-4">Bienvenidos a Profe Tabla</h2>
                     <p className="text-blue-50 text-lg leading-relaxed max-w-2xl">
-                        Una plataforma educativa de vanguardia diseñada para cerrar la brecha entre el aprendizaje académico y la práctica profesional mediante proyectos reales, mentoría experta e inteligencia artificial.
+                        Una plataforma educativa de vanguardia donde el <strong>corazón</strong> de la experiencia son los <strong>Proyectos, Retos y Problemas</strong>. Todo lo demás—aprendizaje, mentorías y analítica—se deriva de estos núcleos de acción profesional.
                     </p>
                 </div>
 
@@ -44,41 +44,89 @@ const SECTIONS: Section[] = [
                         <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
                             <Target className="w-6 h-6 text-blue-600" />
                         </div>
-                        <h3 className="font-bold text-slate-800 mb-2">PBL Real</h3>
-                        <p className="text-sm text-slate-500">Aprendizaje Basado en Proyectos con alineación directa a la industria.</p>
+                        <h3 className="font-bold text-slate-800 mb-2">Metodología Core</h3>
+                        <p className="text-sm text-slate-500">Centrada en la resolución de desafíos reales de la industria.</p>
                     </div>
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                         <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
                             <Zap className="w-6 h-6 text-indigo-600" />
                         </div>
-                        <h3 className="font-bold text-slate-800 mb-2">IA Asistida</h3>
-                        <p className="text-sm text-slate-500">Generación de contenido profesional y análisis automatizado con Google Gemini.</p>
+                        <h3 className="font-bold text-slate-800 mb-2">Diferencial Único</h3>
+                        <p className="text-sm text-slate-500">Integración de IA para potenciar la creación de soluciones profesionales.</p>
                     </div>
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                         <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-4">
                             <Users className="w-6 h-6 text-amber-600" />
                         </div>
-                        <h3 className="font-bold text-slate-800 mb-2">Mentoría 1:1</h3>
-                        <p className="text-sm text-slate-500">Sesiones directas con especialistas para guiar tu crecimiento.</p>
+                        <h3 className="font-bold text-slate-800 mb-2">Conexión Humana</h3>
+                        <p className="text-sm text-slate-500">Mentoría experta sincronizada con tu avance en el proyecto.</p>
                     </div>
                 </div>
 
                 <div className="space-y-4">
-                    <h3 className="text-xl font-bold text-slate-800">Nuestra Metodología</h3>
+                    <h3 className="text-xl font-bold text-slate-800">¿Cómo funciona?</h3>
                     <div className="space-y-3">
                         <div className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                             <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                             <div>
-                                <p className="font-bold text-slate-800">Aprendizaje Experiencial</p>
-                                <p className="text-sm text-slate-500">No solo teoría. Los estudiantes resuelven problemas reales del mundo laboral.</p>
+                                <p className="font-bold text-slate-800">1. Seleccionas tu Núcleo</p>
+                                <p className="text-sm text-slate-500">Eliges un Proyecto, Reto o Problema desde el Mercado.</p>
                             </div>
                         </div>
                         <div className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                             <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                             <div>
-                                <p className="font-bold text-slate-800">Feedback Continuo</p>
-                                <p className="text-sm text-slate-500">Evaluación mediante rúbricas claras y sesiones de mentoría agendadas.</p>
+                                <p className="font-bold text-slate-800">2. Derivas Acción</p>
+                                <p className="text-sm text-slate-500">A partir de allí, se habilitan recursos de aprendizaje y cuotas de mentoría.</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    },
+    {
+        id: 'proyectos',
+        title: 'El Corazón: Proyectos, Retos y Problemas',
+        icon: Layers,
+        content: (
+            <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-slate-800">El Eje Central del Sistema</h2>
+                <p className="text-slate-600 leading-relaxed">
+                    En Profe Tabla, no aprendes para hacer un proyecto; <strong>haces un proyecto para aprender</strong>. Existen tres modalidades de &quot;Corazón&quot;:
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                        <h4 className="font-bold text-blue-900 text-sm">Proyectos</h4>
+                        <p className="text-[10px] text-blue-700 mt-1">Estructuras completas con entregables de largo plazo y equipos.</p>
+                    </div>
+                    <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
+                        <h4 className="font-bold text-indigo-900 text-sm">Retos</h4>
+                        <p className="text-[10px] text-indigo-700 mt-1">Desafíos específicos de habilidades técnicas con resolución rápida.</p>
+                    </div>
+                    <div className="p-4 bg-purple-50 border border-purple-100 rounded-2xl">
+                        <h4 className="font-bold text-purple-900 text-sm">Problemas</h4>
+                        <p className="text-[10px] text-purple-700 mt-1">Situaciones de la vida real que requieren pensamiento crítico y diseño.</p>
+                    </div>
+                </div>
+
+                <div className="space-y-4 mt-6">
+                    <h3 className="text-lg font-bold text-slate-800">Guía de Uso: Empezando tu camino</h3>
+                    <div className="space-y-4">
+                        <div className="p-5 border border-slate-100 rounded-2xl bg-white shadow-sm">
+                            <h4 className="font-bold text-slate-800 text-sm mb-2 flex items-center gap-2">
+                                <span className="w-5 h-5 bg-slate-800 text-white rounded-full flex items-center justify-center text-[10px]">1</span>
+                                Inscripción en el Mercado
+                            </h4>
+                            <p className="text-xs text-slate-500">Visita el &quot;Mercado de Proyectos&quot;, busca el que más te apasione y solicita unirte. Si es con código, ingrésalo en la sección dedicada.</p>
+                        </div>
+                        <div className="p-5 border border-slate-100 rounded-2xl bg-white shadow-sm">
+                            <h4 className="font-bold text-slate-800 text-sm mb-2 flex items-center gap-2">
+                                <span className="w-5 h-5 bg-slate-800 text-white rounded-full flex items-center justify-center text-[10px]">2</span>
+                                Dominio del Kanban
+                            </h4>
+                            <p className="text-xs text-slate-500">Una vez activo, tu tablero Kanban mostrará las tareas. Arrastra desde &quot;Por hacer&quot; a &quot;En proceso&quot;. Sube tus archivos finales en la tarea correspondiente para que el mentor los califique.</p>
                         </div>
                     </div>
                 </div>
@@ -91,24 +139,18 @@ const SECTIONS: Section[] = [
         icon: BookOpen,
         content: (
             <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-slate-800">Recursos y Objetos de Aprendizaje</h2>
+                <h2 className="text-2xl font-bold text-slate-800">Conocimiento Aplicado</h2>
                 <p className="text-slate-600">
-                    Este es el corazón de la transferencia de conocimiento. Aquí encontrarás todo el material necesario para tu proyecto.
+                    Los recursos no son aislados; están curados para ayudarte a resolver tu Proyecto activo.
                 </p>
                 <div className="space-y-4">
                     <div className="p-5 border border-slate-200 rounded-2xl">
-                        <h4 className="font-bold text-slate-800 mb-2">Tipos de Recursos</h4>
-                        <ul className="list-disc list-inside text-sm text-slate-500 space-y-1">
-                            <li>Videos integrados de YouTube.</li>
-                            <li>Documentos PDF y enlaces externos.</li>
-                            <li>Objetos de Aprendizaje (OA) estructurados con presentaciones y utilidades.</li>
+                        <h4 className="font-bold text-slate-800 mb-2">¿Cómo estudiar?</h4>
+                        <ul className="list-disc list-inside text-sm text-slate-500 space-y-2">
+                            <li><strong>Videos e IA</strong>: Mira el contenido y usa el botón de IA para resumir o extraer ideas clave.</li>
+                            <li><strong>OAs (Objetos de Aprendizaje)</strong>: Sigue el flujo de Presentación → Utilidad → Recursos. Es una ruta guiada.</li>
+                            <li><strong>Favoritos</strong>: Guarda lo que necesites consultar frecuentemente mientras trabajas en el Kanban.</li>
                         </ul>
-                    </div>
-                    <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100">
-                        <h4 className="font-bold text-blue-800 mb-2">Interacción</h4>
-                        <p className="text-sm text-blue-700">
-                            Puedes marcar recursos como completados o favoritos. El sistema rastreará tu progreso para darte insights sobre tu camino de aprendizaje.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -120,61 +162,29 @@ const SECTIONS: Section[] = [
         icon: Calendar,
         content: (
             <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-slate-800">Agendamiento y Asesorías</h2>
+                <h2 className="text-2xl font-bold text-slate-800">Acompañamiento Estratégico</h2>
                 <p className="text-slate-600">
-                    Profe Tabla integra Google Calendar y Meet para facilitar el contacto directo con expertos.
+                    Las mentorías se habilitan como un recurso premium derivado de tu compromiso con el proyecto.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200">
-                        <h4 className="font-bold text-slate-800 mb-2">Como Estudiante</h4>
-                        <p className="text-xs text-slate-500 mb-3">Tu cuota de mentorías depende de las tareas asignadas en tu proyecto activo.</p>
-                        <ol className="list-decimal list-inside text-xs text-slate-500 space-y-2">
-                            <li>Explora slots disponibles.</li>
-                            <li>Reserva y recibe enlace de Meet.</li>
-                            <li>Acude puntual a tu asesoría.</li>
+                        <h4 className="font-bold text-slate-800 mb-2 underline decoration-blue-500">¿Cómo agendar?</h4>
+                        <p className="text-[10px] text-slate-500 mb-3">Tu disponibilidad de sesiones aumenta a medida que tienes tareas asignadas.</p>
+                        <ol className="list-decimal list-inside text-[10px] text-slate-500 space-y-2">
+                            <li>Elige un docente disponible.</li>
+                            <li>Selecciona un slot (espacio de tiempo).</li>
+                            <li>Escribe una nota clara sobre el problema que quieres resolver.</li>
+                            <li>Revisa tu correo para el enlace de Meet/Calendar.</li>
                         </ol>
                     </div>
-                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200">
-                        <h4 className="font-bold text-slate-800 mb-2">Como Profesor/Admin</h4>
-                        <p className="text-xs text-slate-500 mb-3">Tienes dos modalidades para gestionar el tiempo:</p>
-                        <ul className="list-disc list-inside text-xs text-slate-500 space-y-2">
-                            <li><strong>Office Hours</strong>: Publica disponibilidad general.</li>
-                            <li><strong>Sesión Directa</strong>: Agenda a un grupo específico.</li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-amber-600 mt-1" />
-                    <div>
-                        <p className="text-xs font-bold text-amber-800">Tip de Configuración</p>
-                        <p className="text-[10px] text-amber-700">Comparte tu calendario con el correo de la cuenta de servicio de la plataforma para sincronización automática en móviles.</p>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'proyectos',
-        title: 'Gestión de Proyectos',
-        icon: Layers,
-        content: (
-            <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-slate-800">Kanban, Retos y Equipos</h2>
-                <p className="text-slate-600">
-                    La plataforma utiliza una metodología ágil para la gestión de entregas y colaboración.
-                </p>
-                <div className="space-y-4">
-                    <div className="p-4 border-l-4 border-blue-500 bg-slate-50 rounded-r-xl">
-                        <h4 className="font-bold text-slate-800 text-sm">Mercado (Market)</h4>
-                        <p className="text-xs text-slate-500 mt-1">Donde los estudiantes encuentran y aplican a Proyectos, Retos o Problemas del mundo real.</p>
-                    </div>
-                    <div className="p-4 border-l-4 border-blue-500 bg-slate-50 rounded-r-xl">
-                        <h4 className="font-bold text-slate-800 text-sm">Tablero Kanban</h4>
-                        <p className="text-xs text-slate-500 mt-1">Organiza el trabajo en To-Do, In Progress y Done. Permite subir archivos y recibir feedback por rúbricas.</p>
-                    </div>
-                    <div className="p-4 border-l-4 border-blue-500 bg-slate-50 rounded-r-xl">
-                        <h4 className="font-bold text-slate-800 text-sm">Gestión de Equipos</h4>
-                        <p className="text-xs text-slate-500 mt-1">Permite el trabajo colaborativo donde varios estudiantes comparten una misma nota y progreso.</p>
+                    <div className="p-5 bg-white rounded-2xl border border-slate-200">
+                        <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-amber-500" />
+                            Regla de Oro
+                        </h4>
+                        <p className="text-[10px] text-slate-500">
+                            No pidas una mentoría &quot;para ver qué hay que hacer&quot;. Úsala cuando en tu Kanban estés bloqueado o necesites feedback sobre un avance real.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -186,22 +196,21 @@ const SECTIONS: Section[] = [
         icon: PieChart,
         content: (
             <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-slate-800">Visualización de Datos</h2>
+                <h2 className="text-2xl font-bold text-slate-800">Tu Desempeño en Datos</h2>
                 <p className="text-slate-600">
-                    Tomamos decisiones basadas en evidencia. Los paneles de analítica ofrecen una vista 360° del rendimiento.
+                    Visualizamos el impacto de tus acciones sobre el &quot;Corazón&quot; del sistema.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-5 bg-white border border-slate-200 rounded-2xl">
-                        <h4 className="font-bold text-slate-800 mb-2">Para Profesores</h4>
-                        <p className="text-xs text-slate-500 leading-relaxed">
-                            Monitoreo de estudiantes en riesgo, distribución de notas, compromiso con recursos de aprendizaje y uso de mentorías.
-                        </p>
-                    </div>
-                    <div className="p-5 bg-white border border-slate-200 rounded-2xl">
-                        <h4 className="font-bold text-slate-800 mb-2">Para Administradores</h4>
-                        <p className="text-xs text-slate-500 leading-relaxed">
-                            Salud general de la plataforma: crecimiento de usuarios, estados de proyectos globales, y flujo de entregas mensual.
-                        </p>
+                <div className="bg-slate-900 rounded-3xl p-6 text-white">
+                    <h4 className="font-bold text-blue-400 mb-4">Métricas que importan</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="border border-slate-700 p-3 rounded-xl">
+                            <p className="text-[10px] text-slate-400 uppercase font-bold">Riesgo Académico</p>
+                            <p className="text-xs mt-1">Alerta temprana si tu Kanban se detiene por mucho tiempo.</p>
+                        </div>
+                        <div className="border border-slate-700 p-3 rounded-xl">
+                            <p className="text-[10px] text-slate-400 uppercase font-bold">Compromiso</p>
+                            <p className="text-xs mt-1">¿Cuánto de los recursos sugeridos has consumido realmente?</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -209,28 +218,22 @@ const SECTIONS: Section[] = [
     },
     {
         id: 'admin',
-        title: 'Administración y Diseño',
+        title: 'Administración y Configuración',
         icon: Settings,
         content: (
             <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-slate-800">Personalización Pro</h2>
+                <h2 className="text-2xl font-bold text-slate-800">Control Maestro</h2>
                 <p className="text-slate-600">
-                    Exclusivo para administradores: controla cada detalle de la experiencia de marca y operacional.
+                    Solo para administradores: Configura el motor que hace funcionar todo lo anterior.
                 </p>
-                <div className="space-y-3">
-                    <div className="flex gap-4 p-4 bg-slate-900 text-slate-300 rounded-2xl">
-                        <Settings className="w-5 h-5 text-blue-400 shrink-0" />
-                        <div>
-                            <p className="font-bold text-white text-sm">Branding Dinámico</p>
-                            <p className="text-xs">Cambia colores, tipografías, logotipos y layouts de login en tiempo real sin tocar código.</p>
-                        </div>
+                <div className="space-y-4">
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 className="font-bold text-slate-800 text-sm">¿Cómo configurar la IA?</h4>
+                        <p className="text-xs text-slate-500 mt-1">Ingresa tus API Keys en el Panel de Administración. Esto habilita las funciones de resumen y generación automática de objetos de aprendizaje.</p>
                     </div>
-                    <div className="flex gap-4 p-4 bg-slate-900 text-slate-300 rounded-2xl">
-                        <Zap className="w-5 h-5 text-amber-400 shrink-0" />
-                        <div>
-                            <p className="font-bold text-white text-sm">Integraciones AI & Cloud</p>
-                            <p className="text-xs">Configura API keys de Google Gemini/OpenAI, Cloudflare R2 para almacenamiento y SMTP para correos.</p>
-                        </div>
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 className="font-bold text-slate-800 text-sm">Personalización de Marca</h4>
+                        <p className="text-xs text-slate-500 mt-1">Sube el logo de tu institución y ajusta el color primario para que toda la plataforma se sienta propia.</p>
                     </div>
                 </div>
             </div>
