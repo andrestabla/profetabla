@@ -169,8 +169,11 @@ export async function DELETE(request: Request) {
         });
 
         return NextResponse.json({ success: true });
-    } catch (error) {
-        console.error('Delete slot error:', error);
-        return NextResponse.json({ error: 'Error deleting slot' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Delete slot error full:', error);
+        return NextResponse.json({
+            error: 'Error deleting slot',
+            details: error.message
+        }, { status: 500 });
     }
 }
