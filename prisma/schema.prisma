@@ -171,7 +171,7 @@ model ResourceInteraction {
   isFavorite  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  resource    Resource @relation(fields: [resourceId], references: [id])
+  resource    Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, resourceId])
@@ -389,7 +389,7 @@ model ItemInteraction {
   isCompleted    Boolean      @default(false)
   timeSpentSecs  Int          @default(0)
   lastAccessed   DateTime     @default(now())
-  resourceItem   ResourceItem @relation(fields: [resourceItemId], references: [id])
+  resourceItem   ResourceItem @relation(fields: [resourceItemId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, resourceItemId])
