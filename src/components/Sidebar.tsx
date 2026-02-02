@@ -63,10 +63,9 @@ export function Sidebar({ config }: { config?: any }) {
         { name: 'Retos', href: '/dashboard/professor/challenges', icon: Trophy, roles: ['TEACHER', 'ADMIN'] },
         { name: 'Problemas', href: '/dashboard/professor/problems', icon: AlertCircle, roles: ['TEACHER', 'ADMIN'] },
         { name: 'Solicitudes', href: '/dashboard/professor/applications', icon: UserCheck, roles: ['TEACHER', 'ADMIN'] },
-        { name: 'Analítica', href: '/dashboard/professor/analytics', icon: BarChart3, roles: ['TEACHER', 'ADMIN'] },
+        { name: 'Analítica', href: '/dashboard/admin/analytics', icon: BarChart3, roles: ['TEACHER', 'ADMIN'] },
         // Admin Group
         { name: 'Administración', href: '/dashboard/admin', icon: Settings, roles: ['ADMIN'] },
-        { name: 'Analítica Admin', href: '/dashboard/admin/analytics', icon: BarChart3, roles: ['ADMIN'] },
     ];
 
     // Combine and filter
@@ -87,7 +86,6 @@ export function Sidebar({ config }: { config?: any }) {
                         <div className="flex items-center gap-2">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={logo} alt={title} className="h-8 w-auto object-contain" />
-                            {/* Optional: if logo has text, hide title. For now show both if complex or just logo. Let's assume just logo replaces text if present */}
                         </div>
                     ) : (
                         <h1 className="text-2xl font-bold text-primary truncate" title={title}>
@@ -132,8 +130,6 @@ export function Sidebar({ config }: { config?: any }) {
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-8">
                 {allItems.map((section, idx) => {
-                    // Filter items logic roughly based on roles
-                    // For brevity, just mapping everything but we should respect role checks
                     const visibleItems = section.items.filter(item => {
                         if (!role) return false;
                         return item.roles.includes(role);
@@ -166,7 +162,6 @@ export function Sidebar({ config }: { config?: any }) {
                                                 <item.icon className={cn("w-5 h-5 flex-shrink-0", active ? "text-white" : "text-slate-400 group-hover:text-white")} />
                                                 {!isCollapsed && <span>{item.name}</span>}
 
-                                                {/* Active Indicator for Collapsed Mode */}
                                                 {isCollapsed && active && (
                                                     <div className="absolute left-0 top-2 bottom-2 w-1 bg-white rounded-r-lg" />
                                                 )}
