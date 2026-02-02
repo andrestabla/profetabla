@@ -92,7 +92,8 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                 // Student has no team assigned yet
                 relevantTasks = [];
             } else {
-                relevantTasks = project.tasks.filter((t) => t.teamId === studentTeam.id);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                relevantTasks = project.tasks.filter((t: any) => t.teamId === studentTeam.id);
             }
         } else {
             // Individual project: all tasks are relevant
@@ -104,7 +105,8 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             return { percentage: 0, completed: 0, total: 0 };
         }
 
-        const completedTasks = relevantTasks.filter((t) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const completedTasks = relevantTasks.filter((t: any) =>
             t.status === 'DONE' || t.status === 'REVIEWED'
         ).length;
 
