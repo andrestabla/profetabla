@@ -205,7 +205,7 @@ model MentorshipBooking {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   project     Project?       @relation("ProjectMentorships", fields: [projectId], references: [id])
-  slot        MentorshipSlot @relation(fields: [slotId], references: [id])
+  slot        MentorshipSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
   students    User[]         @relation("MentorshipStudents")
 
   @@index([projectId])
