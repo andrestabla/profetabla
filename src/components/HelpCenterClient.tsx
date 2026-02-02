@@ -480,7 +480,7 @@ export function HelpCenterClient() {
                                 key={section.id}
                                 onClick={() => setActiveSection(section.id)}
                                 className={cn(
-                                    "w-full flex items-center justify-between p-4 rounded-2xl transition-all group",
+                                    "w-full flex items-center justify-between p-4 rounded-2xl transition-all group text-left",
                                     activeSection === section.id
                                         ? "bg-white border-blue-500 border-2 shadow-md shadow-blue-500/5 text-blue-700"
                                         : "bg-transparent border border-transparent text-slate-500 hover:bg-white hover:border-slate-200"
