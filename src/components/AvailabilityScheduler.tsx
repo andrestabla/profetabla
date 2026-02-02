@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Loader2, Calendar, Video, Clock, Users } from 'lucide-react';
-import { format, addMinutes, isBefore } from 'date-fns';
+import { format, addMinutes, isBefore, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { MentorshipActionModal, MentorshipActionType } from './MentorshipActionModal';
 
 interface Project {
     id: string;
@@ -24,6 +26,19 @@ export function AvailabilityScheduler() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProjectId, setSelectedProjectId] = useState('');
     const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+    const [serviceAccountEmail, setServiceAccountEmail] = useState('');
+
+    // Modal State
+    const [modal, setModal] = useState<{
+        isOpen: boolean;
+        type: MentorshipActionType;
+        title: string;
+        message?: string;
+    }>({
+        isOpen: false,
+        type: 'SUCCESS',
+        title: ''
+    });
 
     useEffect(() => {
         // Fetch projects for teacher
@@ -31,11 +46,16 @@ export function AvailabilityScheduler() {
             .then(res => res.json())
             .then(data => {
                 if (data && data.projects) {
-                    // Analytics only gives summary. We might need a full fetch.
-                    // For now, let's assume we can use a direct fetch or the analytics if it has students.
-                    // Actually, let's create a dedicated fetch for project students.
                     setProjects(data.projects);
                 }
+            });
+
+        // Fetch platform config to get service account email
+        fetch('/api/mentorship/quota') // This endpoint might have it or I'll add it
+            .then(res => res.json())
+            .then(data => {
+                // I'll update the quota API to return this
+                if (data.serviceAccountEmail) setServiceAccountEmail(data.serviceAccountEmail);
             });
     }, []);
 
@@ -73,12 +93,22 @@ export function AvailabilityScheduler() {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (slotsPreview.length === 0) {
-            alert("No hay franjas horarias válidas en este rango.");
+            setModal({
+                isOpen: true,
+                type: 'ERROR',
+                title: 'Horario inválido',
+                message: 'No hay franjas horarias válidas en este rango.'
+            });
             return;
         }
 
         if (mode === 'DIRECT' && (!selectedProjectId || selectedStudentIds.length === 0)) {
-            alert("Selecciona un proyecto y al menos un estudiante para la sesión directa.");
+            setModal({
+                isOpen: true,
+                type: 'ERROR',
+                title: 'Datos incompletos',
+                message: 'Selecciona un proyecto y al menos un estudiante para la sesión directa.'
+            });
             return;
         }
 
@@ -102,13 +132,22 @@ export function AvailabilityScheduler() {
             });
 
             if (res.ok) {
-                alert(mode === 'OPEN'
-                    ? `Se han habilitado ${slotsPreview.length} franjas de 45 min.`
-                    : 'Sesión directa agendada exitosamente.');
-                window.location.reload();
+                setModal({
+                    isOpen: true,
+                    type: 'SUCCESS',
+                    title: mode === 'OPEN' ? 'Disponibilidad creada' : 'Sesión agendada',
+                    message: mode === 'OPEN'
+                        ? `Se han habilitado ${slotsPreview.length} franjas de 45 min.`
+                        : 'Tu sesión directa ha sido agendada exitosamente.'
+                });
             } else {
                 const err = await res.json();
-                alert(err.error || "Error al procesar la solicitud");
+                setModal({
+                    isOpen: true,
+                    type: 'ERROR',
+                    title: 'Error',
+                    message: err.error || "Error al procesar la solicitud"
+                });
             }
         } catch (error) {
             console.error(error);
@@ -328,6 +367,41 @@ export function AvailabilityScheduler() {
                     </div>
                 </div>
             </form>
+
+            <MentorshipActionModal
+                isOpen={modal.isOpen}
+                onClose={() => {
+                    setModal({ ...modal, isOpen: false });
+                    if (modal.type === 'SUCCESS') window.location.reload();
+                }}
+                type={modal.type}
+                title={modal.title}
+                message={modal.message}
+                slotInfo={mode === 'DIRECT' ? {
+                    time: `${startTime} - ${endTime}`,
+                    teacherName: 'Tú',
+                    date: format(parseISO(`${date}T${startTime}`), "d 'de' MMMM", { locale: es })
+                } : undefined}
+            />
+
+            {/* Calendar Support Helper */}
+            {mode === 'DIRECT' && autoMeet && (
+                <div className="mx-8 mb-8 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                    <div className="flex gap-3">
+                        <Calendar className="w-5 h-5 text-amber-500 shrink-0" />
+                        <div>
+                            <p className="text-xs font-bold text-amber-800 mb-1">¿No ves las reuniones en tu calendario?</p>
+                            <p className="text-[10px] text-amber-700 leading-relaxed">
+                                Para que las mentorías aparezcan en tu aplicación de Google Calendar, debes <strong>Compartir</strong> tu calendario personal con el siguiente correo (permiso: Realizar cambios):
+                                <br />
+                                <code className="bg-white/50 px-2 py-0.5 rounded border border-amber-200 mt-1 inline-block text-black select-all">
+                                    {serviceAccountEmail || 'drive-profe-tabla@profe-tabla.iam.gserviceaccount.com'}
+                                </code>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

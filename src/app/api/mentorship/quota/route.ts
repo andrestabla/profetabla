@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getSafePlatformConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,17 @@ export async function GET() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const config = await getSafePlatformConfig();
+        let serviceAccountEmail = '';
+        if (config.googleCalendarServiceAccountJson) {
+            try {
+                const creds = JSON.parse(config.googleCalendarServiceAccountJson);
+                serviceAccountEmail = creds.client_email;
+            } catch (e) {
+                console.error('Error parsing service account JSON in quota API');
+            }
+        }
+
         const userId = session.user.id;
         const role = session.user.role;
 
@@ -27,7 +39,8 @@ export async function GET() {
                 unlimited: true,
                 currentBookings: 0,
                 totalTasks: 0,
-                availableSlots: Infinity
+                availableSlots: Infinity,
+                serviceAccountEmail
             });
         }
 
