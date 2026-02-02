@@ -43,7 +43,9 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
 
     // Compute stats for current project
     const totalTasks = currentProject.tasks?.length || 0;
-    const completedTasks = currentProject.tasks?.filter((t: any) => t.status === 'DONE').length || 0;
+    const completedTasks = currentProject.tasks?.filter((t: any) =>
+        t.status === 'DONE' || t.status === 'REVIEWED'
+    ).length || 0;
     const pendingTasks = totalTasks - completedTasks;
 
     // Filter priority tasks

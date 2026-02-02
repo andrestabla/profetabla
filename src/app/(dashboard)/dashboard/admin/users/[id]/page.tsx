@@ -25,9 +25,25 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                     id: true,
                     title: true,
                     type: true,
+                    isGroup: true,
                     startDate: true,
                     endDate: true,
                     status: true,
+                    tasks: {
+                        select: {
+                            id: true,
+                            status: true,
+                            teamId: true
+                        }
+                    },
+                    teams: {
+                        where: {
+                            members: { some: { id } }
+                        },
+                        select: {
+                            id: true
+                        }
+                    },
                     _count: {
                         select: { assignments: true }
                     }
@@ -44,18 +60,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                     status: true
                 }
             },
-            // Assigned tasks for progress calculation
-            assignedTasks: {
-                select: {
-                    id: true,
-                    title: true,
-                    status: true,
-                    projectId: true,
-                    project: {
-                        select: { title: true, type: true }
-                    }
-                }
-            },
+
             // Submissions for grade tracking
             submissions: {
                 select: {
@@ -76,15 +81,38 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
     if (!user) return notFound();
 
     // Helper function to calculate project progress
-    const calculateProjectProgress = (projectId: string) => {
-        const projectTasks = user.assignedTasks.filter(t => t.projectId === projectId);
-        if (projectTasks.length === 0) return 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const calculateProjectProgress = (project: any) => {
+        let relevantTasks;
 
-        const completedTasks = projectTasks.filter(t =>
+        if (project.isGroup) {
+            // Group project: filter by student's team
+            const studentTeam = project.teams?.[0];
+            if (!studentTeam) {
+                // Student has no team assigned yet
+                relevantTasks = [];
+            } else {
+                relevantTasks = project.tasks.filter((t) => t.teamId === studentTeam.id);
+            }
+        } else {
+            // Individual project: all tasks are relevant
+            relevantTasks = project.tasks || [];
+        }
+
+        const totalTasks = relevantTasks.length;
+        if (totalTasks === 0) {
+            return { percentage: 0, completed: 0, total: 0 };
+        }
+
+        const completedTasks = relevantTasks.filter((t) =>
             t.status === 'DONE' || t.status === 'REVIEWED'
         ).length;
 
-        return Math.round((completedTasks / projectTasks.length) * 100);
+        return {
+            percentage: Math.round((completedTasks / totalTasks) * 100),
+            completed: completedTasks,
+            total: totalTasks
+        };
     };
 
     return (
@@ -142,11 +170,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                         </h4>
                         <div className="space-y-3">
                             {user.projectsAsStudent.map(project => {
-                                const progress = calculateProjectProgress(project.id);
-                                const projectTasks = user.assignedTasks.filter(t => t.projectId === project.id);
-                                const completedTasks = projectTasks.filter(t =>
-                                    t.status === 'DONE' || t.status === 'REVIEWED'
-                                ).length;
+                                const progress = calculateProjectProgress(project);
 
                                 return (
                                     <div key={project.id}
@@ -170,7 +194,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                                             </div>
                                             <div className="text-right ml-4">
                                                 <div className="text-2xl font-bold text-purple-600">
-                                                    {progress}%
+                                                    {progress.percentage}%
                                                 </div>
                                                 <div className="text-xs text-slate-500">progreso</div>
                                             </div>
@@ -179,14 +203,14 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                                         {/* Progress Bar */}
                                         <div className="w-full bg-slate-200 rounded-full h-2 mt-3 overflow-hidden">
                                             <div className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-500"
-                                                style={{ width: `${progress}%` }}>
+                                                style={{ width: `${progress.percentage}%` }}>
                                             </div>
                                         </div>
 
                                         {/* Stats */}
                                         <div className="flex gap-4 mt-3 text-xs text-slate-600">
                                             <span>📝 {project._count.assignments || 0} asignaciones</span>
-                                            <span>✅ {completedTasks}/{projectTasks.length} tareas completadas</span>
+                                            <span>✅ {progress.completed}/{progress.total} tareas completadas</span>
                                         </div>
                                     </div>
                                 );
