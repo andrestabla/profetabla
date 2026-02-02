@@ -16,7 +16,8 @@ import {
     FileText,
     Kanban,
     Terminal,
-    AlertCircle
+    AlertCircle,
+    BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -57,8 +58,10 @@ export function Sidebar({ config }: { config?: any }) {
         { name: 'Retos', href: '/dashboard/professor/challenges', icon: Trophy, roles: ['TEACHER', 'ADMIN'] },
         { name: 'Problemas', href: '/dashboard/professor/problems', icon: AlertCircle, roles: ['TEACHER', 'ADMIN'] },
         { name: 'Solicitudes', href: '/dashboard/professor/applications', icon: UserCheck, roles: ['TEACHER', 'ADMIN'] },
+        { name: 'Analítica', href: '/dashboard/professor/analytics', icon: BarChart3, roles: ['TEACHER', 'ADMIN'] },
         // Admin Group
         { name: 'Administración', href: '/dashboard/admin', icon: Settings, roles: ['ADMIN'] },
+        { name: 'Analítica Admin', href: '/dashboard/admin/analytics', icon: BarChart3, roles: ['ADMIN'] },
     ];
 
     // Combine and filter
