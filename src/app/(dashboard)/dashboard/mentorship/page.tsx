@@ -1,13 +1,55 @@
-import { AvailabilityScheduler } from '@/components/AvailabilityScheduler';
+'use client';
+
 import { BookingList } from '@/components/BookingList';
+import { MentorshipQuotaIndicator } from '@/components/MentorshipQuotaIndicator';
+import { AvailabilityScheduler } from '@/components/AvailabilityScheduler';
+import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
 import { Calendar } from 'lucide-react';
 
-export default async function MentorshipPage({ searchParams }: { searchParams: Promise<{ projectId?: string, note?: string }> }) {
-    const { projectId, note } = await searchParams;
+interface QuotaData {
+    role: 'STUDENT' | 'TEACHER' | 'ADMIN';
+    unlimited: boolean;
+    currentBookings: number;
+    totalTasks: number;
+    availableSlots: number;
+    projectId?: string;
+    projectTitle?: string;
+    message?: string;
+}
+
+export default function MentorshipPage() {
+    const searchParams = useSearchParams();
+    const { data: session } = useSession();
+    const [quotaData, setQuotaData] = useState<QuotaData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    const projectId = searchParams.get('projectId') || undefined;
+    const note = searchParams.get('note') || undefined;
 
     // MVP: For demo purposes, we show both the Scheduler (Teacher) and Booking List (Student/Teacher)
-    // Ideally this is protected by role.
-    const isTeacher = true; // Use this to toggle UI for demo
+    const isTeacher = session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN';
+
+    useEffect(() => {
+        async function fetchQuota() {
+            try {
+                const res = await fetch('/api/mentorship/quota');
+                if (res.ok) {
+                    const data = await res.json();
+                    setQuotaData(data);
+                }
+            } catch (error) {
+                console.error('Error fetching quota:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        if (session?.user) {
+            fetchQuota();
+        }
+    }, [session]);
 
     return (
         <div>
@@ -25,6 +67,27 @@ export default async function MentorshipPage({ searchParams }: { searchParams: P
                     </div>
                 )}
             </div>
+
+            {/* Quota Indicator */}
+            {!loading && quotaData && (
+                <div className="mb-6 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+                    <MentorshipQuotaIndicator
+                        currentBookings={quotaData.currentBookings}
+                        totalTasks={quotaData.totalTasks}
+                        role={quotaData.role}
+                    />
+                    {quotaData.projectTitle && (
+                        <p className="text-xs text-slate-500 mt-3 pt-3 border-t">
+                            📚 Proyecto activo: <strong>{quotaData.projectTitle}</strong>
+                        </p>
+                    )}
+                    {quotaData.message && (
+                        <p className="text-xs text-amber-600 mt-2">
+                            ⚠️ {quotaData.message}
+                        </p>
+                    )}
+                </div>
+            )}
 
             {isTeacher && (
                 <div className="mb-10">
