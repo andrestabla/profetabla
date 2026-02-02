@@ -157,7 +157,7 @@ export default function MentorshipPage() {
                         type: 'ERROR',
                         slotId: null,
                         title: 'Error al reservar',
-                        message: error.error || 'No se pudo completar la reserva.'
+                        message: error.details || error.error || 'No se pudo completar la reserva.'
                     });
                 }
             } catch (error) {
@@ -194,7 +194,7 @@ export default function MentorshipPage() {
                         type: 'ERROR',
                         slotId: null,
                         title: 'Error al eliminar',
-                        message: error.error || 'No se pudo borrar el horario.'
+                        message: error.details || error.error || 'No se pudo borrar el horario.'
                     });
                 }
             } catch (error) {

@@ -34,6 +34,16 @@ export function MentorshipActionModal({
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        if (isOpen) {
+            window.addEventListener('keydown', handleEsc);
+        }
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isOpen, onClose]);
+
+    useEffect(() => {
         if (isOpen) {
             setNote(initialNote);
             setLoading(false);
@@ -43,11 +53,13 @@ export function MentorshipActionModal({
     if (!isOpen) return null;
 
     const handleConfirm = async () => {
-        if (!onConfirm) return;
+        if (!onConfirm) {
+            onClose();
+            return;
+        }
         setLoading(true);
         try {
             await onConfirm(note);
-            // Parent usually handles closing or switching type to SUCCESS
         } catch (error) {
             console.error(error);
         } finally {
@@ -96,9 +108,12 @@ export function MentorshipActionModal({
     const Icon = config.icon;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            onClick={onClose}
+        >
             <div
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
+                className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 relative"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header-ish area with icon */}
@@ -155,9 +170,9 @@ export function MentorshipActionModal({
 
                     {type === 'DELETE' && (
                         <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex gap-3">
-                            <AlertTriangle className="w-10 h-10 text-red-500 shrink-0" />
+                            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                             <p className="text-xs text-red-700 font-medium leading-relaxed">
-                                ⚠️ Se cancelarán todas las reservas asociadas y el evento de **Google Calendar** será eliminado permanentemente.
+                                ⚠️ Se cancelarán todas las reservas asociadas y el evento de **Google Calendar** será eliminado permanentemente de ambos calendarios.
                             </p>
                         </div>
                     )}

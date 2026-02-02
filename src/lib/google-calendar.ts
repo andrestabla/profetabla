@@ -27,7 +27,13 @@ export async function createGoogleMeetEvent(
         }
 
         // Parse service account credentials
-        const credentials = JSON.parse(config.googleCalendarServiceAccountJson);
+        let credentials;
+        try {
+            credentials = JSON.parse(config.googleCalendarServiceAccountJson);
+        } catch (_) {
+            console.error('CRITICAL: Failed to parse Google Calendar Service Account JSON. Check if it is a valid single-line string in .env');
+            return null;
+        }
 
         // Create JWT auth client
         const auth = new google.auth.JWT({
