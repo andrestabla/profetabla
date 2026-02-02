@@ -76,17 +76,13 @@ export async function POST(request: Request) {
                                 include: { students: true }
                             });
 
-                            const attendees = [
-                                ...(project?.students.filter(s => ((studentIds as string[]) || []).includes(s.id)).map(s => s.email) || []),
-                                session.user.email
-                            ].filter((e): e is string => !!e);
 
                             const result = await generateMeetLinkWithEvent({
                                 summary: `Mentoría Directa - ${project?.title || 'Asesoría'}`,
                                 description: `Mentoría programada por el profesor.\n\nNotas: ${note || 'Sin notas'}`,
                                 startTime: currentStart,
-                                endTime: currentEnd,
-                                attendees
+                                endTime: currentEnd
+                                // NOTE: Attendees removed - service accounts cannot invite without Domain-Wide Delegation
                             }, session.user.email || undefined);
 
                             finalMeetingUrl = result.meetLink;

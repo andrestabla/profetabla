@@ -101,8 +101,8 @@ export async function POST(request: Request) {
                 summary: `Mentoría - ${project.title}`,
                 description: `Mentoría para el proyecto "${project.title}".\n\nEstudiantes: ${students.map(s => s.name).join(', ')}\nProfesor: ${slot.teacher.name}\n\nNotas: ${note || 'Sin notas'}`,
                 startTime: slot.startTime,
-                endTime: slot.endTime,
-                attendees: [...studentEmails, slot.teacher.email].filter((e): e is string => !!e)
+                endTime: slot.endTime
+                // NOTE: Attendees removed - service accounts cannot invite without Domain-Wide Delegation
             }, slot.teacher.email || undefined);
             meetingUrl = result.meetLink;
             googleEventId = result.googleEventId;
