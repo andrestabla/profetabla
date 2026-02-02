@@ -39,12 +39,18 @@ export async function getSupportResponse(message: string, history: { role: 'user
     const apiKey = config?.geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
     if (!apiKey) {
-        return { success: false, error: "Configuración de IA no disponible." };
+        console.error("AI Support Chatbot: No API Key found.");
+        return { success: false, error: "Configuración de IA no disponible (API Key faltante)." };
     }
+
+    // Force gemini-1.5-flash for support as it is more robust with systemInstructions
+    const modelName = "gemini-1.5-flash";
+
+    console.log(`AI Support Chatbot: Using model ${modelName}. API Key starts with: ${apiKey.substring(0, 5)}...`);
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-        model: config?.geminiModel || "gemini-1.5-flash",
+        model: modelName,
         systemInstruction: `
             Actúa como el asistente oficial de Profe Tabla. Tu objetivo es ayudar al usuario a navegar la plataforma y progresar en sus proyectos.
             
@@ -93,10 +99,25 @@ export async function getSupportResponse(message: string, history: { role: 'user
         const responseText = result.response.text();
 
         return { success: true, response: responseText };
-    } catch (e) {
+    } catch (e: unknown) {
         console.error("Gemini Support Error:", e);
-        // Include more error info for debugging if possible without leaking secrets
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        return { success: false, error: `Error en la IA: ${errorMessage.substring(0, 100)}` };
+
+        let errorMessage = "Error desconocido";
+        let diagnosticInfo = "";
+
+        if (e instanceof Error) {
+            errorMessage = e.message;
+            if (errorMessage.includes("fetch")) {
+                diagnosticInfo = " Error de conexión con Google API. Verifica tu API Key o cuotas.";
+            }
+        }
+
+        // Safe check for blockReason in response if it exists
+        const errorResponse = e as { response?: { promptFeedback?: { blockReason?: string } } };
+        if (errorResponse.response?.promptFeedback?.blockReason) {
+            diagnosticInfo = ` Bloqueado por seguridad: ${errorResponse.response.promptFeedback.blockReason}`;
+        }
+
+        return { success: false, error: `Error en la IA: ${errorMessage.substring(0, 100)}${diagnosticInfo}` };
     }
 }
