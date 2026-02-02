@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import PoliciesModal from '@/components/PoliciesModal';
+import { SupportBubble } from '@/components/SupportBubble';
 
 export default async function DashboardLayout({
     children,
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
                     {children}
                 </div>
             </main>
+            <SupportBubble />
         </div>
     );
 }
