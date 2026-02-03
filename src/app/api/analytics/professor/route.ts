@@ -38,21 +38,26 @@ export async function GET(request: Request) {
             }
         } : {};
 
-        // 1. Get professor's projects
-        const projectsWhere = {
-            teachers: { some: { id: session.user.id } },
-            ...(projectId ? { id: projectId } : {})
-        };
+        // 1. Get professor's projects (or all projects if Admin)
+        const isAdmin = currentUser?.role === 'ADMIN';
+        const projectsWhere = isAdmin && !projectId
+            ? {}
+            : {
+                teachers: { some: { id: session.user.id } },
+                ...(projectId ? { id: projectId } : {})
+            };
 
-        const projects = await prisma.project.findMany({
+        const projectsData = await prisma.project.findMany({
             where: projectsWhere,
             include: {
                 students: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true
-                    }
+                    select: { id: true, name: true, email: true }
+                },
+                teachers: {
+                    select: { name: true }
+                },
+                tasks: {
+                    select: { status: true }
                 },
                 assignments: {
                     where: dateFilter,
@@ -61,23 +66,79 @@ export async function GET(request: Request) {
                             select: {
                                 id: true,
                                 studentId: true,
-                                teamId: true,
                                 grade: true,
                                 createdAt: true
                             }
                         }
                     }
                 }
-            }
+            },
+            take: 20, // Limit for dashboard at-a-glance
+            orderBy: { updatedAt: 'desc' }
         });
 
-        // 2. Calculate overview stats
+        // Format projects for ProjectRiskCard
+        const projects = projectsData.map(p => {
+            const totalTasks = p.tasks.length;
+            const completedTasks = p.tasks.filter(t => t.status === 'DONE').length;
+            const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            let risk: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
+            if (progress < 20) risk = 'HIGH';
+            else if (progress < 50) risk = 'MEDIUM';
+
+            return {
+                id: p.id,
+                title: p.title,
+                studentName: p.students.map(s => s.name || s.email.split('@')[0]).join(', '),
+                teacherName: p.teachers.map(t => t.name).filter(Boolean).join(', '),
+                progress,
+                risk,
+                type: p.type
+            };
+        });
+
+        // 2. Fetch Recent Activity
+        const recentActivityLogs = await prisma.activityLog.findMany({
+            where: isAdmin ? {} : {
+                OR: [
+                    { userId: session.user.id },
+                    {
+                        user: {
+                            projectsAsStudent: {
+                                some: { teachers: { some: { id: session.user.id } } }
+                            }
+                        }
+                    }
+                ]
+            },
+            include: {
+                user: {
+                    select: { name: true, avatarUrl: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 10
+        });
+
+        const recentActivity = recentActivityLogs.map(log => ({
+            id: log.id,
+            user: {
+                name: log.user?.name || 'Sistema',
+                avatarUrl: log.user?.avatarUrl
+            },
+            action: log.action,
+            description: log.description || '',
+            createdAt: log.createdAt.toISOString()
+        }));
+
+        // 3. Calculate overview stats
         const allStudents = new Set<string>();
         let totalAssignments = 0;
         let totalSubmissions = 0;
         let pendingSubmissions = 0;
 
-        projects.forEach(project => {
+        projectsData.forEach(project => {
             project.students.forEach(student => allStudents.add(student.id));
 
             project.assignments.forEach(assignment => {
@@ -95,7 +156,7 @@ export async function GET(request: Request) {
             ? Math.round((totalSubmissions / totalAssignments) * 100)
             : 0;
 
-        // 3. Student Progress
+        // 4. Student Progress (Reuse some logic for backward compatibility if needed)
         const studentProgressMap = new Map<string, {
             studentId: string;
             studentName: string;
@@ -104,7 +165,7 @@ export async function GET(request: Request) {
             completedAssignments: number;
         }>();
 
-        projects.forEach(project => {
+        projectsData.forEach(project => {
             project.students.forEach(student => {
                 if (!studentProgressMap.has(student.id)) {
                     studentProgressMap.set(student.id, {
@@ -137,57 +198,8 @@ export async function GET(request: Request) {
                 : 0
         })).sort((a, b) => b.progress - a.progress);
 
-        // 4. Submission Rates (filtered or last 8 weeks)
-        let submissionRates;
-        if (startDateParam && endDateParam) {
-            const submissionRatesData = await prisma.$queryRaw<Array<{
-                day: Date;
-                count: bigint;
-            }>>`
-                SELECT 
-                    DATE_TRUNC('day', s."createdAt") as day,
-                    COUNT(*)::bigint as count
-                FROM "Submission" s
-                INNER JOIN "Assignment" a ON s."assignmentId" = a.id
-                INNER JOIN "Project" p ON a."projectId" = p.id
-                INNER JOIN "_ProjectToUser" pu ON p.id = pu."A"
-                WHERE pu."B" = ${session.user.id}
-                    AND s."createdAt" >= ${parseISO(startDateParam)} AND s."createdAt" <= ${parseISO(endDateParam)}
-                    ${projectId ? `AND p.id = '${projectId}'` : ''}
-                GROUP BY day
-                ORDER BY day ASC
-            `;
-            submissionRates = submissionRatesData.map(row => ({
-                date: format(new Date(row.day), 'MMM dd'),
-                submitted: Number(row.count),
-            }));
-        } else {
-            const eightWeeksAgo = subWeeks(new Date(), 8);
-            const submissionRatesData = await prisma.$queryRaw<Array<{
-                week: Date;
-                count: bigint;
-            }>>`
-                SELECT 
-                    DATE_TRUNC('week', s."createdAt") as week,
-                    COUNT(*)::bigint as count
-                FROM "Submission" s
-                INNER JOIN "Assignment" a ON s."assignmentId" = a.id
-                INNER JOIN "Project" p ON a."projectId" = p.id
-                INNER JOIN "_ProjectToUser" pu ON p.id = pu."A"
-                WHERE pu."B" = ${session.user.id}
-                    AND s."createdAt" >= ${eightWeeksAgo}
-                    ${projectId ? `AND p.id = '${projectId}'` : ''}
-                GROUP BY week
-                ORDER BY week ASC
-            `;
-            submissionRates = submissionRatesData.map(row => ({
-                date: format(new Date(row.week), 'MMM dd'),
-                submitted: Number(row.count),
-            }));
-        }
-
         // 5. Grade Distribution
-        const allGrades = projects.flatMap(project =>
+        const allGrades = projectsData.flatMap(project =>
             project.assignments.flatMap(assignment =>
                 assignment.submissions
                     .filter(sub => sub.grade !== null)
@@ -227,10 +239,10 @@ export async function GET(request: Request) {
             .sort((a, b) => a.progress - b.progress)
             .slice(0, 10);
 
-        // 7. Learning Resources Metrics (Professor specific)
+        // 7. Learning Resources Metrics
         const learningResourcesData = await prisma.resource.findMany({
             where: {
-                projectId: projectId || { in: projects.map(p => p.id) },
+                projectId: projectId || { in: projectsData.map(p => p.id) },
                 ...dateFilter
             },
             include: {
@@ -245,7 +257,7 @@ export async function GET(request: Request) {
 
         const learningResources = {
             totalResources: learningResourcesData.length,
-            byProject: projects.map(p => ({
+            byProject: projectsData.map(p => ({
                 projectId: p.id,
                 projectName: p.title,
                 resourceCount: learningResourcesData.filter(r => r.projectId === p.id).length,
@@ -254,23 +266,17 @@ export async function GET(request: Request) {
             })).sort((a, b) => b.resourceCount - a.resourceCount)
         };
 
-        // 8. Mentorship Metrics (Professor specific)
+        // 8. Mentorship Metrics
         const mentorshipBookings = await prisma.mentorshipBooking.findMany({
             where: {
                 slot: { teacherId: session.user.id },
-                ...(projectId ? { projectId } : { projectId: { in: projects.map(p => p.id) } }),
+                ...(projectId ? { projectId } : { projectId: { in: projectsData.map(p => p.id) } }),
                 ...dateFilter
             },
             include: {
                 students: { select: { id: true, name: true } }
             }
         });
-
-        interface StudentMentorshipData {
-            id: string;
-            name: string | null;
-            count: number;
-        }
 
         const mentorship = {
             totalSessions: mentorshipBookings.length,
@@ -285,11 +291,13 @@ export async function GET(request: Request) {
                         acc.get(s.id)!.count++;
                     });
                     return acc;
-                }, new Map<string, StudentMentorshipData>()).values()
+                }, new Map<string, { id: string; name: string | null; count: number }>()).values()
             ).sort((a, b) => b.count - a.count).slice(0, 5)
         };
 
         return NextResponse.json({
+            projects,
+            recentActivity,
             overview: {
                 totalStudents: allStudents.size,
                 avgProgress,
@@ -297,7 +305,6 @@ export async function GET(request: Request) {
                 totalAssignments
             },
             studentProgress,
-            submissionRates,
             gradeDistribution,
             atRiskStudents,
             learningResources,
