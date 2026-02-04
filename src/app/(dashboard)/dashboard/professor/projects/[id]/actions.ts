@@ -137,6 +137,9 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
         const subject = formData.get('subject') as string;
         const competency = formData.get('competency') as string;
         const keywords = (formData.get('keywords') as string)?.split(',').map(k => k.trim()).filter(k => k) || [];
+        const citationAuthor = formData.get('citationAuthor') as string;
+        const apaReference = formData.get('apaReference') as string;
+        const shouldEmbed = formData.get('shouldEmbed') === 'true';
 
         if (!file || !projectId) {
             return { success: false, error: 'Faltan datos requeridos (archivo o projectId)' };
@@ -182,6 +185,9 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
                 subject,
                 competency,
                 keywords,
+                citationAuthor,
+                apaReference,
+                shouldEmbed,
                 categoryId: categoryId
             }
         });
@@ -207,6 +213,9 @@ export async function uploadProjectFileToR2Action(formData: FormData) {
         const subject = formData.get('subject') as string;
         const competency = formData.get('competency') as string;
         const keywords = (formData.get('keywords') as string)?.split(',').map(k => k.trim()).filter(k => k) || [];
+        const citationAuthor = formData.get('citationAuthor') as string;
+        const apaReference = formData.get('apaReference') as string;
+        const shouldEmbed = formData.get('shouldEmbed') === 'true';
 
         if (!file || !projectId) {
             return { success: false, error: 'Faltan datos requeridos' };
@@ -232,6 +241,9 @@ export async function uploadProjectFileToR2Action(formData: FormData) {
                 subject,
                 competency,
                 keywords,
+                citationAuthor,
+                apaReference,
+                shouldEmbed,
                 categoryId: categoryId
             }
         });
