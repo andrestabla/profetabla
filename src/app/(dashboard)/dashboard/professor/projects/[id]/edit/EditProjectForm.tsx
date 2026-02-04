@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
     Briefcase, Save, Loader2, BookOpen,
     Users, ClipboardCheck,
-    Layers, Search, ArrowLeft
+    Layers, Search, ArrowLeft, CheckCircle2, XCircle, X
 } from 'lucide-react';
 import { updateProjectAction } from '@/app/actions/project-actions';
 
@@ -29,21 +29,38 @@ interface Project {
     status: 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
 }
 
+type NotificationType = 'success' | 'error' | null;
+
 export default function EditProjectForm({ project }: { project: Project }) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [notification, setNotification] = useState<NotificationType>(null);
+    const [notificationMessage, setNotificationMessage] = useState('');
 
     async function onSubmit(formData: FormData) {
         setIsSubmitting(true);
         try {
             await updateProjectAction(formData);
+            // If we reach here, the action succeeded (redirect will happen)
+            setNotification('success');
+            setNotificationMessage('¡Proyecto actualizado exitosamente!');
+            // The redirect from the server action will handle navigation
         } catch (error) {
             console.error(error);
-            alert("Error al actualizar el proyecto");
-        } finally {
+            setNotification('error');
+            setNotificationMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Error al actualizar el proyecto. Por favor, intenta nuevamente.'
+            );
             setIsSubmitting(false);
         }
     }
+
+    const closeModal = () => {
+        setNotification(null);
+        setNotificationMessage('');
+    };
 
     return (
         <div className="max-w-4xl mx-auto p-6">
@@ -311,6 +328,54 @@ export default function EditProjectForm({ project }: { project: Project }) {
                     </button>
                 </div>
             </form>
+
+            {/* SUCCESS MODAL */}
+            {notification === 'success' && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in slide-in-from-bottom-4 duration-300">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                <CheckCircle2 className="w-10 h-10 text-green-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-2">¡Éxito!</h3>
+                            <p className="text-slate-600 mb-6">{notificationMessage}</p>
+                            <button
+                                onClick={closeModal}
+                                className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors"
+                            >
+                                Aceptar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ERROR MODAL */}
+            {notification === 'error' && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in slide-in-from-bottom-4 duration-300">
+                        <button
+                            onClick={closeModal}
+                            className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors"
+                        >
+                            <X className="w-5 h-5 text-slate-400" />
+                        </button>
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                <XCircle className="w-10 h-10 text-red-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-2">Error</h3>
+                            <p className="text-slate-600 mb-6">{notificationMessage}</p>
+                            <button
+                                onClick={closeModal}
+                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors"
+                            >
+                                Aceptar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
