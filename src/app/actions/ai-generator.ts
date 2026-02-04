@@ -214,6 +214,8 @@ export async function extractOAMetadata(content: string): Promise<{
   keywords: string[];
   presentation: string;
   utility: string;
+  citationAuthor?: string;
+  apaReference?: string;
 } | null> {
   const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
   const safeConfig = (config || {}) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -230,9 +232,11 @@ export async function extractOAMetadata(content: string): Promise<{
     - keywords: Lista de palabras clave.
     - presentation: ¿Qué es este recurso/OA? (Descripción).
     - utility: Utilidad pedagógica ¿Para qué sirve al estudiante? (Propósito).
+    - citationAuthor: Autor(es) o Entidad responsable (extraer del contenido si es posible).
+    - apaReference: Referencia bibliográfica en formato APA 7ma Edición.
 
     RESPONDE SIEMPRE EN ESPAÑOL EN FORMATO JSON:
-    { "title": "...", "subject": "...", "competency": "...", "keywords": [], "presentation": "...", "utility": "..." }
+    { "title": "...", "subject": "...", "competency": "...", "keywords": [], "presentation": "...", "utility": "...", "citationAuthor": "...", "apaReference": "..." }
   `;
 
   if (aiProvider === 'OPENAI') {

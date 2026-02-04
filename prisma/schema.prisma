@@ -140,7 +140,11 @@ model Resource {
   url          String
   type         String                @default("ARTICLE")
   subject      String?
+
   competency   String?
+  citationAuthor String?
+  apaReference   String?
+  shouldEmbed    Boolean               @default(true)
   keywords     String[]
   projectId    String?
   categoryId   String
@@ -352,6 +356,9 @@ model LearningObject {
   description String?
   subject     String
   competency  String?
+
+  citationAuthor String?
+  apaReference   String?
   keywords    String[]
   presentation String?
   utility      String?

@@ -29,6 +29,9 @@ type Resource = {
     keywords?: string[];
     createdAt: Date;
     originalUrl?: string;
+    citationAuthor?: string | null;
+    apaReference?: string | null;
+    shouldEmbed?: boolean;
 };
 
 // ... (Project type remains same)
@@ -42,6 +45,7 @@ type Project = {
     type?: string;
     students: { id: string; name: string | null; email: string | null; avatarUrl?: string | null }[];
     teachers: { id: string; name: string | null; email: string | null; avatarUrl?: string | null }[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     teams?: any[];
     accessCode?: string;
 };
@@ -144,6 +148,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [metaCompetency, setMetaCompetency] = useState('');
     const [metaKeywords, setMetaKeywords] = useState('');
     const [metaUrl, setMetaUrl] = useState('');
+    const [metaCitationAuthor, setMetaCitationAuthor] = useState('');
+    const [metaApaReference, setMetaApaReference] = useState('');
+    const [metaShouldEmbed, setMetaShouldEmbed] = useState(true);
     const [editingResource, setEditingResource] = useState<Resource | null>(null);
     const [isOAModalOpen, setIsOAModalOpen] = useState(false);
 
@@ -174,6 +181,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         setMetaSubject(resource.subject || '');
         setMetaCompetency(resource.competency || '');
         setMetaKeywords(resource.keywords?.join(', ') || '');
+        setMetaCitationAuthor(resource.citationAuthor || '');
+        setMetaApaReference(resource.apaReference || '');
+        setMetaShouldEmbed(resource.shouldEmbed !== false); // Default true if undefined
 
         // Scroll to form
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -188,6 +198,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         setMetaSubject('');
         setMetaCompetency('');
         setMetaKeywords('');
+        setMetaCitationAuthor('');
+        setMetaApaReference('');
+        setMetaShouldEmbed(true);
         setResourceType('ARTICLE');
     };
 
@@ -224,6 +237,8 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                 setMetaSubject(result.data.subject);
                 setMetaCompetency(result.data.competency);
                 setMetaKeywords(result.data.keywords ? result.data.keywords.join(', ') : '');
+                setMetaCitationAuthor(result.data.citationAuthor || '');
+                setMetaApaReference(result.data.apaReference || '');
             } else {
                 alert(result.error || "No se pudo extraer metadatos");
             }
@@ -727,8 +742,37 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                             </label>
                                             <input name="keywords" value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)} placeholder="Ej: innovación, diseño, proyecto..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                                         </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                                Autor(es) / Entidad
+                                            </label>
+                                            <input name="citationAuthor" value={metaCitationAuthor} onChange={(e) => setMetaCitationAuthor(e.target.value)} placeholder="Ej: John Doe, Universidad X..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                                Referencia APA 7
+                                            </label>
+                                            <textarea name="apaReference" value={metaApaReference} onChange={(e) => setMetaApaReference(e.target.value)} rows={2} placeholder="Ej: Doe, J. (2023). Title..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none" />
+                                        </div>
+
+                                        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <input
+                                                type="checkbox"
+                                                name="shouldEmbed"
+                                                checked={metaShouldEmbed}
+                                                onChange={(e) => setMetaShouldEmbed(e.target.checked)}
+                                                value="true"
+                                                id="shouldEmbedToggle"
+                                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                                            />
+                                            <label htmlFor="shouldEmbedToggle" className="text-xs font-bold text-slate-600 cursor-pointer select-none">
+                                                Permitir visualización embebida (Iframe)
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
+
 
                                 <div className="pt-4 border-t border-slate-100 flex justify-end">
                                     <button disabled={isUploading} className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg shadow-slate-200 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:transform-none flex items-center gap-2">

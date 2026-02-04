@@ -52,6 +52,9 @@ export async function updateResourceAction(id: string, data: {
     projectId?: string | null; // null to unassign
     url?: string;
     type?: string;
+    citationAuthor?: string;
+    apaReference?: string;
+    shouldEmbed?: boolean;
 }) {
     await requireTeacherOrAdmin();
 
@@ -67,7 +70,10 @@ export async function updateResourceAction(id: string, data: {
             keywords: data.keywords ? data.keywords.split(',').map(s => s.trim()) : undefined,
             projectId: data.projectId === 'GLOBAL' ? null : data.projectId,
             url: data.url,
-            type: data.type
+            type: data.type,
+            citationAuthor: data.citationAuthor,
+            apaReference: data.apaReference,
+            shouldEmbed: data.shouldEmbed
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any
     });
@@ -114,6 +120,8 @@ export async function updateLearningObjectAction(formData: FormData) {
     const presentation = formData.get('presentation') as string;
     const utility = formData.get('utility') as string;
     const itemsJson = formData.get('itemsJson') as string;
+    const citationAuthor = formData.get('citationAuthor') as string;
+    const apaReference = formData.get('apaReference') as string;
 
     const keywords = keywordsRaw ? keywordsRaw.split(',').map(s => s.trim()) : [];
 
@@ -132,35 +140,19 @@ export async function updateLearningObjectAction(formData: FormData) {
                 presentation,
                 utility,
                 keywords,
+                citationAuthor,
+                apaReference,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any
         });
 
         // 2. Delete existing items (simple replace strategy for now)
-        // Alternatively        // 2. Delete existing items (simple replace strategy for now)
         await tx.resourceItem.deleteMany({
             where: { learningObjectId: id }
         });
 
         // 3. Create new items
         if (items.length > 0) {
-            // We need to map items to createMany or create. 
-            // Since resource table structure might be complex, let's look at schema inference.
-            // Items are Resources linked to the OA.
-            // Wait, schema says LearningObject->items is separate or same resource?
-            // Assuming LearningObject has relation `items` which are Resources.
-            // Let's assume standard structure based on `createLearningObjectAction`.
-
-            /* 
-               Structure in createLearningObjectAction:
-                items: {
-                   create: items.map(...)
-               }
-            */
-
-            // Note: `deleteMany` works on the relation if it's One-to-Many.
-
-
             for (const [idx, item] of items.entries()) {
                 await tx.resourceItem.create({
                     data: {
@@ -182,6 +174,7 @@ export async function updateLearningObjectAction(formData: FormData) {
                         competency: (item as any).competency,
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         keywords: (item as any).keywords || []
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } as any
                 });
             }
@@ -206,6 +199,8 @@ export async function createLearningObjectAction(formData: FormData) {
     const presentation = formData.get('presentation') as string;
     const utility = formData.get('utility') as string;
     const itemsJson = formData.get('itemsJson') as string;
+    const citationAuthor = formData.get('citationAuthor') as string;
+    const apaReference = formData.get('apaReference') as string;
 
     const keywords = keywordsRaw ? keywordsRaw.split(',').map(s => s.trim()) : [];
 
@@ -221,6 +216,8 @@ export async function createLearningObjectAction(formData: FormData) {
                 presentation,
                 utility,
                 keywords,
+                citationAuthor,
+                apaReference,
                 authorId: userId,
                 items: {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -290,6 +287,9 @@ export async function createGlobalResourceAction(formData: FormData) {
     const subject = formData.get('subject') as string;
     const competency = formData.get('competency') as string;
     const keywordsRaw = formData.get('keywords') as string;
+    const citationAuthor = formData.get('citationAuthor') as string;
+    const apaReference = formData.get('apaReference') as string;
+    const shouldEmbed = formData.get('shouldEmbed') === 'true';
     const file = formData.get('file') as File;
 
     const keywords = keywordsRaw ? keywordsRaw.split(',').map(s => s.trim()) : [];
@@ -353,6 +353,9 @@ export async function createGlobalResourceAction(formData: FormData) {
                 subject,
                 competency,
                 keywords,
+                citationAuthor,
+                apaReference,
+                shouldEmbed,
                 categoryId,
                 projectId: (projectId && projectId !== 'GLOBAL') ? projectId : null
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any

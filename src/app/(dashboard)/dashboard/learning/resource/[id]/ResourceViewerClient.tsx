@@ -21,13 +21,16 @@ type Resource = {
     category: { name: string; color: string; };
     project: { title: string; studentName?: string | null };
     createdAt: string;
+    citationAuthor?: string | null;
+    apaReference?: string | null;
+    shouldEmbed?: boolean;
 };
 
 // ... Comment type ...
 
 import { DrivePickerModal } from '@/components/DrivePickerModal';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export default function ResourceViewerClient({ resource, currentUserId, currentUserRole, comments: initialComments }: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resource: any;
@@ -60,7 +63,10 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
         utility: resource.utility || '',
         subject: resource.subject || '',
         competency: resource.competency || '',
-        keywords: resource.keywords?.join(', ') || ''
+        keywords: resource.keywords?.join(', ') || '',
+        citationAuthor: resource.citationAuthor || '',
+        apaReference: resource.apaReference || '',
+        shouldEmbed: resource.shouldEmbed !== false
     });
 
     // Helper to extract file ID from Drive URL
@@ -90,7 +96,9 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
                     utility: aiData.utility || prev.utility,
                     subject: aiData.subject || prev.subject,
                     competency: aiData.competency || prev.competency,
-                    keywords: aiData.keywords?.join(', ') || prev.keywords
+                    keywords: aiData.keywords?.join(', ') || prev.keywords,
+                    citationAuthor: aiData.citationAuthor || prev.citationAuthor,
+                    apaReference: aiData.apaReference || prev.apaReference
                 }));
             }
         } catch (e) {
@@ -133,7 +141,9 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
                     utility: aiData.utility || prev.utility,
                     subject: aiData.subject || prev.subject,
                     competency: aiData.competency || prev.competency,
-                    keywords: aiData.keywords?.join(', ') || prev.keywords
+                    keywords: aiData.keywords?.join(', ') || prev.keywords,
+                    citationAuthor: aiData.citationAuthor || prev.citationAuthor,
+                    apaReference: aiData.apaReference || prev.apaReference
                 }));
             } else {
                 alert("No se pudo extraer información automática de este recurso.");
@@ -160,7 +170,10 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
                 competency: formData.competency,
                 keywords: formData.keywords,
                 url: formData.url,
-                type: formData.type
+                type: formData.type,
+                citationAuthor: formData.citationAuthor,
+                apaReference: formData.apaReference,
+                shouldEmbed: formData.shouldEmbed
             });
 
             setIsEditing(false);
@@ -478,6 +491,57 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
                                 )}
                             </div>
 
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Autoría y Citas</h3>
+                                {isEditing ? (
+                                    <div className="space-y-3">
+                                        <input
+                                            value={formData.citationAuthor}
+                                            onChange={e => setFormData({ ...formData, citationAuthor: e.target.value })}
+                                            className="w-full p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                                            placeholder="Autor(es)..."
+                                        />
+                                        <textarea
+                                            value={formData.apaReference}
+                                            onChange={e => setFormData({ ...formData, apaReference: e.target.value })}
+                                            className="w-full p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                            rows={3}
+                                            placeholder="Referencia APA 7..."
+                                        />
+                                        <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.shouldEmbed}
+                                                onChange={e => setFormData({ ...formData, shouldEmbed: e.target.checked })}
+                                                className="w-4 h-4 text-blue-600 rounded"
+                                            />
+                                            <span className="text-xs font-bold text-slate-600">Permitir Iframe</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {(resource.citationAuthor || resource.apaReference) ? (
+                                            <>
+                                                {resource.citationAuthor && (
+                                                    <div>
+                                                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Autor</span>
+                                                        <p className="text-sm font-medium text-slate-800">{resource.citationAuthor}</p>
+                                                    </div>
+                                                )}
+                                                {resource.apaReference && (
+                                                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 italic text-xs text-slate-600">
+                                                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1 not-italic">APA 7</span>
+                                                        {resource.apaReference}
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 italic">Sin información de referencia.</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             {!isEditing && (
                                 <div>
                                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Detalles</h3>
@@ -588,51 +652,65 @@ function ResourceRenderer({ resource }: { resource: Resource }) {
         );
     }
 
-    if (resource.type === 'EMBED') {
-        // Si es un iframe string, lo renderizamos
-        if (resource.url.includes('<iframe')) {
+    // Check if embed is allowed
+    const canEmbed = resource.shouldEmbed !== false;
+
+    if (canEmbed) {
+        if (resource.type === 'EMBED') {
+            // Si es un iframe string, lo renderizamos
+            if (resource.url.includes('<iframe')) {
+                return (
+                    <div
+                        className="w-full h-full flex items-center justify-center p-4"
+                        dangerouslySetInnerHTML={{ __html: resource.url }}
+                    />
+                );
+            }
+            // Si es URL
             return (
-                <div
-                    className="w-full h-full flex items-center justify-center p-4"
-                    dangerouslySetInnerHTML={{ __html: resource.url }}
+                <iframe
+                    src={resource.url}
+                    className="w-full h-full bg-white rounded-lg shadow-lg"
+                    title={resource.title}
                 />
             );
         }
-        // Si es URL
-        return (
-            <iframe
-                src={resource.url}
-                className="w-full h-full bg-white rounded-lg shadow-lg"
-                title={resource.title}
-            />
-        );
+
+        if (resource.type === 'DRIVE') {
+            // Transformar link de view/edit a preview para mejor experiencia embedded
+            const previewUrl = resource.url.includes('drive.google.com')
+                ? resource.url.replace(/\/view.*$/, '/preview').replace(/\/edit.*$/, '/preview')
+                : resource.url;
+
+            return (
+                <iframe
+                    src={previewUrl}
+                    className="w-full h-full max-w-5xl bg-white rounded-lg shadow-lg border-0"
+                    title={resource.title}
+                />
+            );
+        }
     }
 
-    if (resource.type === 'DRIVE') {
-        // Transformar link de view/edit a preview para mejor experiencia embedded
-        const previewUrl = resource.url.includes('drive.google.com')
-            ? resource.url.replace(/\/view.*$/, '/preview').replace(/\/edit.*$/, '/preview')
-            : resource.url;
-
-        return (
-            <iframe
-                src={previewUrl}
-                className="w-full h-full max-w-5xl bg-white rounded-lg shadow-lg border-0"
-                title={resource.title}
-            />
-        );
-    }
-
-    // Default (ARTICLE, PDF links, etc)
+    // Default Fallback (Link Card)
     return (
         <div className="text-center max-w-md w-full p-8 bg-white rounded-2xl shadow-xl border border-slate-100">
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Globe className="w-8 h-8 text-blue-500" />
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">{resource.title}</h3>
-            <p className="text-slate-500 text-sm mb-6">
-                Este recurso es un enlace externo o documento no previsualizable directamente.
-            </p>
+
+            {resource.shouldEmbed === false && resource.type !== 'VIDEO' ? (
+                <p className="text-slate-500 text-sm mb-6 bg-amber-50 p-3 rounded-lg border border-amber-100 text-amber-800">
+                    <span className="font-bold block mb-1">Visualización externa</span>
+                    El propietario ha desactivado la vista previa integrada para este recurso.
+                </p>
+            ) : (
+                <p className="text-slate-500 text-sm mb-6">
+                    Este recurso es un enlace externo o documento no previsualizable directamente.
+                </p>
+            )}
+
             <a
                 href={resource.url}
                 target="_blank"

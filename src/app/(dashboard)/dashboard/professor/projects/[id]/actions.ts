@@ -21,6 +21,9 @@ export async function addResourceToProjectAction(formData: FormData) {
         const competency = formData.get('competency') as string;
         const presentation = formData.get('presentation') as string;
         const utility = formData.get('utility') as string;
+        const citationAuthor = formData.get('citationAuthor') as string;
+        const apaReference = formData.get('apaReference') as string;
+        const shouldEmbed = formData.get('shouldEmbed') === 'true';
         const keywords = (formData.get('keywords') as string)?.split(',').map(k => k.trim()).filter(k => k) || [];
 
         console.log('--- addResourceToProjectAction ---');
@@ -44,6 +47,9 @@ export async function addResourceToProjectAction(formData: FormData) {
                 subject,
                 competency,
                 keywords,
+                citationAuthor,
+                apaReference,
+                shouldEmbed,
                 categoryId: categoryId
             }
         });
@@ -89,7 +95,11 @@ export async function updateProjectResourceAction(formData: FormData) {
                 utility,
                 subject,
                 competency,
-                keywords
+
+                keywords,
+                citationAuthor: formData.get('citationAuthor') as string,
+                apaReference: formData.get('apaReference') as string,
+                shouldEmbed: formData.get('shouldEmbed') === 'true'
             }
         });
 
@@ -281,7 +291,9 @@ export async function extractResourceMetadataAction(url: string, type: string) {
                     utility: data.utility,
                     subject: data.subject,
                     competency: data.competency,
-                    keywords: data.keywords
+                    keywords: data.keywords,
+                    citationAuthor: data.citationAuthor,
+                    apaReference: data.apaReference
                 }
             };
         }

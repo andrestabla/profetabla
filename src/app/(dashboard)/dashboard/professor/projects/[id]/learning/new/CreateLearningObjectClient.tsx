@@ -65,6 +65,14 @@ export default function CreateLearningObjectClient({ projectId }: { projectId: s
                             <label className="block text-sm font-bold text-slate-700 mb-1">Competencia Asociada</label>
                             <input name="competency" placeholder="Ej: Diagramación UML" className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" />
                         </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Autor / Entidad</label>
+                            <input name="citationAuthor" placeholder="Ej: John Doe, Universidad X" className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Referencia APA 7</label>
+                            <input name="apaReference" placeholder="Ej: Doe, J. (2023)..." className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" />
+                        </div>
                     </div>
                 </div>
 
@@ -80,7 +88,7 @@ export default function CreateLearningObjectClient({ projectId }: { projectId: s
                     </div>
 
                     <div className="space-y-4">
-                        {items.map((item, index) => (
+                        {items.map((item) => (
                             <div key={item.id} className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex gap-4 items-start relative group">
                                 <div className="w-1/4">
                                     <label className="block text-xs font-bold text-slate-500 mb-1">Tipo de Recurso</label>
