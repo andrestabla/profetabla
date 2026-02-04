@@ -30,8 +30,8 @@ const ToolbarButton = ({ onClick, active, children, title }: {
         type="button"
         onClick={onClick}
         className={`p-2 rounded-lg transition-colors ${active
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-slate-600 hover:bg-slate-100'
+            ? 'bg-blue-100 text-blue-700'
+            : 'text-slate-600 hover:bg-slate-100'
             }`}
         title={title}
     >
@@ -64,7 +64,7 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
         content,
         editorProps: {
             attributes: {
-                class: 'prose prose-sm prose-slate max-w-none focus:outline-none min-h-[200px] px-4 py-3',
+                class: 'prose prose-sm prose-slate max-w-none focus:outline-none min-h-[200px] px-4 py-3 prose-ul:list-disc prose-ul:ml-4 prose-ol:list-decimal prose-ol:ml-4 prose-li:marker:text-slate-500',
             },
         },
         onUpdate: ({ editor }) => {
