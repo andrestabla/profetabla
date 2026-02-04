@@ -8,6 +8,7 @@ import {
     Layers, Search, ArrowLeft, CheckCircle2, XCircle, X
 } from 'lucide-react';
 import { updateProjectAction } from '@/app/actions/project-actions';
+import AutoResizeTextarea from '@/components/AutoResizeTextarea';
 
 interface Project {
     id: string;
@@ -168,13 +169,14 @@ export default function EditProjectForm({ project }: { project: Project }) {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Descripción General</label>
-                            <textarea
+                            <AutoResizeTextarea
                                 name="description"
-                                rows={3}
+                                label="Descripción General"
                                 required
-                                defaultValue={project.description || ''}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                defaultValue={project.description}
+                                minRows={3}
+                                maxRows={15}
+                                showPreview={true}
                             />
                         </div>
                     </div>
@@ -187,23 +189,25 @@ export default function EditProjectForm({ project }: { project: Project }) {
                     </h2>
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Justificación</label>
-                            <textarea
+                            <AutoResizeTextarea
                                 name="justification"
-                                rows={4}
+                                label="Justificación"
                                 required
-                                defaultValue={project.justification || ''}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                defaultValue={project.justification}
+                                minRows={4}
+                                maxRows={20}
+                                showPreview={true}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Objetivos</label>
-                            <textarea
+                            <AutoResizeTextarea
                                 name="objectives"
-                                rows={5}
-                                defaultValue={project.objectives || ''}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                label="Objetivos"
+                                defaultValue={project.objectives}
+                                minRows={5}
+                                maxRows={20}
+                                showPreview={true}
                             />
                         </div>
                     </div>
@@ -216,32 +220,35 @@ export default function EditProjectForm({ project }: { project: Project }) {
                     </h2>
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Fases y Actividades</label>
-                            <textarea
+                            <AutoResizeTextarea
                                 name="methodology"
-                                rows={5}
-                                defaultValue={project.methodology || ''}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                label="Fases y Actividades"
+                                defaultValue={project.methodology}
+                                minRows={5}
+                                maxRows={25}
+                                showPreview={true}
                             />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Cronograma</label>
-                                <textarea
+                                <AutoResizeTextarea
                                     name="schedule"
-                                    rows={4}
-                                    defaultValue={project.schedule || ''}
-                                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                    label="Cronograma"
+                                    defaultValue={project.schedule}
+                                    minRows={4}
+                                    maxRows={20}
+                                    showPreview={true}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Entregables</label>
-                                <textarea
+                                <AutoResizeTextarea
                                     name="deliverables"
-                                    rows={4}
-                                    defaultValue={project.deliverables || ''}
-                                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                    label="Entregables"
+                                    defaultValue={project.deliverables}
+                                    minRows={4}
+                                    maxRows={20}
+                                    showPreview={true}
                                 />
                             </div>
                         </div>
@@ -255,22 +262,24 @@ export default function EditProjectForm({ project }: { project: Project }) {
                     </h2>
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Recursos</label>
-                            <textarea
+                            <AutoResizeTextarea
                                 name="resourcesDescription"
-                                rows={4}
-                                defaultValue={project.resourcesDescription || ''}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                label="Recursos"
+                                defaultValue={project.resourcesDescription}
+                                minRows={4}
+                                maxRows={20}
+                                showPreview={true}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Presupuesto</label>
-                            <textarea
+                            <AutoResizeTextarea
                                 name="budget"
-                                rows={3}
-                                defaultValue={project.budget || ''}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                label="Presupuesto"
+                                defaultValue={project.budget}
+                                minRows={3}
+                                maxRows={15}
+                                showPreview={true}
                             />
                         </div>
                     </div>
@@ -283,22 +292,24 @@ export default function EditProjectForm({ project }: { project: Project }) {
                     </h2>
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Sistema de Evaluación</label>
-                            <textarea
+                            <AutoResizeTextarea
                                 name="evaluation"
-                                rows={4}
-                                defaultValue={project.evaluation || ''}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                label="Sistema de Evaluación"
+                                defaultValue={project.evaluation}
+                                minRows={4}
+                                maxRows={20}
+                                showPreview={true}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Indicadores Key (KPIs)</label>
-                            <textarea
+                            <AutoResizeTextarea
                                 name="kpis"
-                                rows={3}
-                                defaultValue={project.kpis || ''}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                label="Indicadores Key (KPIs)"
+                                defaultValue={project.kpis}
+                                minRows={3}
+                                maxRows={15}
+                                showPreview={true}
                             />
                         </div>
                     </div>
