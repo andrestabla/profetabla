@@ -38,17 +38,25 @@ async function getFileMetadata(fileId: string) {
 export async function processDriveFileForOAAction(fileId: string, mimeType?: string) {
     let effectiveMimeType = mimeType;
 
-    // If no mimeType provided (e.g. from ID extraction), try to fetch it
-    if (!effectiveMimeType || effectiveMimeType === 'auto') {
-        const metadata = await getFileMetadata(fileId);
-        if (!metadata) return null; // File access error or not found
-        effectiveMimeType = metadata.mimeType || 'application/octet-stream';
+    try {
+        // If no mimeType provided (e.g. from ID extraction), try to fetch it
+        if (!effectiveMimeType || effectiveMimeType === 'auto') {
+            const metadata = await getFileMetadata(fileId);
+            if (!metadata) throw new Error(`Datos del archivo no accesibles (ID: ${fileId})`);
+            effectiveMimeType = metadata.mimeType || 'application/octet-stream';
+        }
+
+        const content = await getFileContent(fileId, effectiveMimeType);
+        if (!content) throw new Error('No se pudo leer el contenido del archivo');
+
+        const result = await extractOAMetadata(content);
+        if (!result) throw new Error('La IA no retornó datos válidos');
+
+        return result;
+    } catch (e) {
+        console.error('Error processing Drive file:', e);
+        throw e; // Propagate to extractResourceMetadataAction
     }
-
-    const content = await getFileContent(fileId, effectiveMimeType);
-    if (!content) return null;
-
-    return await extractOAMetadata(content);
 }
 
 export async function improveTextWithAIAction(title: string, context: string) {
