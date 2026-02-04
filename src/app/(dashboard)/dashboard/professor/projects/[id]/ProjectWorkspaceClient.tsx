@@ -540,14 +540,14 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                 </button>
                                             </div>
 
-                                            {resourceType !== 'DRIVE' && (
+                                            {(resourceType !== 'DRIVE' || !project.googleDriveFolderId) && (
                                                 <div className="relative">
                                                     {resourceType === 'EMBED' ? (
                                                         <textarea name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required rows={4} placeholder="<iframe src='...'></iframe>" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                                                     ) : (
                                                         <>
                                                             <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                            <input name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required type="url" placeholder="https://ejemplo.com/recurso" className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                                            <input name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required type="url" placeholder={resourceType === 'DRIVE' ? "https://drive.google.com/..." : "https://ejemplo.com/recurso"} className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                                                         </>
                                                     )}
                                                 </div>
