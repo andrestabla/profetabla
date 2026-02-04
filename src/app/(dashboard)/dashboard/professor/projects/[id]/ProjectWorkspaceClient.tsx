@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { KanbanBoard } from '@/components/KanbanBoard';
-import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search } from 'lucide-react';
+import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, uploadProjectFileToR2Action, extractResourceMetadataAction, updateProjectResourceAction } from './actions';
 import { searchStudentsAction, addStudentToProjectAction, removeStudentFromProjectAction, searchTeachersAction, addTeacherToProjectAction, removeTeacherFromProjectAction } from '@/app/actions/project-enrollment';
@@ -56,7 +56,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     // const [showContext, setShowContext] = useState(false);
     const [resourceType, setResourceType] = useState('ARTICLE');
     const [driveFiles, setDriveFiles] = useState<any[]>([]);
-     
+
     const [isLoadingDrive, setIsLoadingDrive] = useState(false);
     const [selectedDriveFile, setSelectedDriveFile] = useState<{ title: string, url: string } | null>(null);
     const [driveMode, setDriveMode] = useState<'LINK' | 'UPLOAD'>('LINK');
@@ -557,7 +557,22 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                 </div>
                                             )}
 
-                                            {resourceType !== 'FILE' && (resourceType !== 'DRIVE' || !project.googleDriveFolderId) && (
+                                            {resourceType === 'DRIVE' && !project.googleDriveFolderId && (
+                                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                                        <div>
+                                                            <h4 className="text-sm font-bold text-amber-800">No hay carpeta de Drive vinculada</h4>
+                                                            <p className="text-xs text-amber-700 mt-1 mb-2">Para usar el explorador de archivos, debes vincular una carpeta de Google Drive a este proyecto.</p>
+                                                            <Link href={`/dashboard/professor/projects/${project.id}/edit`} className="text-xs font-bold text-amber-600 hover:text-amber-800 underline">
+                                                                Configurar carpeta ahora &rarr;
+                                                            </Link>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {resourceType !== 'FILE' && (
                                                 <div className="relative">
                                                     {resourceType === 'EMBED' ? (
                                                         <textarea name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required rows={4} placeholder="<iframe src='...'></iframe>" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
