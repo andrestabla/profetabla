@@ -195,6 +195,36 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         }
     };
 
+    const handleExtractMetadata = async (urlOverride?: string, typeOverride?: string) => {
+        setIsExtracting(true);
+        try {
+            const type = typeOverride || resourceType;
+            let context = urlOverride;
+
+            if (!context) {
+                if (type === 'DRIVE') {
+                    context = selectedDriveFile?.url || metaUrl || metaTitle;
+                } else {
+                    context = metaUrl;
+                }
+            }
+
+            const result = await extractResourceMetadataAction(context || '', type);
+            if (result.success && result.data) {
+                setMetaTitle(result.data.title);
+                setMetaPresentation(result.data.presentation);
+                setMetaUtility(result.data.utility);
+            } else {
+                alert(result.error || "No se pudo extraer metadatos");
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error al conectar con la IA');
+        } finally {
+            setIsExtracting(false);
+        }
+    };
+
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8 font-sans">
             {/* Cabecera */}
@@ -525,22 +555,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                 <button
                                                     type="button"
                                                     disabled={isExtracting || (resourceType !== 'DRIVE' && !metaUrl && resourceType !== 'EMBED') || (resourceType === 'DRIVE' && !selectedDriveFile && !metaTitle)}
-                                                    onClick={async () => {
-                                                        setIsExtracting(true);
-                                                        try {
-                                                            const context = resourceType === 'DRIVE' ? (selectedDriveFile?.title || metaTitle) : metaUrl;
-                                                            const result = await extractResourceMetadataAction(context, resourceType);
-                                                            if (result.success && result.data) {
-                                                                setMetaTitle(result.data.title);
-                                                                setMetaPresentation(result.data.presentation);
-                                                                setMetaUtility(result.data.utility);
-                                                            } else {
-                                                                alert(result.error || "No se pudo extraer metadatos");
-                                                            }
-                                                        } finally {
-                                                            setIsExtracting(false);
-                                                        }
-                                                    }}
+                                                    onClick={() => handleExtractMetadata()}
                                                     className="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-lg font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     <Wand2 className="w-3.5 h-3.5" />
@@ -931,7 +946,12 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                 onSelect={(file) => {
                     setSelectedDriveFile({ title: file.name, url: file.webViewLink! });
                     setMetaTitle(file.name);
+                    setMetaUrl(file.webViewLink!);
                     setIsDriveModalOpen(false);
+                    // Trigger AI analysis automatically
+                    if (file.webViewLink) {
+                        handleExtractMetadata(file.webViewLink, 'DRIVE');
+                    }
                 }}
                 isLoading={isLoadingDrive}
             />
