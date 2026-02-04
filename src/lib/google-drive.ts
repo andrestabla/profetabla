@@ -58,7 +58,7 @@ export async function createProjectFolder(projectName: string) {
         return response.data.id;
     } catch (error) {
         console.error("Error creating Google Drive folder:", error);
-        return null;
+        throw error;
     }
 }
 
