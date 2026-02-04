@@ -79,12 +79,16 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
 
         return (
             <div className="prose prose-sm prose-slate max-w-none 
-                prose-headings:font-bold prose-headings:text-slate-800 
-                prose-p:text-slate-600 prose-p:leading-relaxed
-                prose-li:text-slate-600 prose-li:marker:text-blue-500
-                prose-strong:text-slate-800 prose-strong:font-bold
-                prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-                prose-ul:list-disc prose-ol:list-decimal
+                prose-headings:font-extrabold prose-headings:text-slate-900 prose-headings:tracking-tight
+                prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
+                prose-p:text-slate-700 prose-p:leading-relaxed prose-p:mb-4
+                prose-li:text-slate-700 prose-li:leading-relaxed prose-li:marker:text-blue-600 prose-li:marker:font-bold
+                prose-strong:text-slate-900 prose-strong:font-bold
+                prose-em:text-slate-600 prose-em:italic
+                prose-a:text-blue-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline hover:prose-a:text-blue-700
+                prose-ul:my-4 prose-ul:space-y-2 prose-ol:my-4 prose-ol:space-y-2
+                prose-code:text-sm prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-slate-800
+                prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-slate-600
             ">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {content}
@@ -253,38 +257,68 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {/* Main Column */}
                         <div className="lg:col-span-2 space-y-6">
-                            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
-                                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <Target className="w-5 h-5 text-purple-600" />
-                                    Contexto y Justificación
-                                </h3>
-                                <MarkdownContent content={project.description} />
+                            <div className="bg-gradient-to-br from-white via-white to-purple-50/30 p-8 md:p-10 rounded-3xl border border-slate-200 shadow-lg shadow-slate-200/50 relative overflow-hidden">
+                                {/* Decorative element */}
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-100/40 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
-                                {project.justification && (
-                                    <div className="mt-6 pt-6 border-t border-slate-100">
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Fundamentación Teórica</h4>
-                                        <MarkdownContent content={project.justification} />
+                                <div className="relative">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-2.5 bg-purple-100 rounded-xl">
+                                            <Target className="w-6 h-6 text-purple-600" />
+                                        </div>
+                                        <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                                            Contexto y Justificación
+                                        </h3>
                                     </div>
-                                )}
+                                    <div className="space-y-4">
+                                        <MarkdownContent content={project.description} />
+                                    </div>
+
+                                    {project.justification && (
+                                        <div className="mt-8 pt-8 border-t-2 border-slate-200">
+                                            <h4 className="text-xs font-extrabold text-purple-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                <div className="w-1 h-4 bg-purple-600 rounded-full"></div>
+                                                Fundamentación Teórica
+                                            </h4>
+                                            <MarkdownContent content={project.justification} />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
                         {/* Side Column */}
                         <div className="space-y-6">
-                            <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100">
-                                <h3 className="font-bold text-emerald-800 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
-                                    <CheckSquare className="w-4 h-4" /> Objetivos
-                                </h3>
-                                <div className="text-emerald-900/80 text-sm">
-                                    <MarkdownContent content={project.objectives} />
+                            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-7 rounded-3xl border-2 border-emerald-200 shadow-md shadow-emerald-200/30 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-200/30 rounded-full blur-2xl"></div>
+                                <div className="relative">
+                                    <div className="flex items-center gap-2.5 mb-4">
+                                        <div className="p-2 bg-emerald-600 rounded-xl shadow-sm">
+                                            <CheckSquare className="w-4 h-4 text-white" />
+                                        </div>
+                                        <h3 className="font-extrabold text-emerald-900 text-sm uppercase tracking-wide">
+                                            Objetivos
+                                        </h3>
+                                    </div>
+                                    <div className="prose prose-sm prose-emerald max-w-none prose-p:text-emerald-900 prose-li:text-emerald-900 prose-strong:text-emerald-950">
+                                        <MarkdownContent content={project.objectives} />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
-                                <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
-                                    <GraduationCap className="w-4 h-4" /> Entregables
-                                </h3>
-                                <div className="text-blue-900/80 text-sm">
-                                    <MarkdownContent content={project.deliverables} />
+                            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-7 rounded-3xl border-2 border-blue-200 shadow-md shadow-blue-200/30 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200/30 rounded-full blur-2xl"></div>
+                                <div className="relative">
+                                    <div className="flex items-center gap-2.5 mb-4">
+                                        <div className="p-2 bg-blue-600 rounded-xl shadow-sm">
+                                            <GraduationCap className="w-4 h-4 text-white" />
+                                        </div>
+                                        <h3 className="font-extrabold text-blue-900 text-sm uppercase tracking-wide">
+                                            Entregables
+                                        </h3>
+                                    </div>
+                                    <div className="prose prose-sm prose-blue max-w-none prose-p:text-blue-900 prose-li:text-blue-900 prose-strong:text-blue-950">
+                                        <MarkdownContent content={project.deliverables} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
