@@ -1,4 +1,4 @@
- 
+
 'use client';
 
 import { useState } from 'react';
@@ -32,6 +32,19 @@ type Resource = {
 };
 
 // ... (Project type remains same)
+type Project = {
+    id: string;
+    title: string;
+    description: string;
+    industry?: string | null;
+    googleDriveFolderId?: string | null;
+    status: string;
+    type?: string;
+    students: { id: string; name: string | null; email: string | null; avatarUrl?: string | null }[];
+    teachers: { id: string; name: string | null; email: string | null; avatarUrl?: string | null }[];
+    teams?: any[];
+    accessCode?: string;
+};
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function ProjectWorkspaceClient({ project, resources, learningObjects, assignments }: { project: Project, resources: Resource[], learningObjects: any[], assignments: any[] }) {
