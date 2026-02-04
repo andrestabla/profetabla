@@ -329,3 +329,45 @@ export async function linkLearningObjectToProjectAction(projectId: string, oaId:
         return { success: false, error: 'Error al vincular el OA' };
     }
 }
+
+export async function initializeProjectDriveFolderAction(projectId: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) {
+            return { success: false, error: 'No autorizado' };
+        }
+
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            select: { id: true, title: true, googleDriveFolderId: true }
+        });
+
+        if (!project) return { success: false, error: 'Proyecto no encontrado' };
+        if (project.googleDriveFolderId) return { success: true, message: 'La carpeta ya existe' };
+
+        const { createProjectFolder } = await import('@/lib/google-drive');
+
+        let folderId;
+        try {
+            folderId = await createProjectFolder(project.title);
+        } catch (e) {
+            console.error('Failed to create folder:', e);
+            return { success: false, error: 'Fallo al crear carpeta en Drive API' };
+        }
+
+        if (!folderId) {
+            return { success: false, error: 'Error desconocido al crear la carpeta' };
+        }
+
+        await prisma.project.update({
+            where: { id: projectId },
+            data: { googleDriveFolderId: folderId }
+        });
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error in initializeProjectDriveFolderAction:', error);
+        return { success: false, error: 'Error desconocido al inicializar carpeta' };
+    }
+}

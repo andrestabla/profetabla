@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, uploadProjectFileToR2Action, extractResourceMetadataAction, updateProjectResourceAction } from './actions';
+import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, uploadProjectFileToR2Action, extractResourceMetadataAction, updateProjectResourceAction, initializeProjectDriveFolderAction } from './actions';
 import { searchStudentsAction, addStudentToProjectAction, removeStudentFromProjectAction, searchTeachersAction, addTeacherToProjectAction, removeTeacherFromProjectAction } from '@/app/actions/project-enrollment';
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
@@ -61,6 +61,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [selectedDriveFile, setSelectedDriveFile] = useState<{ title: string, url: string } | null>(null);
     const [driveMode, setDriveMode] = useState<'LINK' | 'UPLOAD'>('LINK');
     const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+    const [isInitializingFolder, setIsInitializingFolder] = useState(false);
     const [viewerResource, setViewerResource] = useState<Resource | null>(null);
     const [isExtracting, setIsExtracting] = useState(false);
 
@@ -564,9 +565,44 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                         <div>
                                                             <h4 className="text-sm font-bold text-amber-800">No hay carpeta de Drive vinculada</h4>
                                                             <p className="text-xs text-amber-700 mt-1 mb-2">Para usar el explorador de archivos, debes vincular una carpeta de Google Drive a este proyecto.</p>
-                                                            <Link href={`/dashboard/professor/projects/${project.id}/edit`} className="text-xs font-bold text-amber-600 hover:text-amber-800 underline">
-                                                                Configurar carpeta ahora &rarr;
-                                                            </Link>
+
+                                                            <div className="flex flex-col gap-2 mt-2">
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={isInitializingFolder}
+                                                                    onClick={async () => {
+                                                                        setIsInitializingFolder(true);
+                                                                        try {
+                                                                            const res = await initializeProjectDriveFolderAction(project.id);
+                                                                            if (!res.success) {
+                                                                                alert(res.error || 'Error al crear la carpeta');
+                                                                            }
+                                                                        } catch (e) {
+                                                                            console.error(e);
+                                                                            alert('Error inesperado');
+                                                                        } finally {
+                                                                            setIsInitializingFolder(false);
+                                                                        }
+                                                                    }}
+                                                                    className="w-fit px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
+                                                                >
+                                                                    {isInitializingFolder ? (
+                                                                        <>
+                                                                            <span className="w-3 h-3 border-2 border-amber-800 border-t-transparent rounded-full animate-spin" />
+                                                                            Creando carpeta...
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Wand2 className="w-3 h-3" />
+                                                                            Crear carpeta automáticamente
+                                                                        </>
+                                                                    )}
+                                                                </button>
+
+                                                                <Link href={`/dashboard/professor/projects/${project.id}/edit`} className="text-xs text-amber-600 hover:text-amber-800 underline w-fit">
+                                                                    o configurar manualmente &rarr;
+                                                                </Link>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>

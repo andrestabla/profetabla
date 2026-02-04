@@ -82,6 +82,23 @@ export async function createProjectAction(formData: FormData) {
             });
         }
 
+        // D. Create Google Drive Folder (Auto-provisioning)
+        let driveFolderId = null;
+        try {
+            // Import dynamically to ensure no side-effects in transaction if possible, or just standard import
+            const { createProjectFolder } = await import('@/lib/google-drive');
+            driveFolderId = await createProjectFolder(title);
+            if (driveFolderId) {
+                await tx.project.update({
+                    where: { id: project.id },
+                    data: { googleDriveFolderId: driveFolderId }
+                });
+            }
+        } catch (error) {
+            console.error('Error creating Drive folder for new project:', error);
+            // Non-blocking: Project is created even if Drive fails
+        }
+
         return project;
     });
 
