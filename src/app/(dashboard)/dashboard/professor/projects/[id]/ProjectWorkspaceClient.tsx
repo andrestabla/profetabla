@@ -11,6 +11,7 @@ import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
 import { SubmissionCard } from '@/components/SubmissionCard';
 import { OAPickerModal } from '@/components/OAPickerModal';
+import { DriveSelectorModal } from '@/components/DriveSelectorModal';
 import { EnrollmentControls } from '@/components/EnrollmentControls';
 import { TeamManagement } from '@/components/TeamManagement';
 import { useSession } from 'next-auth/react';
@@ -55,10 +56,11 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     // const [showContext, setShowContext] = useState(false);
     const [resourceType, setResourceType] = useState('ARTICLE');
     const [driveFiles, setDriveFiles] = useState<any[]>([]);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const [isLoadingDrive, setIsLoadingDrive] = useState(false);
     const [selectedDriveFile, setSelectedDriveFile] = useState<{ title: string, url: string } | null>(null);
     const [driveMode, setDriveMode] = useState<'LINK' | 'UPLOAD'>('LINK');
+    const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
     const [viewerResource, setViewerResource] = useState<Resource | null>(null);
     const [isExtracting, setIsExtracting] = useState(false);
 
@@ -575,10 +577,27 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                         <button type="button" onClick={() => setDriveMode('UPLOAD')} className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${driveMode === 'UPLOAD' ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>Subir Nuevo</button>
                                                     </div>
                                                     {driveMode === 'LINK' ? (
-                                                        <select className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-300" onChange={(e) => { const file = driveFiles.find(f => f.id === e.target.value); if (file) { setSelectedDriveFile({ title: file.name, url: file.webViewLink! }); setMetaTitle(file.name); } }}>
-                                                            <option value="">Selecciona un archivo del Drive...</option>
-                                                            {driveFiles.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                                        </select>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (driveFiles.length === 0) handleFetchDriveFiles();
+                                                                    setIsDriveModalOpen(true);
+                                                                }}
+                                                                className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-blue-300 hover:shadow-md transition-all flex items-center justify-between group"
+                                                            >
+                                                                <span className="flex items-center gap-2">
+                                                                    <Cloud className="w-5 h-5 text-blue-500" />
+                                                                    {selectedDriveFile ? <span className="text-slate-900">{selectedDriveFile.title}</span> : <span className="text-slate-400">Explorar Archivos de Drive...</span>}
+                                                                </span>
+                                                                <span className="bg-slate-100 text-slate-500 text-xs px-2 py-1 rounded-md group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">Seleccionar</span>
+                                                            </button>
+                                                            {selectedDriveFile && (
+                                                                <button type="button" onClick={() => { setSelectedDriveFile(null); setMetaTitle(''); setMetaUrl(''); }} className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 hover:border-rose-200 text-slate-400 hover:text-rose-500 transition-colors">
+                                                                    <X className="w-5 h-5" />
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     ) : (
                                                         <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-white transition-colors cursor-pointer relative">
                                                             <input type="file" name="file" required className="absolute inset-0 opacity-0 cursor-pointer" />
@@ -853,6 +872,19 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                 onClose={() => setIsOAModalOpen(false)}
                 projectId={project.id}
             />
+
+            <DriveSelectorModal
+                isOpen={isDriveModalOpen}
+                onClose={() => setIsDriveModalOpen(false)}
+                files={driveFiles}
+                onSelect={(file) => {
+                    setSelectedDriveFile({ title: file.name, url: file.webViewLink! });
+                    setMetaTitle(file.name);
+                    setIsDriveModalOpen(false);
+                }}
+                isLoading={isLoadingDrive}
+            />
+
         </div >
     );
 }
