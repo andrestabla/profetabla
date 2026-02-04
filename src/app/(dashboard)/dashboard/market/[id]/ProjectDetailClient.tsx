@@ -73,23 +73,39 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
     const config = typeConfig[projectType as keyof typeof typeConfig] || typeConfig.PROJECT;
     const Icon = config.icon;
 
-    // Helper for Markdown Styling
+    // Helper for Markdown/HTML Content Rendering
     const MarkdownContent = ({ content }: { content: string | null }) => {
         if (!content) return <span className="text-slate-400 italic">No disponible</span>;
 
+        // Detect if content is HTML (contains HTML tags)
+        const isHTML = /<[a-z][\s\S]*>/i.test(content);
+
+        const proseClasses = `prose prose-sm prose-slate max-w-none 
+            prose-headings:font-extrabold prose-headings:text-slate-900 prose-headings:tracking-tight
+            prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
+            prose-p:text-slate-700 prose-p:leading-relaxed prose-p:mb-4
+            prose-li:text-slate-700 prose-li:leading-relaxed prose-li:marker:text-blue-600 prose-li:marker:font-bold
+            prose-strong:text-slate-900 prose-strong:font-bold
+            prose-em:text-slate-600 prose-em:italic
+            prose-a:text-blue-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline hover:prose-a:text-blue-700
+            prose-ul:my-4 prose-ul:space-y-2 prose-ol:my-4 prose-ol:space-y-2
+            prose-code:text-sm prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-slate-800
+            prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-slate-600
+        `;
+
+        if (isHTML) {
+            // Render HTML content
+            return (
+                <div
+                    className={proseClasses}
+                    dangerouslySetInnerHTML={{ __html: content }}
+                />
+            );
+        }
+
+        // Render Markdown content
         return (
-            <div className="prose prose-sm prose-slate max-w-none 
-                prose-headings:font-extrabold prose-headings:text-slate-900 prose-headings:tracking-tight
-                prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
-                prose-p:text-slate-700 prose-p:leading-relaxed prose-p:mb-4
-                prose-li:text-slate-700 prose-li:leading-relaxed prose-li:marker:text-blue-600 prose-li:marker:font-bold
-                prose-strong:text-slate-900 prose-strong:font-bold
-                prose-em:text-slate-600 prose-em:italic
-                prose-a:text-blue-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline hover:prose-a:text-blue-700
-                prose-ul:my-4 prose-ul:space-y-2 prose-ol:my-4 prose-ol:space-y-2
-                prose-code:text-sm prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-slate-800
-                prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-slate-600
-            ">
+            <div className={proseClasses}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {content}
                 </ReactMarkdown>
