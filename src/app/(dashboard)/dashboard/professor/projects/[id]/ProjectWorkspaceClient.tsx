@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search } from 'lucide-react';
 import Link from 'next/link';
-import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, extractResourceMetadataAction, updateProjectResourceAction } from './actions';
+import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, uploadProjectFileToR2Action, extractResourceMetadataAction, updateProjectResourceAction } from './actions';
 import { searchStudentsAction, addStudentToProjectAction, removeStudentFromProjectAction, searchTeachersAction, addTeacherToProjectAction, removeTeacherFromProjectAction } from '@/app/actions/project-enrollment';
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
@@ -24,6 +24,7 @@ type Resource = {
     presentation?: string | null;
     utility?: string | null;
     createdAt: Date;
+    originalUrl?: string;
 };
 
 type Project = {
@@ -163,7 +164,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         setEditingResource(resource);
         setResourceType(resource.type);
         setMetaTitle(resource.title);
-        setMetaUrl(resource.url);
+        setMetaUrl(resource.originalUrl || resource.url);
         setMetaPresentation(resource.presentation || '');
         setMetaUtility(resource.utility || '');
 
@@ -186,6 +187,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
             case 'ARTICLE': return <FileText className="w-5 h-5 text-blue-500" />;
             case 'EMBED': return <Sparkles className="w-5 h-5 text-purple-500" />;
             case 'DRIVE': return <Cloud className="w-5 h-5 text-emerald-500" />;
+            case 'FILE': return <FileText className="w-5 h-5 text-slate-500" />;
             default: return <BookOpen className="w-5 h-5 text-slate-400" />;
         }
     };
@@ -469,6 +471,8 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                         result = await updateProjectResourceAction(formData);
                                     } else if (resourceType === 'DRIVE' && driveMode === 'UPLOAD') {
                                         result = await uploadProjectFileToDriveAction(formData);
+                                    } else if (resourceType === 'FILE') {
+                                        result = await uploadProjectFileToR2Action(formData);
                                     } else {
                                         result = await addResourceToProjectAction(formData);
                                     }
@@ -503,6 +507,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                     <option value="ARTICLE">📖 Artículo / Blog</option>
                                                     <option value="VIDEO">▶️ Video (YouTube/Vimeo)</option>
                                                     <option value="EMBED">✨ Embebido (Iframe)</option>
+                                                    <option value="FILE">📂 Subir Archivo (Explorar)</option>
                                                     <option value="DRIVE">📁 Google Drive</option>
                                                 </select>
                                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">▼</div>
@@ -540,14 +545,24 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                 </button>
                                             </div>
 
-                                            {(resourceType !== 'DRIVE' || !project.googleDriveFolderId) && (
+                                            {(resourceType === 'FILE') && (
+                                                <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-white transition-colors cursor-pointer relative bg-slate-50">
+                                                    <input type="file" name="file" required={resourceType === 'FILE' && !editingResource} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                    <div className="pointer-events-none">
+                                                        <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2" />
+                                                        <span className="text-xs text-slate-500 font-medium">Click para explorar archivos o arrastra aquí</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {resourceType !== 'FILE' && (resourceType !== 'DRIVE' || !project.googleDriveFolderId) && (
                                                 <div className="relative">
                                                     {resourceType === 'EMBED' ? (
                                                         <textarea name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required rows={4} placeholder="<iframe src='...'></iframe>" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                                                     ) : (
                                                         <>
                                                             <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                            <input name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required type="url" placeholder={resourceType === 'DRIVE' ? "https://drive.google.com/..." : "https://ejemplo.com/recurso"} className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                                            <input name="url" value={metaUrl} onChange={(e) => setMetaUrl(e.target.value)} required={resourceType !== 'FILE'} type="url" placeholder={resourceType === 'DRIVE' ? "https://drive.google.com/..." : "https://ejemplo.com/recurso"} className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                                                         </>
                                                     )}
                                                 </div>
@@ -579,6 +594,10 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                             )}
                                         </div>
                                     </div>
+
+
+                                    {/* Hidden input to preserve URL/Key when editing FILE type */}
+                                    {resourceType === 'FILE' && <input type="hidden" name="url" value={metaUrl} />}
 
                                     {/* Columna Derecha: Metadatos */}
                                     <div className="space-y-5">
@@ -761,15 +780,17 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                     </div>
                 )
             }
-            {activeTab === 'MENTORSHIP' && (
-                <div className="animate-in fade-in duration-300">
-                    <BookingList
-                        defaultProjectId={project.id}
-                        projectTeacherIds={project.teachers.map(t => t.id)}
-                        projectStudents={session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN' ? project.students.map(s => ({ id: s.id, name: s.name || 'Sin nombre' })) : undefined}
-                    />
-                </div>
-            )}
+            {
+                activeTab === 'MENTORSHIP' && (
+                    <div className="animate-in fade-in duration-300">
+                        <BookingList
+                            defaultProjectId={project.id}
+                            projectTeacherIds={project.teachers.map(t => t.id)}
+                            projectStudents={session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN' ? project.students.map(s => ({ id: s.id, name: s.name || 'Sin nombre' })) : undefined}
+                        />
+                    </div>
+                )
+            }
             {
                 activeTab === 'ASSIGNMENTS' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">

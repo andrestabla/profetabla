@@ -46,10 +46,20 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
     if (!project) return notFound();
 
-    const resources = await prisma.resource.findMany({
+    const prevResources = await prisma.resource.findMany({
         where: { projectId: id },
         orderBy: { createdAt: 'desc' }
     });
+
+    // Sign R2 URLs
+    const { getR2FileUrl } = await import('@/lib/r2');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resources = await Promise.all(prevResources.map(async (r: any) => {
+        if (r.type === 'FILE') {
+            return { ...r, url: await getR2FileUrl(r.url), originalUrl: r.url };
+        }
+        return r;
+    }));
 
     const assignments = await prisma.assignment.findMany({
         where: { projectId: id },

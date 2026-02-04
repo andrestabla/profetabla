@@ -167,6 +167,50 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
     }
 }
 
+export async function uploadProjectFileToR2Action(formData: FormData) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) return { success: false, error: 'No autorizado' };
+
+        const projectId = formData.get('projectId') as string;
+        const file = formData.get('file') as File;
+        const presentation = formData.get('presentation') as string;
+        const utility = formData.get('utility') as string;
+
+        if (!file || !projectId) {
+            return { success: false, error: 'Faltan datos requeridos' };
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const { uploadFileToR2 } = await import('@/lib/r2');
+        const { key } = await uploadFileToR2(buffer, file.name, file.type, projectId);
+
+        const category = await prisma.resourceCategory.findFirst();
+        const categoryId = category?.id || (await prisma.resourceCategory.create({ data: { name: 'General' } })).id;
+
+        await prisma.resource.create({
+            data: {
+                title: file.name,
+                type: 'FILE',
+                url: key, // Store the R2 key
+                projectId,
+                presentation,
+                utility,
+                categoryId: categoryId
+            }
+        });
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        return { success: true };
+    } catch (e: unknown) {
+        const error = e as Error;
+        console.error('Error en uploadProjectFileToR2Action:', error);
+        return { success: false, error: error.message || 'Error al subir archivo a R2' };
+    }
+}
+
 
 
 
