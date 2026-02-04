@@ -49,6 +49,12 @@ export default async function ResourceViewerPage({ params }: { params: Promise<{
         keywords: (resource as any).keywords,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         categoryId: (resource as any).categoryId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        citationAuthor: (resource as any).citationAuthor,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        apaReference: (resource as any).apaReference,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        shouldEmbed: (resource as any).shouldEmbed,
         category: resource.category,
         project: resource.project ? {
             title: resource.project.title,
