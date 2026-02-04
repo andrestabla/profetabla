@@ -19,6 +19,8 @@ export async function addResourceToProjectAction(formData: FormData) {
         const url = formData.get('url') as string;
         const subject = formData.get('subject') as string;
         const competency = formData.get('competency') as string;
+        const presentation = formData.get('presentation') as string;
+        const utility = formData.get('utility') as string;
         const keywords = (formData.get('keywords') as string)?.split(',').map(k => k.trim()).filter(k => k) || [];
 
         console.log('--- addResourceToProjectAction ---');
