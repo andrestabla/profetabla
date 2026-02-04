@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 'use client';
 
 import { useState } from 'react';
@@ -24,32 +24,18 @@ type Resource = {
     type: string;
     presentation?: string | null;
     utility?: string | null;
+    subject?: string | null;
+    competency?: string | null;
+    keywords?: string[];
     createdAt: Date;
     originalUrl?: string;
 };
 
-type Project = {
-    id: string;
-    title: string;
-    description: string | null;
-    industry: string | null;
-    justification: string | null;
-    objectives: string | null;
-    methodology: string | null;
-    resourcesDescription: string | null;
-    schedule: string | null;
-    budget: string | null;
-    evaluation: string | null;
-    kpis: string | null;
-    googleDriveFolderId: string | null;
-    students: { id: string; name: string | null; email: string | null; avatarUrl: string | null }[];
-    teachers: { id: string; name: string | null; email: string | null; avatarUrl: string | null }[];
-    type: string;
-    teams: any[]; // Using any for simplicity as it matches TeamManagement props
-};
+// ... (Project type remains same)
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function ProjectWorkspaceClient({ project, resources, learningObjects, assignments }: { project: Project, resources: Resource[], learningObjects: any[], assignments: any[] }) {
+    // ... (existing state) ...
     const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP' | 'ASSIGNMENTS' | 'TEAM'>('RESOURCES');
     const [isUploading, setIsUploading] = useState(false);
@@ -75,6 +61,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     const [teacherSearchResults, setTeacherSearchResults] = useState<any[]>([]);
     const [isSearchingTeachers, setIsSearchingTeachers] = useState(false);
 
+    // ... (Handlers remain same) ...
     const handleSearchStudents = async (query: string) => {
         setStudentSearchQuery(query);
         if (query.length < 2) {
@@ -96,9 +83,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         await addStudentToProjectAction(project.id, studentId);
         setStudentSearchQuery('');
         setStudentSearchResults([]);
-        // Optional: Trigger a refresh or local update? Since action revalidates path, client might need router.refresh() if not using it already.
-        // But since this is a client component receiving props, a hard refresh might be needed or we rely on revalidatePath actually causing a re-render if using router.refresh()
-        window.location.reload(); // Simple brute force for now to ensure props update
+        window.location.reload();
     };
 
     const handleRemoveStudent = async (studentId: string) => {
@@ -133,15 +118,18 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
 
     const handleRemoveTeacher = async (teacherId: string) => {
         if (!confirm("¿Estás seguro de querer retirar a este profesor del proyecto?")) return;
-        // Optional: Check if it's the current user?
         await removeTeacherFromProjectAction(project.id, teacherId);
         window.location.reload();
     };
+
 
     // Metadata form states
     const [metaTitle, setMetaTitle] = useState('');
     const [metaPresentation, setMetaPresentation] = useState('');
     const [metaUtility, setMetaUtility] = useState('');
+    const [metaSubject, setMetaSubject] = useState('');
+    const [metaCompetency, setMetaCompetency] = useState('');
+    const [metaKeywords, setMetaKeywords] = useState('');
     const [metaUrl, setMetaUrl] = useState('');
     const [editingResource, setEditingResource] = useState<Resource | null>(null);
     const [isOAModalOpen, setIsOAModalOpen] = useState(false);
@@ -170,6 +158,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         setMetaUrl(resource.originalUrl || resource.url);
         setMetaPresentation(resource.presentation || '');
         setMetaUtility(resource.utility || '');
+        setMetaSubject(resource.subject || '');
+        setMetaCompetency(resource.competency || '');
+        setMetaKeywords(resource.keywords?.join(', ') || '');
 
         // Scroll to form
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -181,6 +172,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
         setMetaUrl('');
         setMetaPresentation('');
         setMetaUtility('');
+        setMetaSubject('');
+        setMetaCompetency('');
+        setMetaKeywords('');
         setResourceType('ARTICLE');
     };
 
@@ -214,6 +208,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                 setMetaTitle(result.data.title);
                 setMetaPresentation(result.data.presentation);
                 setMetaUtility(result.data.utility);
+                setMetaSubject(result.data.subject);
+                setMetaCompetency(result.data.competency);
+                setMetaKeywords(result.data.keywords ? result.data.keywords.join(', ') : '');
             } else {
                 alert(result.error || "No se pudo extraer metadatos");
             }
@@ -699,6 +696,23 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                 <label className="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Utilidad Pedagógica</label>
                                                 <textarea name="utility" value={metaUtility} onChange={(e) => setMetaUtility(e.target.value)} rows={3} placeholder="¿Para qué sirve?" className="w-full px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-xl text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none" />
                                             </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Materia / Categoría</label>
+                                                <input name="subject" value={metaSubject} onChange={(e) => setMetaSubject(e.target.value)} placeholder="Ej: Matemáticas, Innovación..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Competencia</label>
+                                                <input name="competency" value={metaCompetency} onChange={(e) => setMetaCompetency(e.target.value)} placeholder="Ej: Pensamiento crítico..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                                Keywords <span className="text-[10px] font-normal normal-case opacity-60">(separadas por comas)</span>
+                                            </label>
+                                            <input name="keywords" value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)} placeholder="Ej: innovación, diseño, proyecto..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                                         </div>
                                     </div>
                                 </div>

@@ -17,8 +17,9 @@ export async function addResourceToProjectAction(formData: FormData) {
         const title = driveTitle || (formData.get('title') as string);
         const type = formData.get('type') as string;
         const url = formData.get('url') as string;
-        const presentation = formData.get('presentation') as string;
-        const utility = formData.get('utility') as string;
+        const subject = formData.get('subject') as string;
+        const competency = formData.get('competency') as string;
+        const keywords = (formData.get('keywords') as string)?.split(',').map(k => k.trim()).filter(k => k) || [];
 
         console.log('--- addResourceToProjectAction ---');
         console.log('Project:', projectId, 'Title:', title, 'Type:', type, 'URL:', url);
@@ -38,6 +39,9 @@ export async function addResourceToProjectAction(formData: FormData) {
                 projectId,
                 presentation,
                 utility,
+                subject,
+                competency,
+                keywords,
                 categoryId: categoryId
             }
         });
@@ -65,6 +69,9 @@ export async function updateProjectResourceAction(formData: FormData) {
         const url = formData.get('url') as string;
         const presentation = formData.get('presentation') as string;
         const utility = formData.get('utility') as string;
+        const subject = formData.get('subject') as string;
+        const competency = formData.get('competency') as string;
+        const keywords = (formData.get('keywords') as string)?.split(',').map(k => k.trim()).filter(k => k) || [];
 
         if (!resourceId || !projectId || !title || !url) {
             return { success: false, error: 'Faltan datos requeridos para actualizar' };
@@ -78,6 +85,9 @@ export async function updateProjectResourceAction(formData: FormData) {
                 url,
                 presentation,
                 utility,
+                subject,
+                competency,
+                keywords
             }
         });
 
@@ -112,6 +122,9 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
         const file = formData.get('file') as File;
         const presentation = formData.get('presentation') as string;
         const utility = formData.get('utility') as string;
+        const subject = formData.get('subject') as string;
+        const competency = formData.get('competency') as string;
+        const keywords = (formData.get('keywords') as string)?.split(',').map(k => k.trim()).filter(k => k) || [];
 
         if (!file || !projectId) {
             return { success: false, error: 'Faltan datos requeridos (archivo o projectId)' };
@@ -154,6 +167,9 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
                 projectId,
                 presentation,
                 utility,
+                subject,
+                competency,
+                keywords,
                 categoryId: categoryId
             }
         });
@@ -176,6 +192,9 @@ export async function uploadProjectFileToR2Action(formData: FormData) {
         const file = formData.get('file') as File;
         const presentation = formData.get('presentation') as string;
         const utility = formData.get('utility') as string;
+        const subject = formData.get('subject') as string;
+        const competency = formData.get('competency') as string;
+        const keywords = (formData.get('keywords') as string)?.split(',').map(k => k.trim()).filter(k => k) || [];
 
         if (!file || !projectId) {
             return { success: false, error: 'Faltan datos requeridos' };
@@ -198,6 +217,9 @@ export async function uploadProjectFileToR2Action(formData: FormData) {
                 projectId,
                 presentation,
                 utility,
+                subject,
+                competency,
+                keywords,
                 categoryId: categoryId
             }
         });
