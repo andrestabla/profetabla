@@ -232,7 +232,10 @@ export async function extractResourceMetadataAction(url: string, type: string) {
 
         if (type === 'DRIVE') {
             // Check if we can extract ID
-            const fileId = url.match(/[-\w]{25,}/)?.[0];
+            // Extract ID more robustly (ignoring filenames)
+            // Look for /d/ID, id=ID, or standard ID pattern if it looks like an ID (no extensions)
+            const idMatch = url.match(/(?:\/d\/|id=)([-\w]{25,})/) || url.match(/^[-\w]{25,}$/);
+            const fileId = idMatch ? idMatch[1] || idMatch[0] : null;
             if (fileId) {
                 // Use the specific drive processor which auto-resolves mimeTypes
                 data = await processDriveFileForOAAction(fileId, 'auto');
