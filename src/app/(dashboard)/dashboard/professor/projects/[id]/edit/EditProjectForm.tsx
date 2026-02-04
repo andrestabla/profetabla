@@ -177,6 +177,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                 minRows={3}
                                 maxRows={15}
                                 showPreview={true}
+                                useRichText={true}
                             />
                         </div>
                     </div>
@@ -197,6 +198,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                 minRows={4}
                                 maxRows={20}
                                 showPreview={true}
+                                useRichText={true}
                             />
                         </div>
 
@@ -208,6 +210,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                 minRows={5}
                                 maxRows={20}
                                 showPreview={true}
+                                useRichText={true}
                             />
                         </div>
                     </div>
@@ -227,6 +230,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                 minRows={5}
                                 maxRows={25}
                                 showPreview={true}
+                                useRichText={true}
                             />
                         </div>
 
@@ -239,6 +243,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                     minRows={4}
                                     maxRows={20}
                                     showPreview={true}
+                                    useRichText={true}
                                 />
                             </div>
                             <div>
@@ -249,6 +254,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                     minRows={4}
                                     maxRows={20}
                                     showPreview={true}
+                                    useRichText={true}
                                 />
                             </div>
                         </div>
@@ -269,6 +275,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                 minRows={4}
                                 maxRows={20}
                                 showPreview={true}
+                                useRichText={true}
                             />
                         </div>
 
@@ -280,6 +287,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                 minRows={3}
                                 maxRows={15}
                                 showPreview={true}
+                                useRichText={true}
                             />
                         </div>
                     </div>
@@ -299,6 +307,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                 minRows={4}
                                 maxRows={20}
                                 showPreview={true}
+                                useRichText={true}
                             />
                         </div>
 
@@ -310,6 +319,7 @@ export default function EditProjectForm({ project }: { project: Project }) {
                                 minRows={3}
                                 maxRows={15}
                                 showPreview={true}
+                                useRichText={true}
                             />
                         </div>
                     </div>

@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Maximize2, X } from 'lucide-react';
+import { Maximize2, X, FileText, Code2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import RichTextEditor from './RichTextEditor';
 
 interface AutoResizeTextareaProps {
     name: string;
@@ -14,6 +15,7 @@ interface AutoResizeTextareaProps {
     minRows?: number;
     maxRows?: number;
     showPreview?: boolean;
+    useRichText?: boolean;
 }
 
 export default function AutoResizeTextarea({
@@ -24,17 +26,19 @@ export default function AutoResizeTextarea({
     label,
     minRows = 3,
     maxRows = 20,
-    showPreview = false
+    showPreview = false,
+    useRichText = false
 }: AutoResizeTextareaProps) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [isMaximized, setIsMaximized] = useState(false);
     const [value, setValue] = useState(defaultValue || '');
     const [showPreviewTab, setShowPreviewTab] = useState(false);
+    const [editorMode, setEditorMode] = useState<'plain' | 'rich'>(useRichText ? 'rich' : 'plain');
 
-    // Auto-resize function
+    // Auto-resize function for plain text mode
     const adjustHeight = () => {
         const textarea = textareaRef.current;
-        if (!textarea) return;
+        if (!textarea || editorMode === 'rich') return;
 
         // Reset height to auto to get the correct scrollHeight
         textarea.style.height = 'auto';
@@ -50,12 +54,18 @@ export default function AutoResizeTextarea({
 
     // Adjust height on mount and when value changes
     useEffect(() => {
-        adjustHeight();
-    }, [value]);
+        if (editorMode === 'plain') {
+            adjustHeight();
+        }
+    }, [value, editorMode]);
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setValue(e.target.value);
         adjustHeight();
+    };
+
+    const handleRichTextChange = (html: string) => {
+        setValue(html);
     };
 
     return (
@@ -64,26 +74,65 @@ export default function AutoResizeTextarea({
                 {label && (
                     <div className="flex items-center justify-between mb-2">
                         <label className="block text-sm font-bold text-slate-700">{label}</label>
-                        <button
-                            type="button"
-                            onClick={() => setIsMaximized(true)}
-                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                            title="Maximizar editor"
-                        >
-                            <Maximize2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {useRichText && (
+                                <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditorMode('plain')}
+                                        className={`px-2 py-1 text-xs font-bold rounded transition-colors ${editorMode === 'plain'
+                                                ? 'bg-white text-slate-700 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-700'
+                                            }`}
+                                        title="Texto plano"
+                                    >
+                                        <FileText className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditorMode('rich')}
+                                        className={`px-2 py-1 text-xs font-bold rounded transition-colors ${editorMode === 'rich'
+                                                ? 'bg-white text-slate-700 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-700'
+                                            }`}
+                                        title="Editor HTML"
+                                    >
+                                        <Code2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => setIsMaximized(true)}
+                                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                title="Maximizar editor"
+                            >
+                                <Maximize2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 )}
-                <textarea
-                    ref={textareaRef}
-                    name={name}
-                    value={value}
-                    onChange={handleChange}
-                    placeholder={placeholder}
-                    required={required}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
-                    style={{ overflow: 'hidden' }}
-                />
+
+                {/* Hidden input to store the actual value for form submission */}
+                <input type="hidden" name={name} value={value} />
+
+                {editorMode === 'rich' ? (
+                    <RichTextEditor
+                        content={value}
+                        onChange={handleRichTextChange}
+                        placeholder={placeholder}
+                    />
+                ) : (
+                    <textarea
+                        ref={textareaRef}
+                        value={value}
+                        onChange={handleChange}
+                        placeholder={placeholder}
+                        required={required}
+                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
+                        style={{ overflow: 'hidden' }}
+                    />
+                )}
             </div>
 
             {/* Maximized Modal */}
@@ -94,30 +143,58 @@ export default function AutoResizeTextarea({
                         <div className="flex items-center justify-between p-6 border-b border-slate-200">
                             <div>
                                 <h3 className="text-xl font-bold text-slate-900">{label || 'Editor'}</h3>
-                                {showPreview && (
-                                    <div className="flex gap-2 mt-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPreviewTab(false)}
-                                            className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${!showPreviewTab
-                                                    ? 'bg-blue-100 text-blue-700'
-                                                    : 'text-slate-500 hover:bg-slate-100'
-                                                }`}
-                                        >
-                                            Editar
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPreviewTab(true)}
-                                            className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${showPreviewTab
-                                                    ? 'bg-blue-100 text-blue-700'
-                                                    : 'text-slate-500 hover:bg-slate-100'
-                                                }`}
-                                        >
-                                            Vista Previa
-                                        </button>
-                                    </div>
-                                )}
+                                <div className="flex gap-2 mt-3">
+                                    {useRichText && (
+                                        <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 mr-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditorMode('plain')}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded transition-colors flex items-center gap-1.5 ${editorMode === 'plain'
+                                                        ? 'bg-white text-slate-700 shadow-sm'
+                                                        : 'text-slate-500 hover:text-slate-700'
+                                                    }`}
+                                            >
+                                                <FileText className="w-3.5 h-3.5" />
+                                                Texto
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditorMode('rich')}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded transition-colors flex items-center gap-1.5 ${editorMode === 'rich'
+                                                        ? 'bg-white text-slate-700 shadow-sm'
+                                                        : 'text-slate-500 hover:text-slate-700'
+                                                    }`}
+                                            >
+                                                <Code2 className="w-3.5 h-3.5" />
+                                                HTML
+                                            </button>
+                                        </div>
+                                    )}
+                                    {showPreview && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPreviewTab(false)}
+                                                className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${!showPreviewTab
+                                                        ? 'bg-blue-100 text-blue-700'
+                                                        : 'text-slate-500 hover:bg-slate-100'
+                                                    }`}
+                                            >
+                                                Editar
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPreviewTab(true)}
+                                                className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${showPreviewTab
+                                                        ? 'bg-blue-100 text-blue-700'
+                                                        : 'text-slate-500 hover:bg-slate-100'
+                                                    }`}
+                                            >
+                                                Vista Previa
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                             <button
                                 type="button"
@@ -132,17 +209,33 @@ export default function AutoResizeTextarea({
                         <div className="flex-1 overflow-hidden p-6">
                             {showPreview && showPreviewTab ? (
                                 <div className="h-full overflow-auto prose prose-slate max-w-none">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {value || '*No hay contenido para previsualizar*'}
-                                    </ReactMarkdown>
+                                    {editorMode === 'rich' ? (
+                                        <div dangerouslySetInnerHTML={{ __html: value || '<p class="text-slate-400 italic">No hay contenido para previsualizar</p>' }} />
+                                    ) : (
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {value || '*No hay contenido para previsualizar*'}
+                                        </ReactMarkdown>
+                                    )}
                                 </div>
                             ) : (
-                                <textarea
-                                    value={value}
-                                    onChange={(e) => setValue(e.target.value)}
-                                    placeholder={placeholder}
-                                    className="w-full h-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none font-mono text-sm"
-                                />
+                                <>
+                                    {editorMode === 'rich' ? (
+                                        <div className="h-full">
+                                            <RichTextEditor
+                                                content={value}
+                                                onChange={handleRichTextChange}
+                                                placeholder={placeholder}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <textarea
+                                            value={value}
+                                            onChange={(e) => setValue(e.target.value)}
+                                            placeholder={placeholder}
+                                            className="w-full h-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none font-mono text-sm"
+                                        />
+                                    )}
+                                </>
                             )}
                         </div>
 
