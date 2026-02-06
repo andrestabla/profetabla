@@ -20,31 +20,21 @@ export default async function DashboardPage() {
 
     // 1. STUDENT DASHBOARD
     if (user.role === 'STUDENT') {
-        // First, fetch projects where the student has an ACCEPTED application
-        const applications = await prisma.projectApplication.findMany({
+        // First, fetch projects with teams (Direct Relation covers both Code-Joiners and Accepted Applicants)
+        const projects = await prisma.project.findMany({
             where: {
-                studentId: user.id,
-                status: 'ACCEPTED',
-                project: {
-                    status: { in: ['IN_PROGRESS', 'OPEN'] }
-                }
+                students: { some: { id: user.id } },
+                status: { in: ['IN_PROGRESS', 'OPEN'] }
             },
             include: {
-                project: {
-                    include: {
-                        teachers: true,
-                        students: true,
-                        teams: {
-                            where: { members: { some: { id: user.id } } },
-                            select: { id: true }
-                        }
-                    }
+                teachers: true,
+                students: true,
+                teams: {
+                    where: { members: { some: { id: user.id } } },
+                    select: { id: true }
                 }
-            }
+            },
         });
-
-        // Map applications to projects
-        const projects = applications.map(app => app.project);
 
         // Then, fetch assignments with submissions for each project
         const projectsWithAssignments = await Promise.all(
