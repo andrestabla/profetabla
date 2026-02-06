@@ -14,12 +14,21 @@ export default async function LearningPage() {
 
     // Logic for Student: Must have active project to see context
     if (session?.user?.role === 'STUDENT') {
-        const activeProject = await prisma.project.findFirst({
+        const application = await prisma.projectApplication.findFirst({
             where: {
-                students: { some: { id: session.user.id } },
-                status: 'IN_PROGRESS'
-            }
+                studentId: session.user.id,
+                status: 'ACCEPTED',
+                project: {
+                    status: 'IN_PROGRESS'
+                }
+            },
+            include: {
+                project: true,
+            },
+            orderBy: { createdAt: 'desc' } // Get most recent if multiple
         });
+
+        const activeProject = application?.project;
 
         if (!activeProject) {
             return (

@@ -28,11 +28,14 @@ export async function GET(request: Request) {
         let studentProjectIds: string[] = [];
 
         if (userRole === 'STUDENT') {
-            const studentProjects = await prisma.project.findMany({
-                where: { students: { some: { id: userId } } },
-                select: { id: true }
+            const applications = await prisma.projectApplication.findMany({
+                where: {
+                    studentId: userId,
+                    status: 'ACCEPTED'
+                },
+                select: { projectId: true }
             });
-            studentProjectIds = studentProjects.map(p => p.id);
+            studentProjectIds = applications.map(app => app.projectId);
         }
 
         // --- 2. Build Query Filters for Resources ---
