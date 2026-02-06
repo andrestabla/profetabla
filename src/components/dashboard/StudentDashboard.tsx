@@ -118,7 +118,13 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
 
                             <div className="mt-8 flex flex-wrap gap-4">
                                 <Link href={`/dashboard/student/projects/${currentProject.id}/kanban`} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-black transition-all">
-                                    <Kanban className="w-5 h-5" /> Ir al Kanban
+                                    <Kanban className="w-5 h-5" /> Kanban
+                                </Link>
+                                <Link
+                                    href={`/dashboard/student/projects/${currentProject.id}/kanban`}
+                                    className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20"
+                                >
+                                    <Target className="w-5 h-5" /> Entregas
                                 </Link>
                                 <Link href="/dashboard/learning" className="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all text-sm">
                                     Recursos <ChevronRight className="w-4 h-4" />
@@ -130,14 +136,14 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
                                         rel="noopener noreferrer"
                                         className="bg-blue-50 text-blue-600 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-100 transition-all text-sm border border-blue-100"
                                     >
-                                        <Cloud className="w-5 h-5" /> Carpeta de Drive
+                                        <Cloud className="w-5 h-5" /> Carpeta Drive
                                     </a>
                                 )}
                                 <Link
                                     href={`/dashboard/student/projects/${currentProject.id}`}
                                     className="bg-slate-100 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-200 transition-all text-sm border border-slate-200"
                                 >
-                                    <Briefcase className="w-5 h-5" /> Ver Proyecto
+                                    <Briefcase className="w-5 h-5" /> Detalles
                                 </Link>
                             </div>
                         </div>
