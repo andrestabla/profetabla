@@ -123,16 +123,7 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
                                 <Link href="/dashboard/learning" className="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all text-sm">
                                     Recursos <ChevronRight className="w-4 h-4" />
                                 </Link>
-                                {currentProject.googleDriveFolderId && (
-                                    <a
-                                        href={`https://drive.google.com/drive/folders/${currentProject.googleDriveFolderId}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-blue-50 text-blue-600 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-100 transition-all text-sm border border-blue-100"
-                                    >
-                                        <Cloud className="w-5 h-5" /> Carpeta de Drive
-                                    </a>
-                                )}
+
                                 <Link
                                     href={`/dashboard/student/projects/${currentProject.id}`}
                                     className="bg-slate-100 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-200 transition-all text-sm border border-slate-200"
