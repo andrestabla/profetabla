@@ -128,24 +128,22 @@ export async function generateTasksFromProject(projectId: string): Promise<{ suc
                     status: 'TODO',
                     projectId: projectId,
                     isMandatory: true,
-                    // If deliverable exists, create assignment
-                    ...(t.deliverable ? {
-                        assignment: {
-                            create: {
-                                title: `Entrega: ${t.title}`,
-                                description: t.description || `Entrega asociada a la tarea: ${t.title}`,
-                                projectId: projectId,
-                                evaluationCriteria: t.rubric ? t.rubric.map((r: any) => `- ${r.criterion}`).join('\n') : null,
-                                rubricItems: t.rubric ? {
-                                    create: t.rubric.map((r: any, idx: number) => ({
-                                        criterion: r.criterion,
-                                        maxPoints: r.maxPoints || 10,
-                                        order: idx
-                                    }))
-                                } : undefined
-                            }
+                    // Always create linked Assignment for AI tasks (Mandatory by default for AI generated plans)
+                    assignment: {
+                        create: {
+                            title: `Entrega: ${t.title}`,
+                            description: t.description || `Entrega asociada a la tarea: ${t.title}`,
+                            projectId: projectId,
+                            evaluationCriteria: t.rubric ? t.rubric.map((r: any) => `- ${r.criterion}`).join('\n') : "Criterio General (IA)",
+                            rubricItems: t.rubric ? {
+                                create: t.rubric.map((r: any, idx: number) => ({
+                                    criterion: r.criterion,
+                                    maxPoints: r.maxPoints || 10,
+                                    order: idx
+                                }))
+                            } : undefined
                         }
-                    } : {})
+                    }
                 }
             })
         ));

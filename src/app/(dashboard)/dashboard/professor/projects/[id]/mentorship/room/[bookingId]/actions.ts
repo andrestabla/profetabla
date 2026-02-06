@@ -28,7 +28,16 @@ export async function closeSessionAction(formData: FormData) {
                 description: agreements,
                 priority: "HIGH",
                 status: "TODO",
-                projectId: projectId
+                projectId: projectId,
+                isMandatory: true,
+                assignment: {
+                    create: {
+                        title: "Entrega: Acuerdos de Mentoría",
+                        description: `Evidencia de cumplimiento de los acuerdos: ${agreements}`,
+                        projectId: projectId,
+                        evaluationCriteria: "Cumplimiento de acuerdos pactados en sesión."
+                    }
+                }
             }
         });
     }
