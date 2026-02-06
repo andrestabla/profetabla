@@ -114,7 +114,7 @@ export async function GET(request: Request) {
         }));
 
         // Map author to user for frontend compatibility
-         
+
         const mappedTasks = syncedTasks.map(task => ({
             ...task,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,14 +188,14 @@ export async function POST(request: Request) {
                 assignees: {
                     connect: { id: session.user.id }
                 },
-                // Only create linked Assignment if mandatory (teacher/admin)
-                ...(isMandatory && deliverable ? {
+                // Always create linked Assignment if mandatory (teacher/admin) - Auto-generate "Entrega"
+                ...(isMandatory ? {
                     assignment: {
                         create: {
                             title: `Entrega: ${title}`,
                             projectId: pid,
                             dueDate: dueDate ? new Date(dueDate) : undefined,
-                            evaluationCriteria: evaluationCriteria,
+                            evaluationCriteria: evaluationCriteria || "Criterio General",
                             description: `Entrega asociada a la tarea: ${title}. ${description || ''}`,
                         }
                     }
