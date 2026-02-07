@@ -17,12 +17,17 @@ export async function submitAssignmentAction(formData: FormData) {
     if (!assignmentId) return { success: false, error: 'Falta ID de asignación' };
 
     try {
+        console.log('Starting submission for assignment:', assignmentId);
+        
         const assignment = await prisma.assignment.findUnique({
             where: { id: assignmentId },
             include: { project: true, task: { select: { id: true } } }
         });
 
-        if (!assignment) return { success: false, error: 'Asignación no encontrada' };
+        if (!assignment) {
+            console.error('Assignment not found:', assignmentId);
+            return { success: false, error: 'Asignación no encontrada' };
+        }
 
         let fileUrl = '';
         let fileName = '';
@@ -30,9 +35,9 @@ export async function submitAssignmentAction(formData: FormData) {
         let fileSize = 0;
 
         if (submissionType === 'URL') {
+            console.log('Processing URL submission');
             const url = formData.get('url') as string;
             if (!url) return { success: false, error: 'Falta la URL' };
-            // Simple validation
             try {
                 new URL(url);
             } catch {
@@ -43,6 +48,7 @@ export async function submitAssignmentAction(formData: FormData) {
             fileType = 'URL';
             fileSize = 0;
         } else {
+            console.log('Processing File submission');
             const file = formData.get('file') as File;
             if (!file) return { success: false, error: 'Falta el archivo' };
 
@@ -51,14 +57,22 @@ export async function submitAssignmentAction(formData: FormData) {
             const buffer = Buffer.from(arrayBuffer);
 
             // Upload to R2 (Plan C)
-            const result = await uploadFileToR2(buffer, file.name, file.type, 'submissions');
-            fileUrl = result.url;
-            fileName = file.name;
-            fileType = file.type;
-            fileSize = file.size;
+            console.log('Uploading to R2...');
+            try {
+                const result = await uploadFileToR2(buffer, file.name, file.type, 'submissions');
+                fileUrl = result.url;
+                fileName = file.name;
+                fileType = file.type;
+                fileSize = file.size;
+                console.log('R2 Upload success:', fileUrl);
+            } catch (uploadError) {
+                console.error('R2 Upload failed:', uploadError);
+                return { success: false, error: 'Error al subir archivo a la nube' };
+            }
         }
 
         // Save to DB
+        console.log('Saving submission to DB...');
         await prisma.$transaction([
             prisma.submission.create({
                 data: {
@@ -71,20 +85,23 @@ export async function submitAssignmentAction(formData: FormData) {
                 }
             }),
             // Auto-move task to SUBMITTED
-            prisma.task.update({
-                where: { id: assignment.task?.id }, // Needs include task in assignment fetch
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                data: { status: 'SUBMITTED' as any }
-            })
+            ...(assignment.task ? [
+                prisma.task.update({
+                    where: { id: assignment.task.id }, 
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    data: { status: 'SUBMITTED' as any }
+                })
+            ] : [])
         ]);
+        console.log('DB Transaction complete');
 
         revalidatePath('/dashboard/assignments');
-        revalidatePath('/dashboard/kanban'); // Sync kanban
+        revalidatePath('/dashboard/kanban'); 
         revalidatePath('/dashboard/grades');
         return { success: true };
 
     } catch (e: unknown) {
-        console.error(e);
+        console.error('Submission Action Error:', e);
         const err = e as Error;
         return { success: false, error: err.message };
     }
