@@ -69,6 +69,13 @@ export async function submitAssignmentAction(formData: FormData) {
             fileSize = sizeStr ? parseInt(sizeStr) : 0;
 
             if (!fileUrl) return { success: false, error: 'Falta la URL del archivo' };
+
+            // Allow storing as a proxy URL for correct viewing
+            // We stored the key in 'fileUrl' coming from client. 
+            // We should strip any 'api/file?key=' if it was already there (unlikely) or just use the key.
+            // The client sends the raw key (e.g. submissions/...).
+            // We save it as /api/file?key=KEY so the frontend link works.
+            fileUrl = `/api/file?key=${encodeURIComponent(fileUrl)}`;
         } else {
             console.log('Processing File submission');
             const file = formData.get('file') as File;
@@ -82,7 +89,10 @@ export async function submitAssignmentAction(formData: FormData) {
             console.log('Uploading to R2...');
             try {
                 const result = await uploadFileToR2(buffer, file.name, file.type, 'submissions');
-                fileUrl = result.url;
+                // result.url is the key in the current implementation of lib/r2.ts
+                // So we format it similarly
+                fileUrl = `/api/file?key=${encodeURIComponent(result.key)}`;
+
                 fileName = file.name;
                 fileType = file.type;
                 fileSize = file.size;
