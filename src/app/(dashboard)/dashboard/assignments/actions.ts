@@ -4,7 +4,20 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import { uploadFileToR2 } from '@/lib/r2';
+import { uploadFileToR2, getPresignedPutUrl } from '@/lib/r2';
+
+export async function getUploadUrlAction(fileName: string, fileType: string) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return { success: false, error: 'No autorizado' };
+
+    try {
+        const { url, key } = await getPresignedPutUrl(fileName, fileType, 'submissions');
+        return { success: true, url, key };
+    } catch (error) {
+        console.error('Error fetching presigned URL:', error);
+        return { success: false, error: 'Error de configuración de almacenamiento' };
+    }
+}
 
 
 export async function submitAssignmentAction(formData: FormData) {
@@ -12,13 +25,13 @@ export async function submitAssignmentAction(formData: FormData) {
     if (!session) return { success: false, error: 'No autorizado' };
 
     const assignmentId = formData.get('assignmentId') as string;
-    const submissionType = formData.get('submissionType') as 'FILE' | 'URL' || 'FILE';
+    const submissionType = formData.get('submissionType') as 'FILE' | 'URL' | 'DIRECT_UPLOAD' || 'FILE';
 
     if (!assignmentId) return { success: false, error: 'Falta ID de asignación' };
 
     try {
         console.log('Starting submission for assignment:', assignmentId);
-        
+
         const assignment = await prisma.assignment.findUnique({
             where: { id: assignmentId },
             include: { project: true, task: { select: { id: true } } }
@@ -47,6 +60,15 @@ export async function submitAssignmentAction(formData: FormData) {
             fileName = 'Enlace Externo';
             fileType = 'URL';
             fileSize = 0;
+        } else if (submissionType === 'DIRECT_UPLOAD') {
+            console.log('Processing Direct Upload submission');
+            fileUrl = formData.get('fileUrl') as string;
+            fileName = formData.get('fileName') as string;
+            fileType = formData.get('fileType') as string;
+            const sizeStr = formData.get('fileSize') as string;
+            fileSize = sizeStr ? parseInt(sizeStr) : 0;
+
+            if (!fileUrl) return { success: false, error: 'Falta la URL del archivo' };
         } else {
             console.log('Processing File submission');
             const file = formData.get('file') as File;
@@ -87,7 +109,7 @@ export async function submitAssignmentAction(formData: FormData) {
             // Auto-move task to SUBMITTED
             ...(assignment.task ? [
                 prisma.task.update({
-                    where: { id: assignment.task.id }, 
+                    where: { id: assignment.task.id },
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     data: { status: 'SUBMITTED' as any }
                 })
@@ -96,7 +118,7 @@ export async function submitAssignmentAction(formData: FormData) {
         console.log('DB Transaction complete');
 
         revalidatePath('/dashboard/assignments');
-        revalidatePath('/dashboard/kanban'); 
+        revalidatePath('/dashboard/kanban');
         revalidatePath('/dashboard/grades');
         return { success: true };
 

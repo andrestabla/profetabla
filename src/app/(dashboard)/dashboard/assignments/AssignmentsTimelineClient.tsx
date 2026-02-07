@@ -86,36 +86,82 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
         setIsSubmitting(true);
         const formData = new FormData();
         formData.append('assignmentId', selectedAssignment.id);
-        formData.append('submissionType', submissionType);
 
-        if (submissionType === 'FILE') {
-            if (!file) return;
-            formData.append('file', file);
-        } else {
-            if (!url) return;
-            formData.append('url', url);
-        }
+        try {
+            if (submissionType === 'FILE') {
+                if (!file) {
+                    setIsSubmitting(false);
+                    return;
+                }
 
-        const res = await submitAssignmentAction(formData);
+                // Direct Upload for reliability and larger files (>4.5MB)
+                console.log('Requesting presigned URL for:', file.name);
 
-        if (res.success) {
-            setStatusModal({
-                type: 'success',
-                title: '¡Tarea Enviada!',
-                message: 'Tu entrega se ha registrado correctamente.'
-            });
-            setSelectedAssignment(null);
-            setFile(null);
-            setUrl('');
-        } else {
-            console.error(res.error);
+                // Dynamic import to avoid circular dep issues if any
+                const { getUploadUrlAction } = await import('./actions');
+                const presignedRes = await getUploadUrlAction(file.name, file.type);
+
+                if (!presignedRes.success || !presignedRes.url) {
+                    throw new Error(presignedRes.error || 'No se pudo obtener URL de carga');
+                }
+
+                console.log('Uploading directly to R2...');
+                const uploadRes = await fetch(presignedRes.url, {
+                    method: 'PUT',
+                    body: file,
+                    headers: {
+                        'Content-Type': file.type
+                    }
+                });
+
+                if (!uploadRes.ok) {
+                    throw new Error('Falló la subida del archivo a la nube');
+                }
+
+                formData.append('submissionType', 'DIRECT_UPLOAD');
+                formData.append('fileUrl', presignedRes.key); // Key acts as URL identifier in this app
+                formData.append('fileName', file.name);
+                formData.append('fileType', file.type);
+                formData.append('fileSize', file.size.toString());
+
+            } else {
+                if (!url) {
+                    setIsSubmitting(false);
+                    return;
+                }
+                formData.append('submissionType', 'URL');
+                formData.append('url', url);
+            }
+
+            const res = await submitAssignmentAction(formData);
+
+            if (res.success) {
+                setStatusModal({
+                    type: 'success',
+                    title: '¡Tarea Enviada!',
+                    message: 'Tu entrega se ha registrado correctamente.'
+                });
+                setSelectedAssignment(null);
+                setFile(null);
+                setUrl('');
+            } else {
+                console.error(res.error);
+                setStatusModal({
+                    type: 'error',
+                    title: 'Error de Envío',
+                    message: res.error || 'Ocurrió un error inesperado.'
+                });
+            }
+        } catch (error: any) {
+            console.error('Submission error:', error);
             setStatusModal({
                 type: 'error',
                 title: 'Error de Envío',
-                message: res.error || 'Ocurrió un error inesperado.'
+                message: error.message || 'Error de conexión.'
             });
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     const isUrlAllowed = selectedAssignment?.task?.allowedFileTypes?.includes('URL');

@@ -87,3 +87,37 @@ export async function getR2FileUrl(key: string): Promise<string> {
         return "#";
     }
 }
+
+export async function getPresignedPutUrl(
+    fileName: string,
+    fileType: string,
+    projectName?: string
+): Promise<{ url: string; key: string }> {
+    try {
+        const client = await getR2Client();
+        const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
+
+        if (!config?.r2BucketName) throw new Error("R2 Bucket Name missing");
+
+        // Sanitize file name
+        const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const projectPrefix = projectName ? `${projectName.replace(/[^a-zA-Z0-9._-]/g, '_')}/` : 'uploads/';
+        const key = `${projectPrefix}${Date.now()}_${sanitizedFileName}`;
+
+        const command = new PutObjectCommand({
+            Bucket: config.r2BucketName,
+            Key: key,
+            ContentType: fileType,
+        });
+
+        // 1 hour expiry for uploading
+        const url = await getSignedUrl(client, command, { expiresIn: 3600 });
+
+        return { url, key };
+
+    } catch (error) {
+        console.error("Error generating presigned PUT URL:", error);
+        throw error;
+    }
+}
+
