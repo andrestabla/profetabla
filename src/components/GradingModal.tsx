@@ -104,7 +104,6 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
         }));
 
         const finalQuizScore = isQuiz ? (gradingMode === 'AUTO' ? autoScore : manualScore) : undefined;
-        console.log('Saving Grade:', { isQuiz, gradingMode, autoScore, manualScore, finalQuizScore });
 
         const res = await gradeSubmissionAction(submission.id, scoresPayload, generalFeedback, finalQuizScore);
         if (res.success) {

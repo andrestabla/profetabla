@@ -64,9 +64,7 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
     }
 
     try {
-        console.log('gradeSubmissionAction called:', { submissionId, scoresLength: scores.length, finalGrade });
         const totalGrade = finalGrade !== undefined ? finalGrade : scores.reduce((sum, s) => sum + s.score, 0);
-        console.log('Calculated totalGrade:', totalGrade);
 
         // Transaction to save scores and update submission/task
         const result = await prisma.$transaction(async (tx) => {
