@@ -57,14 +57,14 @@ export async function saveRubricAction(assignmentId: string, items: { criterion:
 
 import { sendEmail } from '@/lib/email';
 
-export async function gradeSubmissionAction(submissionId: string, scores: { rubricItemId: string; score: number; feedback?: string }[], generalFeedback?: string) {
+export async function gradeSubmissionAction(submissionId: string, scores: { rubricItemId: string; score: number; feedback?: string }[], generalFeedback?: string, finalGrade?: number) {
     const session = await getServerSession(authOptions);
     if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
         return { success: false, error: 'No autorizado' };
     }
 
     try {
-        const totalGrade = scores.reduce((sum, s) => sum + s.score, 0);
+        const totalGrade = finalGrade !== undefined ? finalGrade : scores.reduce((sum, s) => sum + s.score, 0);
 
         // Transaction to save scores and update submission/task
         const result = await prisma.$transaction(async (tx) => {

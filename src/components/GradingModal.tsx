@@ -103,7 +103,9 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
             feedback: data.feedback
         }));
 
-        const res = await gradeSubmissionAction(submission.id, scoresPayload, generalFeedback);
+        const finalQuizScore = isQuiz ? (gradingMode === 'AUTO' ? autoScore : manualScore) : undefined;
+
+        const res = await gradeSubmissionAction(submission.id, scoresPayload, generalFeedback, finalQuizScore);
         if (res.success) {
             alert("Calificación guardada");
             onClose();
