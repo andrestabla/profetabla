@@ -53,9 +53,11 @@ export async function PATCH(
         });
 
         // Sync Assignment if the task HAS a deliverable
+        // Sync Assignment if the task HAS a deliverable OR is a QUIZ
         const taskDeliverable = body.deliverable !== undefined ? body.deliverable : task.deliverable;
+        const isQuiz = task.type === 'QUIZ';
 
-        if (taskDeliverable && typeof taskDeliverable === 'string' && taskDeliverable.trim().length > 0) {
+        if (isQuiz || (taskDeliverable && typeof taskDeliverable === 'string' && taskDeliverable.trim().length > 0)) {
             const assignment = await prisma.assignment.upsert({
                 where: { taskId: id },
                 create: {
@@ -93,8 +95,8 @@ export async function PATCH(
                 });
             }
 
-        } else if (body.deliverable === '' || body.deliverable === null) {
-            // If deliverable is explicitly cleared, delete the assignment
+        } else if ((body.deliverable === '' || body.deliverable === null) && !isQuiz) {
+            // If deliverable is explicitly cleared AND implementation is not a Quiz, delete the assignment
             await prisma.assignment.deleteMany({
                 where: { taskId: id }
             });
