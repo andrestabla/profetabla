@@ -123,6 +123,7 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                 <GradingModal
                     submission={submission}
                     rubricItems={assignment.rubricItems || []}
+                    quizData={assignment.task?.type === 'QUIZ' ? assignment.task.quizData : null}
                     onClose={() => setIsGradingOpen(false)}
                 />
             )}

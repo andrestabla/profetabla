@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { gradeSubmissionAction } from '@/app/actions/rubric-actions';
-import { Loader2, Save, X, FileText, Download } from 'lucide-react';
+import { Loader2, Save, X, FileText, Download, AlertTriangle } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type RubricItem = {
@@ -12,10 +12,14 @@ type RubricItem = {
     order: number;
 };
 
+
+
 type Submission = {
     id: string;
-    fileUrl: string;
-    fileName: string;
+    fileUrl?: string | null;
+    fileName?: string | null;
+    answers?: any; // JSON for quiz answers
+    type?: 'FILE' | 'URL' | 'QUIZ';
     student: {
         name: string | null;
         email: string;
@@ -24,7 +28,14 @@ type Submission = {
     feedback?: string | null;
 };
 
-export function GradingModal({ submission, rubricItems, onClose }: { submission: Submission; rubricItems: RubricItem[]; onClose: () => void }) {
+interface GradingModalProps {
+    submission: Submission;
+    rubricItems: RubricItem[];
+    quizData?: { questions: any[] } | null;
+    onClose: () => void;
+}
+
+export function GradingModal({ submission, rubricItems, quizData, onClose }: GradingModalProps) {
     const [scores, setScores] = useState<{ [key: string]: { score: number; feedback: string } }>(() => {
         const initialScores: any = {};
         rubricItems.forEach(item => {
@@ -74,34 +85,72 @@ export function GradingModal({ submission, rubricItems, onClose }: { submission:
     const currentTotal = Object.values(scores).reduce((sum, item) => sum + item.score, 0);
     const maxTotal = rubricItems.reduce((sum, item) => sum + item.maxPoints, 0);
 
+    const isQuiz = submission.type === 'QUIZ' || (!!submission.answers && !submission.fileUrl);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex overflow-hidden animate-in zoom-in-95 duration-200">
 
-                {/* Left: Document Viewer */}
+                {/* Left: Content Viewer (File or Quiz) */}
                 <div className="w-1/2 bg-slate-100 border-r border-slate-200 flex flex-col">
                     <div className="bg-white p-4 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
                         <div>
-                            <h4 className="font-bold text-slate-800">{submission.fileName}</h4>
+                            <h4 className="font-bold text-slate-800">{isQuiz ? 'Respuestas del Cuestionario' : submission.fileName}</h4>
                             <p className="text-xs text-slate-500">{submission.student.name || submission.student.email}</p>
                         </div>
-                        <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Descargar / Abrir original">
-                            <Download className="w-5 h-5" />
-                        </a>
+                        {!isQuiz && submission.fileUrl && (
+                            <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Descargar / Abrir original">
+                                <Download className="w-5 h-5" />
+                            </a>
+                        )}
                     </div>
-                    <div className="flex-1 overflow-hidden relative">
-                        {submission.fileUrl.includes('drive.google.com') ? (
-                            <iframe
-                                src={submission.fileUrl.replace('/view', '/preview')}
-                                className="w-full h-full border-0"
-                                title="Visor de Documento"
-                            />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                                <FileText className="w-16 h-16 mb-4" />
-                                <p>Vista previa no disponible</p>
-                                <a href={submission.fileUrl} target="_blank" className="text-blue-500 underline text-sm mt-2">Abrir archivo</a>
+
+                    <div className="flex-1 overflow-y-auto relative bg-slate-50/50">
+                        {isQuiz ? (
+                            <div className="p-6 space-y-6">
+                                {quizData?.questions?.map((q: any, i: number) => {
+                                    const answer = submission.answers?.[q.id];
+                                    return (
+                                        <div key={q.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                            <div className="flex gap-3 mb-2">
+                                                <span className="bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded text-xs h-fit mt-0.5">{i + 1}</span>
+                                                <p className="font-bold text-slate-800 text-sm">{q.prompt}</p>
+                                            </div>
+                                            <div className="ml-9 p-3 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-700">
+                                                {answer || <span className="text-slate-400 italic">Sin respuesta</span>}
+                                            </div>
+                                        </div>
+                                    )
+                                }) || (
+                                        <div className="text-center p-10 text-slate-400">
+                                            No se pudieron cargar las preguntas del cuestionario.
+                                            <pre className="text-xs mt-2 text-left bg-slate-200 p-2 rounded overflow-auto">
+                                                {JSON.stringify(submission.answers, null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
                             </div>
+                        ) : (
+                            submission.fileUrl ? (
+                                submission.fileUrl.includes('drive.google.com') ? (
+                                    <iframe
+                                        src={submission.fileUrl.replace('/view', '/preview')}
+                                        className="w-full h-full border-0"
+                                        title="Visor de Documento"
+                                    />
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                                        <FileText className="w-16 h-16 mb-4" />
+                                        <p>Vista previa no disponible</p>
+                                        <a href={submission.fileUrl} target="_blank" className="text-blue-500 underline text-sm mt-2">Abrir archivo</a>
+                                    </div>
+                                )
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                                    <AlertTriangle className="w-16 h-16 mb-4 text-amber-400" />
+                                    <p>No hay archivo adjunto ni datos de cuestionario.</p>
+                                </div>
+                            )
                         )}
                     </div>
                 </div>
@@ -128,6 +177,12 @@ export function GradingModal({ submission, rubricItems, onClose }: { submission:
                             <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                                 <p className="text-slate-500">No hay rúbrica definida para esta tarea.</p>
                                 <p className="text-xs text-slate-400 mt-1">Define los criterios en la pantalla anterior.</p>
+
+                                {/* Manual Score Override if no rubric? */}
+                                <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <p className="text-xs font-bold text-slate-400 mb-2">CALIFICACIÓN MANUAL</p>
+                                    <p className="text-xs text-amber-600">Para calificar sin rúbrica, edita la tarea y añade criterios.</p>
+                                </div>
                             </div>
                         ) : (
                             rubricItems.map((item) => {

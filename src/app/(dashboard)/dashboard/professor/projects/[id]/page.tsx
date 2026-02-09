@@ -64,6 +64,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     const assignments = await prisma.assignment.findMany({
         where: { projectId: id },
         include: {
+            task: {
+                select: {
+                    type: true,
+                    quizData: true
+                }
+            },
             submissions: {
                 // Show all submissions for this project
                 orderBy: { createdAt: 'desc' },
