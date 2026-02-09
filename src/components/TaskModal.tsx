@@ -41,6 +41,8 @@ interface Question {
     type: QuestionType;
     prompt: string;
     options?: string[];
+    correctAnswer?: string;
+    points?: number;
 }
 
 interface TaskModalProps {
@@ -148,7 +150,9 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
             id: crypto.randomUUID(),
             type,
             prompt: '',
-            options: type === 'MULTIPLE_CHOICE' ? ['Opción 1', 'Opción 2'] : undefined
+            options: type === 'MULTIPLE_CHOICE' ? ['Opción 1', 'Opción 2'] : undefined,
+            points: 1,
+            correctAnswer: ''
         };
         setQuestions([...questions, newQ]);
     };
@@ -383,9 +387,9 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
 
                                     {questions.map((q, i) => (
                                         <div key={q.id} className="relative group bg-slate-50/50 p-4 rounded-xl border border-slate-200 hover:border-purple-200 transition-colors">
-                                            <div className="flex gap-3 mb-3">
+                                            <div className="flex gap-3 mb-3 items-start">
                                                 <span className="font-mono text-slate-400 font-bold mt-2">Q{i + 1}</span>
-                                                <div className="flex-1">
+                                                <div className="flex-1 space-y-2">
                                                     <input
                                                         type="text"
                                                         value={q.prompt}
@@ -394,6 +398,30 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
                                                         placeholder="Escribe la pregunta..."
                                                         disabled={!canEditStructural}
                                                     />
+
+                                                    {canEditStructural && (
+                                                        <div className="flex gap-4 items-center">
+                                                            <div className="flex items-center gap-2 bg-slate-100 px-2 py-1 rounded-lg">
+                                                                <span className="text-xs font-bold text-slate-500">Puntos:</span>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    className="w-12 bg-transparent text-sm font-bold text-slate-700 outline-none text-center"
+                                                                    value={q.points || 0}
+                                                                    onChange={(e) => updateQuestion(q.id, 'points', parseInt(e.target.value) || 0)}
+                                                                />
+                                                            </div>
+                                                            {q.type === 'TEXT' && (
+                                                                <input
+                                                                    type="text"
+                                                                    className="flex-1 bg-slate-100 text-xs px-2 py-1 rounded-lg outline-none placeholder:text-slate-400 border border-transparent focus:border-purple-300"
+                                                                    placeholder="Respuesta correcta (opcional)"
+                                                                    value={q.correctAnswer || ''}
+                                                                    onChange={(e) => updateQuestion(q.id, 'correctAnswer', e.target.value)}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 {canEditStructural && (
                                                     <button onClick={() => removeQuestion(q.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
@@ -417,12 +445,26 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
                                                 {q.type === 'MULTIPLE_CHOICE' && (
                                                     <div className="space-y-2">
                                                         {q.options?.map((opt, idx) => (
-                                                            <div key={idx} className="flex items-center gap-2">
-                                                                <div className="w-4 h-4 rounded-full border border-slate-300 bg-white" />
+                                                            <div key={idx} className={`flex items-center gap-2 p-1 rounded-lg ${q.correctAnswer === opt ? 'bg-green-50 border border-green-200' : ''}`}>
+                                                                {canEditStructural && (
+                                                                    <div
+                                                                        onClick={() => updateQuestion(q.id, 'correctAnswer', opt)}
+                                                                        className={`w-4 h-4 rounded-full border cursor-pointer flex items-center justify-center ${q.correctAnswer === opt ? 'border-green-500 bg-green-500' : 'border-slate-300 bg-white hover:border-green-400'}`}
+                                                                        title="Marcar como respuesta correcta"
+                                                                    >
+                                                                        {q.correctAnswer === opt && <Check size={10} className="text-white" />}
+                                                                    </div>
+                                                                )}
                                                                 <input
                                                                     type="text"
                                                                     value={opt}
-                                                                    onChange={(e) => updateOption(q.id, idx, e.target.value)}
+                                                                    onChange={(e) => {
+                                                                        updateOption(q.id, idx, e.target.value);
+                                                                        // If this was the correct answer, update it too
+                                                                        if (q.correctAnswer === opt) {
+                                                                            updateQuestion(q.id, 'correctAnswer', e.target.value);
+                                                                        }
+                                                                    }}
                                                                     className="flex-1 bg-transparent text-sm text-slate-600 outline-none border-b border-transparent hover:border-slate-300 focus:border-blue-400"
                                                                     disabled={!canEditStructural}
                                                                 />

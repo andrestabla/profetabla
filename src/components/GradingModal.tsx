@@ -173,47 +173,84 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                        {rubricItems.length === 0 ? (
-                            <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                <p className="text-slate-500">No hay rúbrica definida para esta tarea.</p>
-                                <p className="text-xs text-slate-400 mt-1">Define los criterios en la pantalla anterior.</p>
+                        {isQuiz ? (
+                            // QUIZ GRADING MODE
+                            <div className="space-y-6">
+                                {/* Auto/Manual Toggle */}
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-bold text-slate-700">Modo de Calificación</h4>
+                                        <div className="flex bg-white rounded-lg p-1 border border-slate-200">
+                                            <button
+                                                onClick={() => setScores({})} // Reset scores when switching
+                                                className="px-3 py-1 text-sm font-bold rounded text-slate-500 hover:text-blue-600 hover:bg-slate-50"
+                                            >
+                                                Automático
+                                            </button>
+                                            <div className="w-px bg-slate-200 my-1 mx-1"></div>
+                                            <button
+                                                onClick={() => { /* Manual mode logic if needed */ }}
+                                                className="px-3 py-1 text-sm font-bold rounded text-slate-500 hover:text-blue-600 hover:bg-slate-50"
+                                            >
+                                                Manual
+                                            </button>
+                                        </div>
+                                    </div>
 
-                                {/* Manual Score Override if no rubric? */}
-                                <div className="mt-4 pt-4 border-t border-slate-200">
-                                    <p className="text-xs font-bold text-slate-400 mb-2">CALIFICACIÓN MANUAL</p>
-                                    <p className="text-xs text-amber-600">Para calificar sin rúbrica, edita la tarea y añade criterios.</p>
+                                    {/* Manual Score Input - Only show if in Manual Mode (implied by lack of auto-caluclation displayed here for simplicity first) 
+                                        Actually, let's implement a clean toggle state 
+                                    */}
                                 </div>
+
+                                {/* 
+                                    TODO: Full Implementation of Toggle State and Calculation 
+                                    For now, let's replace this entire block with the robust implementation
+                                */}
                             </div>
                         ) : (
-                            rubricItems.map((item) => {
-                                const currentScore = scores[item.id]?.score || 0;
-                                return (
-                                    <div key={item.id} className="animate-in slide-in-from-right-4 duration-500">
-                                        <div className="flex justify-between items-baseline mb-2">
-                                            <label className="font-bold text-slate-700">{item.criterion}</label>
-                                            <span className="font-mono text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                                                {currentScore} / {item.maxPoints} pts
-                                            </span>
-                                        </div>
+                            // FILE SUBMISSION GRADING (Existing Rubric Logic)
+                            rubricItems.length === 0 ? (
+                                <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                    <p className="text-slate-500">No hay rúbrica definida para esta tarea.</p>
+                                    <p className="text-xs text-slate-400 mt-1">Define los criterios en la pantalla anterior.</p>
 
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max={item.maxPoints}
-                                            value={currentScore}
-                                            onChange={(e) => handleScoreChange(item.id, parseInt(e.target.value))}
-                                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-700 mb-3"
-                                        />
-
-                                        <textarea
-                                            value={scores[item.id]?.feedback || ''}
-                                            onChange={(e) => handleFeedbackChange(item.id, e.target.value)}
-                                            placeholder="Feedback específico para este criterio..."
-                                            className="w-full text-sm border-slate-200 rounded-lg focus:ring-blue-500 min-h-[60px] resize-y bg-slate-50 placeholder-slate-400"
-                                        />
+                                    {/* Manual Score Override if no rubric? */}
+                                    <div className="mt-4 pt-4 border-t border-slate-200">
+                                        <p className="text-xs font-bold text-slate-400 mb-2">CALIFICACIÓN MANUAL</p>
+                                        <p className="text-xs text-amber-600">Para calificar sin rúbrica, edita la tarea y añade criterios.</p>
                                     </div>
-                                );
-                            })
+                                </div>
+                            ) : (
+                                rubricItems.map((item) => {
+                                    const currentScore = scores[item.id]?.score || 0;
+                                    return (
+                                        <div key={item.id} className="animate-in slide-in-from-right-4 duration-500">
+                                            <div className="flex justify-between items-baseline mb-2">
+                                                <label className="font-bold text-slate-700">{item.criterion}</label>
+                                                <span className="font-mono text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                                                    {currentScore} / {item.maxPoints} pts
+                                                </span>
+                                            </div>
+
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max={item.maxPoints}
+                                                value={currentScore}
+                                                onChange={(e) => handleScoreChange(item.id, parseInt(e.target.value))}
+                                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-700 mb-3"
+                                            />
+
+                                            <textarea
+                                                value={scores[item.id]?.feedback || ''}
+                                                onChange={(e) => handleFeedbackChange(item.id, e.target.value)}
+                                                placeholder="Feedback específico para este criterio..."
+                                                className="w-full text-sm border-slate-200 rounded-lg focus:ring-blue-500 min-h-[60px] resize-y bg-slate-50 placeholder-slate-400"
+                                            />
+                                        </div>
+                                    );
+                                })
+                            )
                         )}
 
                         {/* General Feedback Section */}
@@ -231,7 +268,7 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
                     <div className="p-6 border-t border-slate-100 bg-slate-50">
                         <button
                             onClick={handleSave}
-                            disabled={isSaving || rubricItems.length === 0}
+                            disabled={isSaving || (rubricItems.length === 0 && !isQuiz)} // Allow save for quiz without rubric
                             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 transition-all"
                         >
                             {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
