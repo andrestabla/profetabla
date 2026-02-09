@@ -5,6 +5,7 @@ import { submitAssignmentAction } from './actions';
 import { Upload, X, FileText, CheckCircle, Clock, Paperclip, Loader2, ExternalLink, Calendar, AlertCircle, Link as LinkIcon, HelpCircle, Filter } from 'lucide-react';
 import StatusModal from '@/components/StatusModal';
 import Link from 'next/link';
+import { QuizRunner } from '@/components/QuizRunner';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Assignment = {
@@ -18,14 +19,16 @@ type Assignment = {
         title: string;
     };
     submissions: any[];
+    rubricItems: any[];
     task: {
         status: string;
         priority: string;
         allowedFileTypes: string[];
         maxDate: string | null;
         comments: any[];
+        type?: 'TASK' | 'QUIZ';
+        quizData?: { questions: any[] };
     } | null;
-    rubricItems: any[];
 };
 
 type ProjectOption = {
@@ -458,126 +461,148 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                             })()}
                         </div>
 
-                        {/* RIGHT COLUMN: Submission Form */}
+                        {/* RIGHT COLUMN: Submission Form OR Quiz Runner Trigger */}
                         {showSubmissionForm && (
-                            <div className="w-full md:w-1/2 bg-slate-50 p-8 flex flex-col relative md:border-l md:border-slate-100">
-                                <button onClick={() => { setShowSubmissionForm(false); setSelectedAssignment(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
-                                    <X className="w-6 h-6" />
-                                </button>
+                            selectedAssignment.task?.type === 'QUIZ' ? (
+                                // If it's a quiz, we don't show the side panel form, we show the full screen runner
+                                // But we are inside the modal structure. 
+                                // Actually, QuizRunner is a full screen modal itself.
+                                // So if we are here, we should hide this modal and show QuizRunner?
+                                // OR render QuizRunner INSTEAD of this entire modal?
+                                // Let's render QuizRunner as an overlay on top of this, 
+                                // or better: logic in the parent return.
+                                null
+                            ) : (
+                                <div className="w-full md:w-1/2 bg-slate-50 p-8 flex flex-col relative md:border-l md:border-slate-100">
+                                    <button onClick={() => { setShowSubmissionForm(false); setSelectedAssignment(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                                        <X className="w-6 h-6" />
+                                    </button>
 
-                                <div className="mb-6 mt-2">
-                                    <h3 className="text-lg font-bold text-slate-800">Tu Entrega</h3>
-                                    <p className="text-sm text-slate-500">Completa el formulario para enviar tu trabajo.</p>
-                                </div>
+                                    <div className="mb-6 mt-2">
+                                        <h3 className="text-lg font-bold text-slate-800">Tu Entrega</h3>
+                                        <p className="text-sm text-slate-500">Completa el formulario para enviar tu trabajo.</p>
+                                    </div>
 
-                                <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
-                                    <div className="space-y-6">
-                                        {/* File Type Selector if multiple allowed or just visual indicator */}
-                                        <div className="bg-white p-4 rounded-xl border border-slate-200">
-                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Formato Requerido</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {selectedAssignment.task?.allowedFileTypes.length ? (
-                                                    selectedAssignment.task.allowedFileTypes.map((t: string) => (
-                                                        <span key={t} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-bold border border-slate-200">{t}</span>
-                                                    ))
-                                                ) : <span className="text-xs text-slate-400">Cualquier formato</span>}
+                                    <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
+                                        <div className="space-y-6">
+                                            {/* File Type Selector if multiple allowed or just visual indicator */}
+                                            <div className="bg-white p-4 rounded-xl border border-slate-200">
+                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Formato Requerido</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedAssignment.task?.allowedFileTypes.length ? (
+                                                        selectedAssignment.task.allowedFileTypes.map((t: string) => (
+                                                            <span key={t} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-bold border border-slate-200">{t}</span>
+                                                        ))
+                                                    ) : <span className="text-xs text-slate-400">Cualquier formato</span>}
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        {/* Format Toggle */}
-                                        {isUrlAllowed && (
-                                            <div className="flex gap-2 p-1 bg-white border border-slate-200 rounded-lg">
-                                                {isFileAllowed && (
+                                            {/* Format Toggle */}
+                                            {isUrlAllowed && (
+                                                <div className="flex gap-2 p-1 bg-white border border-slate-200 rounded-lg">
+                                                    {isFileAllowed && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSubmissionType('FILE')}
+                                                            className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${submissionType === 'FILE' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                                                        >
+                                                            Subir Archivo
+                                                        </button>
+                                                    )}
                                                     <button
                                                         type="button"
-                                                        onClick={() => setSubmissionType('FILE')}
-                                                        className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${submissionType === 'FILE' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                                                        onClick={() => setSubmissionType('URL')}
+                                                        className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${submissionType === 'URL' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
                                                     >
-                                                        Subir Archivo
+                                                        Enlace / URL
                                                     </button>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setSubmissionType('URL')}
-                                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${submissionType === 'URL' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
-                                                >
-                                                    Enlace / URL
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {/* Input Area */}
-                                        {submissionType === 'URL' ? (
-                                            <div className="bg-white rounded-xl p-4 border border-slate-200 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <label className="block text-sm font-bold text-slate-700 mb-2">Enlace del Trabajo</label>
-                                                <div className="relative">
-                                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                    <input
-                                                        type="url"
-                                                        value={url}
-                                                        onChange={(e) => setUrl(e.target.value)}
-                                                        placeholder="https://docs.google.com/..."
-                                                        className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
-                                                        required
-                                                    />
                                                 </div>
-                                                <p className="text-xs text-slate-400 mt-2">Asegúrate de que el enlace sea público o accesible.</p>
-                                            </div>
-                                        ) : (
-                                            <div className="border-2 border-dashed border-slate-300 bg-white rounded-xl p-8 hover:bg-blue-50/30 transition-colors relative text-center animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <input
-                                                    type="file"
-                                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                                                    required={submissionType === 'FILE'}
-                                                />
-                                                {file ? (
-                                                    <div>
-                                                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                            <FileText className="w-6 h-6" />
-                                                        </div>
-                                                        <p className="font-bold text-blue-700 text-sm truncate max-w-[200px] mx-auto">{file.name}</p>
-                                                        <p className="text-xs text-blue-400 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                                        <p className="text-xs text-slate-400 mt-3">Clic para cambiar archivo</p>
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                            <Paperclip className="w-6 h-6" />
-                                                        </div>
-                                                        <p className="font-medium text-slate-600 text-sm">Arrastra tu archivo aquí o clic para seleccionar</p>
-                                                        <p className="text-xs text-slate-400 mt-2">Formatos permitidos: {selectedAssignment.task?.allowedFileTypes?.join(', ') || 'Todos'}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
+                                            )}
 
-                                    <div className="mt-8 flex flex-col gap-3">
-                                        <button
-                                            type="submit"
-                                            disabled={isSubmitting || (submissionType === 'FILE' && !file) || (submissionType === 'URL' && !url)}
-                                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 transition-all"
-                                        >
-                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                            {isSubmitting ? 'Enviando...' : 'Confirmar Entrega'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowSubmissionForm(false)} // Back to details
-                                            disabled={isSubmitting}
-                                            className="w-full py-3 text-slate-500 hover:text-slate-800 font-bold transition-colors text-sm"
-                                        >
-                                            Volver a detalles
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        )}
+                                            {/* Input Area */}
+                                            {submissionType === 'URL' ? (
+                                                <div className="bg-white rounded-xl p-4 border border-slate-200 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <label className="block text-sm font-bold text-slate-700 mb-2">Enlace del Trabajo</label>
+                                                    <div className="relative">
+                                                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                        <input
+                                                            type="url"
+                                                            value={url}
+                                                            onChange={(e) => setUrl(e.target.value)}
+                                                            placeholder="https://docs.google.com/..."
+                                                            className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-slate-400 mt-2">Asegúrate de que el enlace sea público o accesible.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="border-2 border-dashed border-slate-300 bg-white rounded-xl p-8 hover:bg-blue-50/30 transition-colors relative text-center animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <input
+                                                        type="file"
+                                                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                                                        required={submissionType === 'FILE'}
+                                                    />
+                                                    {file ? (
+                                                        <div>
+                                                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                                <FileText className="w-6 h-6" />
+                                                            </div>
+                                                            <p className="font-bold text-blue-700 text-sm truncate max-w-[200px] mx-auto">{file.name}</p>
+                                                            <p className="text-xs text-blue-400 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                            <p className="text-xs text-slate-400 mt-3">Clic para cambiar archivo</p>
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                                <Paperclip className="w-6 h-6" />
+                                                            </div>
+                                                            <p className="font-medium text-slate-600 text-sm">Arrastra tu archivo aquí o clic para seleccionar</p>
+                                                            <p className="text-xs text-slate-400 mt-2">Formatos permitidos: {selectedAssignment.task?.allowedFileTypes?.join(', ') || 'Todos'}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-8 flex flex-col gap-3">
+                                            <button
+                                                type="submit"
+                                                disabled={isSubmitting || (submissionType === 'FILE' && !file) || (submissionType === 'URL' && !url)}
+                                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 transition-all"
+                                            >
+                                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                                {isSubmitting ? 'Enviando...' : 'Confirmar Entrega'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowSubmissionForm(false)} // Back to details
+                                                disabled={isSubmitting}
+                                                className="w-full py-3 text-slate-500 hover:text-slate-800 font-bold transition-colors text-sm"
+                                            >
+                                                Volver a detalles
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            ))}
                     </div>
                 </div>
-            )
-            }
+            )}
+            {/* Quiz Runner Overlay */}
+            {selectedAssignment && showSubmissionForm && selectedAssignment.task?.type === 'QUIZ' && selectedAssignment.task.quizData && (
+                <QuizRunner
+                    title={selectedAssignment.title}
+                    questions={selectedAssignment.task.quizData.questions}
+                    assignmentId={selectedAssignment.id}
+                    onClose={() => setShowSubmissionForm(false)}
+                    onSuccess={() => {
+                        setSelectedAssignment(null);
+                        // Optional: Refresh data
+                    }}
+                />
+            )}
 
             {/* Status Modal for Success/Error */}
             <StatusModal
@@ -587,6 +612,6 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                 title={statusModal?.title || ''}
                 message={statusModal?.message || ''}
             />
-        </div >
+        </div>
     );
 }

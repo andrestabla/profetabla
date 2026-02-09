@@ -37,6 +37,8 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
                     priority: true,
                     allowedFileTypes: true,
                     maxDate: true,
+                    type: true,
+                    quizData: true,
                     comments: {
                         include: { author: true }
                     }
