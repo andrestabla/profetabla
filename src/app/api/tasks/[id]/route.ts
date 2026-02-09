@@ -48,6 +48,7 @@ export async function PATCH(
                 ...(body.allowedFileTypes !== undefined && { allowedFileTypes: body.allowedFileTypes }),
                 ...(body.evaluationCriteria !== undefined && { evaluationCriteria: body.evaluationCriteria }),
                 ...(body.rubric !== undefined && { rubric: body.rubric }),
+                ...(body.quizData !== undefined && { quizData: body.quizData }),
             },
         });
 
