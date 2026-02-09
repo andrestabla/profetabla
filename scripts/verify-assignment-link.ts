@@ -22,7 +22,7 @@ async function main() {
                     create: {
                         title: 'Entrega: Test Quiz',
                         projectId: project.id,
-                        taskId: 'temp-id-placeholder' // Prisma handles this relation via nested create usually, but let's see. 
+                        // taskId: 'temp-id-placeholder' - REMOVED: Managed automatically by nested create 
                         // Actually the nested create in POST route handles it correctly.
                         // Here I'm just creating it to simulate the initial state.
                     }
