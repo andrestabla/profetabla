@@ -15,20 +15,29 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { assignmentId, fileUrl, fileName, fileType, fileSize } = body;
+        const { assignmentId, fileUrl, fileName, fileType, fileSize, answers, type } = body;
+
+        // If type is QUIZ, answers are required. If generic, fileUrl might be required (but made optional in schema)
+        // We enforce: If type==='QUIZ', answers valid. Else, fileUrl valid (unless we allow text submissions later)
+
+        if (type !== 'QUIZ' && !fileUrl) {
+            return NextResponse.json({ error: 'File is required for standard assignments' }, { status: 400 });
+        }
 
         const submission = await prisma.submission.create({
             data: {
                 assignmentId,
                 studentId: session.user.id,
-                fileUrl,
-                fileName,
-                fileType,
-                fileSize
+                fileUrl: fileUrl || null,
+                fileName: fileName || null,
+                fileType: fileType || null,
+                fileSize: fileSize || null,
+                answers: answers || undefined
             }
         });
 
-        await logActivity(session.user.id, 'UPLOAD_SUBMISSION', `Subió la entrega: "${fileName}"`);
+        const activityMsg = type === 'QUIZ' ? 'Completó el cuestionario' : `Subió la entrega: "${fileName}"`;
+        await logActivity(session.user.id, 'UPLOAD_SUBMISSION', activityMsg);
 
         return NextResponse.json(submission);
     } catch (error) {

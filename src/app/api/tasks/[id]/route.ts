@@ -17,9 +17,10 @@ export async function PATCH(
 
         const { id } = await params;
         const body = await request.json();
-        const { status, title, description, priority, dueDate, isApproved, approvalNotes } = body;
+        const { title, description, status, priority, dueDate, maxDate, deliverable, allowedFileTypes, rubric, evaluationCriteria, quizData, isApproved, approvalNotes } = body;
 
-        const currentTask = await prisma.task.findUnique({ where: { id } });
+        // Validate Status transition for Students
+        const currentTask = await prisma.task.findUnique({ where: { id: id }, select: { status: true, isMandatory: true } });
         if (!currentTask) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
 
         // Enforcement: Students cannot move (change status) or edit mandatory tasks

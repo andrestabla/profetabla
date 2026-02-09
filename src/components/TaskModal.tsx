@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, MessageSquare, HelpCircle, Package, ClipboardCheck, Send, User } from 'lucide-react';
+import { X, MessageSquare, HelpCircle, Package, ClipboardCheck, Send, User, List, Plus, Trash, CheckSquare, AlignLeft, Play, Check } from 'lucide-react';
 import Link from 'next/link';
 
 interface Comment {
@@ -30,6 +30,17 @@ interface Task {
     assignment?: { id: string } | null;
     comments: Comment[];
     tags: { id: string; name: string; color: string }[];
+    type?: 'TASK' | 'QUIZ';
+    quizData?: { questions: Question[] };
+}
+
+type QuestionType = 'MULTIPLE_CHOICE' | 'TEXT' | 'RATING';
+
+interface Question {
+    id: string;
+    type: QuestionType;
+    prompt: string;
+    options?: string[];
 }
 
 interface TaskModalProps {
@@ -58,6 +69,12 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
     const [newComment, setNewComment] = useState('');
     const [comments, setComments] = useState<Comment[]>(task.comments || []);
 
+    // Quiz State
+    const [questions, setQuestions] = useState<Question[]>(task.quizData?.questions || []);
+    const [isTakingQuiz, setIsTakingQuiz] = useState(false);
+    const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
+    const [quizSubmitted, setQuizSubmitted] = useState(false);
+
     const isStudent = userRole === 'STUDENT';
     const isMandatory = task.isMandatory;
     const canEditStructural = !isStudent || !isMandatory;
@@ -78,7 +95,8 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
                 allowedFileTypes,
                 rubric,
                 // Legacy field for backward compatibility, mapped from rubric
-                evaluationCriteria: rubric.map(r => `- ${r.criterion} (${r.maxPoints} pts)`).join('\n')
+                evaluationCriteria: rubric.map(r => `- ${r.criterion} (${r.maxPoints} pts)`).join('\n'),
+                quizData: { questions }
             })
         });
         const updated = await res.json();
@@ -123,6 +141,153 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
     const removeRubricItem = (index: number) => {
         setRubric(rubric.filter((_, i) => i !== index));
     };
+
+    // Quiz Handlers
+    const addQuestion = (type: QuestionType) => {
+        const newQ: Question = {
+            id: crypto.randomUUID(),
+            type,
+            prompt: '',
+            options: type === 'MULTIPLE_CHOICE' ? ['Opción 1', 'Opción 2'] : undefined
+        };
+        setQuestions([...questions, newQ]);
+    };
+
+    const updateQuestion = (id: string, field: keyof Question, value: any) => {
+        setQuestions(questions.map(q => q.id === id ? { ...q, [field]: value } : q));
+    };
+
+    const updateOption = (qId: string, optIndex: number, value: string) => {
+        setQuestions(questions.map(q => {
+            if (q.id !== qId) return q;
+            const newOpts = [...(q.options || [])];
+            newOpts[optIndex] = value;
+            return { ...q, options: newOpts };
+        }));
+    };
+
+    const addOption = (qId: string) => {
+        setQuestions(questions.map(q => {
+            if (q.id !== qId) return q;
+            return { ...q, options: [...(q.options || []), `Opción ${(q.options?.length || 0) + 1}`] };
+        }));
+    };
+
+    const removeOption = (qId: string, optIndex: number) => {
+        setQuestions(questions.map(q => {
+            if (q.id !== qId) return q;
+            const newOpts = [...(q.options || [])];
+            newOpts.splice(optIndex, 1);
+            return { ...q, options: newOpts };
+        }));
+    };
+
+    const removeQuestion = (id: string) => {
+        setQuestions(questions.filter(q => q.id !== id));
+    };
+
+    const submitQuiz = async () => {
+        if (!confirm("¿Enviar respuestas? No podrás modificarlas.")) return;
+        try {
+            // Should create submission
+            const res = await fetch('/api/submissions', { // NOTE: Need to ensure this endpoint handles JSON answers
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    assignmentId: task.assignment?.id, // Assuming assignment exists
+                    answers: quizAnswers,
+                    type: 'QUIZ'
+                })
+            });
+            if (res.ok) {
+                alert("Evaluación enviada correctamente");
+                setQuizSubmitted(true);
+                setIsTakingQuiz(false);
+                onClose(); // Or refresh
+            } else {
+                alert("Error al enviar evaluación");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
+        }
+    };
+
+    if (isTakingQuiz) {
+        return (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white p-4 font-[Inter]">
+                <div className="w-full max-w-2xl h-full max-h-[90vh] flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-slate-800">{task.title}</h2>
+                        <button onClick={() => setIsTakingQuiz(false)} className="text-slate-400 hover:text-slate-600">
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-8 pr-2">
+                        {questions.map((q, i) => (
+                            <div key={q.id} className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                                <h3 className="font-bold text-slate-700 mb-4 flex gap-2">
+                                    <span className="bg-blue-100 text-blue-700 px-2 rounded-md text-sm flex items-center justify-center h-6 w-6">{i + 1}</span>
+                                    {q.prompt}
+                                </h3>
+
+                                {q.type === 'TEXT' && (
+                                    <textarea
+                                        className="w-full border border-slate-300 rounded-lg p-3 h-32 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Escribe tu respuesta aquí..."
+                                        value={quizAnswers[q.id] || ''}
+                                        onChange={(e) => setQuizAnswers({ ...quizAnswers, [q.id]: e.target.value })}
+                                    />
+                                )}
+
+                                {q.type === 'MULTIPLE_CHOICE' && (
+                                    <div className="space-y-2">
+                                        {q.options?.map((opt, idx) => (
+                                            <label key={idx} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${quizAnswers[q.id] === opt ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-blue-300'}`}>
+                                                <input
+                                                    type="radio"
+                                                    name={`q-${q.id}`}
+                                                    value={opt}
+                                                    checked={quizAnswers[q.id] === opt}
+                                                    onChange={() => setQuizAnswers({ ...quizAnswers, [q.id]: opt })}
+                                                    className="w-4 h-4 text-blue-600"
+                                                />
+                                                <span className="text-slate-700">{opt}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {q.type === 'RATING' && (
+                                    <div className="flex justify-between px-4">
+                                        {[1, 2, 3, 4, 5].map((val) => (
+                                            <button
+                                                key={val}
+                                                onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: val.toString() })}
+                                                className={`w-12 h-12 rounded-full font-bold text-lg transition-all ${quizAnswers[q.id] === val.toString() ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                            >
+                                                {val}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-slate-100">
+                        <button
+                            onClick={submitQuiz}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Send className="w-5 h-5" /> Enviar Respuestas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
@@ -189,64 +354,153 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
                         </div>
 
                         {/* Rubric / Criteria */}
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <label className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
-                                    <span className="p-1 bg-teal-100 text-teal-600 rounded">
-                                        <ClipboardCheck className="w-3" size={14} />
-                                    </span>
-                                    Criterios de Éxito & Rúbrica
-                                </label>
-                                {canEditStructural && (
-                                    <button
-                                        onClick={addRubricItem}
-                                        className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
-                                    >
-                                        + Agregar Criterio
-                                    </button>
-                                )}
-                            </div>
+                        {/* Rubric / Criteria OR Quiz Builder */}
+                        {task.type === 'QUIZ' ? (
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                <div className="flex items-center justify-between mb-6">
+                                    <label className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+                                        <span className="p-1 bg-purple-100 text-purple-600 rounded">
+                                            <List className="w-3" size={14} />
+                                        </span>
+                                        Preguntas del Cuestionario
+                                    </label>
 
-                            <div className="space-y-3">
-                                {rubric.length === 0 && (
-                                    <div className="text-sm text-slate-400 italic text-center py-4 border border-dashed border-slate-200 rounded-lg">
-                                        No hay criterios definidos. Agrega uno para establecer cómo se evaluará esta tarea.
-                                    </div>
-                                )}
-                                {rubric.map((item, index) => (
-                                    <div key={index} className="flex gap-3 items-start group">
-                                        <div className="flex-1">
-                                            <input
-                                                type="text"
-                                                value={item.criterion}
-                                                onChange={(e) => updateRubricItem(index, 'criterion', e.target.value)}
-                                                disabled={!canEditStructural}
-                                                placeholder="Descripción del criterio (ej: Claridad en la redacción)"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-80"
-                                            />
+                                    {canEditStructural && (
+                                        <div className="flex gap-2">
+                                            <button onClick={() => addQuestion('MULTIPLE_CHOICE')} className="text-xs font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1">+ Opción Múltiple</button>
+                                            <button onClick={() => addQuestion('TEXT')} className="text-xs font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1">+ Texto</button>
+                                            <button onClick={() => addQuestion('RATING')} className="text-xs font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1">+ Calificación</button>
                                         </div>
-                                        <div className="w-20">
-                                            <input
-                                                type="number"
-                                                value={item.maxPoints}
-                                                onChange={(e) => updateRubricItem(index, 'maxPoints', parseInt(e.target.value) || 0)}
-                                                disabled={!canEditStructural}
-                                                placeholder="Pts"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-center disabled:opacity-80"
-                                            />
+                                    )}
+                                </div>
+
+                                <div className="space-y-6">
+                                    {questions.length === 0 && (
+                                        <div className="text-center py-8 border-2 border-dashed border-slate-100 rounded-xl">
+                                            <p className="text-slate-400 font-medium">No hay preguntas agregadas.</p>
                                         </div>
-                                        {canEditStructural && (
-                                            <button
-                                                onClick={() => removeRubricItem(index)}
-                                                className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
+                                    )}
+
+                                    {questions.map((q, i) => (
+                                        <div key={q.id} className="relative group bg-slate-50/50 p-4 rounded-xl border border-slate-200 hover:border-purple-200 transition-colors">
+                                            <div className="flex gap-3 mb-3">
+                                                <span className="font-mono text-slate-400 font-bold mt-2">Q{i + 1}</span>
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="text"
+                                                        value={q.prompt}
+                                                        onChange={(e) => updateQuestion(q.id, 'prompt', e.target.value)}
+                                                        className="w-full bg-transparent font-bold text-slate-700 placeholder:text-slate-400 outline-none border-b border-transparent hover:border-slate-300 focus:border-purple-500 transition-colors"
+                                                        placeholder="Escribe la pregunta..."
+                                                        disabled={!canEditStructural}
+                                                    />
+                                                </div>
+                                                {canEditStructural && (
+                                                    <button onClick={() => removeQuestion(q.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                                                        <Trash className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Question Body */}
+                                            <div className="pl-8">
+                                                {q.type === 'TEXT' && (
+                                                    <div className="h-12 bg-white border border-slate-200 rounded-lg w-full flex items-center px-3 text-slate-400 text-sm italic">
+                                                        [Campo de texto libre para el estudiante]
+                                                    </div>
+                                                )}
+                                                {q.type === 'RATING' && (
+                                                    <div className="flex gap-2">
+                                                        {[1, 2, 3, 4, 5].map(v => <div key={v} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400">{v}</div>)}
+                                                    </div>
+                                                )}
+                                                {q.type === 'MULTIPLE_CHOICE' && (
+                                                    <div className="space-y-2">
+                                                        {q.options?.map((opt, idx) => (
+                                                            <div key={idx} className="flex items-center gap-2">
+                                                                <div className="w-4 h-4 rounded-full border border-slate-300 bg-white" />
+                                                                <input
+                                                                    type="text"
+                                                                    value={opt}
+                                                                    onChange={(e) => updateOption(q.id, idx, e.target.value)}
+                                                                    className="flex-1 bg-transparent text-sm text-slate-600 outline-none border-b border-transparent hover:border-slate-300 focus:border-blue-400"
+                                                                    disabled={!canEditStructural}
+                                                                />
+                                                                {canEditStructural && (
+                                                                    <button onClick={() => removeOption(q.id, idx)} className="text-slate-300 hover:text-red-400"><X className="w-3 h-3" /></button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                        {canEditStructural && (
+                                                            <button onClick={() => addOption(q.id)} className="text-xs text-blue-600 hover:underline pl-6">+ Agregar Opción</button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                    <label className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+                                        <span className="p-1 bg-teal-100 text-teal-600 rounded">
+                                            <ClipboardCheck className="w-3" size={14} />
+                                        </span>
+                                        Criterios de Éxito & Rúbrica
+                                    </label>
+                                    {canEditStructural && (
+                                        <button
+                                            onClick={addRubricItem}
+                                            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                                        >
+                                            + Agregar Criterio
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="space-y-3">
+                                    {rubric.length === 0 && (
+                                        <div className="text-sm text-slate-400 italic text-center py-4 border border-dashed border-slate-200 rounded-lg">
+                                            No hay criterios definidos. Agrega uno para establecer cómo se evaluará esta tarea.
+                                        </div>
+                                    )}
+                                    {rubric.map((item, index) => (
+                                        <div key={index} className="flex gap-3 items-start group">
+                                            <div className="flex-1">
+                                                <input
+                                                    type="text"
+                                                    value={item.criterion}
+                                                    onChange={(e) => updateRubricItem(index, 'criterion', e.target.value)}
+                                                    disabled={!canEditStructural}
+                                                    placeholder="Descripción del criterio (ej: Claridad en la redacción)"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-80"
+                                                />
+                                            </div>
+                                            <div className="w-20">
+                                                <input
+                                                    type="number"
+                                                    value={item.maxPoints}
+                                                    onChange={(e) => updateRubricItem(index, 'maxPoints', parseInt(e.target.value) || 0)}
+                                                    disabled={!canEditStructural}
+                                                    placeholder="Pts"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-center disabled:opacity-80"
+                                                />
+                                            </div>
+                                            {canEditStructural && (
+                                                <button
+                                                    onClick={() => removeRubricItem(index)}
+                                                    className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Comments */}
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
@@ -405,15 +659,27 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
                         </div>
 
                         {isStudent && task.assignment?.id && (
-                            <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-                                <p className="text-xs text-indigo-600 mb-3 font-medium">Esta tarea requiere una entrega formal.</p>
-                                <Link
-                                    href={`/dashboard/assignments?selectedId=${task.assignment.id}`}
-                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all text-sm shadow-md shadow-indigo-200"
-                                >
-                                    <Send className="w-4 h-4" /> Realizar Entrega
-                                </Link>
-                            </div>
+                            task.type === 'QUIZ' ? (
+                                <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                                    <p className="text-xs text-purple-600 mb-3 font-medium">Esta tarea es un cuestionario activo.</p>
+                                    <button
+                                        onClick={() => setIsTakingQuiz(true)}
+                                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition-all text-sm shadow-md shadow-purple-200"
+                                    >
+                                        <Play className="w-4 h-4" /> Comenzar Cuestionario
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                                    <p className="text-xs text-indigo-600 mb-3 font-medium">Esta tarea requiere una entrega formal.</p>
+                                    <Link
+                                        href={`/dashboard/assignments?selectedId=${task.assignment.id}`}
+                                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all text-sm shadow-md shadow-indigo-200"
+                                    >
+                                        <Send className="w-4 h-4" /> Realizar Entrega
+                                    </Link>
+                                </div>
+                            )
                         )}
                     </div>
                 </div>

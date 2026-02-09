@@ -222,6 +222,7 @@ model Task {
   description        String?
   status             TaskStatus @default(TODO)
   priority           Priority   @default(MEDIUM)
+  type               TaskType   @default(TASK)
   projectId          String
   dueDate            DateTime?
   isApproved         Boolean    @default(false)
@@ -234,6 +235,7 @@ model Task {
   maxDate            DateTime?
   evaluationCriteria String?
   rubric             Json?
+  quizData           Json?
   comments           Comment[]
   project            Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   assignees          User[]     @relation("TaskAssignees")
@@ -290,10 +292,11 @@ model Submission {
   id           String     @id @default(uuid())
   assignmentId String
   studentId    String
-  fileUrl      String
-  fileName     String
+  fileUrl      String?
+  fileName     String?
   fileType     String?
   fileSize     Int?
+  answers      Json?
   grade        Int?
   feedback     String?
   createdAt    DateTime   @default(now())
@@ -538,6 +541,11 @@ enum Priority {
   LOW
   MEDIUM
   HIGH
+}
+
+enum TaskType {
+  TASK
+  QUIZ
 }
 
 enum ItemType {

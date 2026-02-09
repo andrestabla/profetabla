@@ -6,7 +6,7 @@ import { X, MessageSquare, Flag, Save } from 'lucide-react';
 interface CreateTaskModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (data: { title: string, description: string, priority: 'LOW' | 'MEDIUM' | 'HIGH' }) => void;
+    onConfirm: (data: { title: string, description: string, priority: 'LOW' | 'MEDIUM' | 'HIGH', type: 'TASK' | 'QUIZ' }) => void;
     initialStatus: string;
 }
 
@@ -14,15 +14,17 @@ export function CreateTaskModal({ isOpen, onClose, onConfirm, initialStatus }: C
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
+    const [type, setType] = useState<'TASK' | 'QUIZ'>('TASK');
 
     if (!isOpen) return null;
 
     const handleConfirm = () => {
         if (!title.trim()) return;
-        onConfirm({ title, description, priority });
+        onConfirm({ title, description, priority, type });
         setTitle('');
         setDescription('');
         setPriority('MEDIUM');
+        setType('TASK');
         onClose();
     };
 
@@ -79,26 +81,55 @@ export function CreateTaskModal({ isOpen, onClose, onConfirm, initialStatus }: C
                         />
                     </div>
 
-                    {/* Priority */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-400 uppercase mb-2 block flex items-center gap-2">
-                            <Flag className="w-3 h-3" /> Prioridad
-                        </label>
-                        <div className="grid grid-cols-3 gap-3">
-                            {(['LOW', 'MEDIUM', 'HIGH'] as const).map((p) => (
-                                <button
-                                    key={p}
-                                    onClick={() => setPriority(p)}
-                                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all border ${priority === p
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Priority */}
+                        <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase mb-2 block flex items-center gap-2">
+                                <Flag className="w-3 h-3" /> Prioridad
+                            </label>
+                            <div className="flex gap-2">
+                                {(['LOW', 'MEDIUM', 'HIGH'] as const).map((p) => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setPriority(p)}
+                                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${priority === p
                                             ? p === 'HIGH' ? 'bg-red-50 border-red-200 text-red-700' :
                                                 p === 'MEDIUM' ? 'bg-amber-50 border-amber-200 text-amber-700' :
                                                     'bg-green-50 border-green-200 text-green-700'
                                             : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
+                                            }`}
+                                    >
+                                        {p === 'LOW' ? 'Baja' : p === 'MEDIUM' ? 'Media' : 'Alta'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Type */}
+                        <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase mb-2 block flex items-center gap-2">
+                                Tipo de Actividad
+                            </label>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setType('TASK')}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${type === 'TASK'
+                                        ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                        : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                                         }`}
                                 >
-                                    {p === 'LOW' ? 'Baja' : p === 'MEDIUM' ? 'Media' : 'Alta'}
+                                    Tarea
                                 </button>
-                            ))}
+                                <button
+                                    onClick={() => setType('QUIZ')}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${type === 'QUIZ'
+                                        ? 'bg-purple-50 border-purple-200 text-purple-700'
+                                        : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
+                                        }`}
+                                >
+                                    Cuestionario
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

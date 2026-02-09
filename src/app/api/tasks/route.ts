@@ -139,7 +139,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { title, description, priority, dueDate, projectId, status, deliverable, evaluationCriteria } = body;
+        const { title, description, priority, dueDate, projectId, status, deliverable, evaluationCriteria, type, quizData } = body;
 
         let pid = projectId;
         if (!pid) {
@@ -177,8 +177,11 @@ export async function POST(request: Request) {
                 ...(dueDate && { dueDate: new Date(dueDate) }),
                 projectId: pid,
                 status: status || 'TODO',
+                status: status || 'TODO',
                 deliverable,
                 evaluationCriteria,
+                type: type || 'TASK',
+                quizData: quizData || undefined,
                 isMandatory,
                 // Assign to Team if exists
                 ...(userTeam ? {

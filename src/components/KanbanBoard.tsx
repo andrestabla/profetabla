@@ -30,6 +30,8 @@ type Task = {
     assignment?: { id: string } | null;
     comments: any[];
     tags: any[];
+    type?: 'TASK' | 'QUIZ';
+    quizData?: any;
     /* eslint-enable @typescript-eslint/no-explicit-any */
 };
 
@@ -181,8 +183,8 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
         setIsCreateModalOpen(true);
     };
 
-    const handleConfirmCreate = async (data: { title: string, description: string, priority: 'LOW' | 'MEDIUM' | 'HIGH' }) => {
-        const { title, description, priority } = data;
+    const handleConfirmCreate = async (data: { title: string, description: string, priority: 'LOW' | 'MEDIUM' | 'HIGH', type: 'TASK' | 'QUIZ' }) => {
+        const { title, description, priority, type } = data;
         const status = createModalStatus;
         const tempId = crypto.randomUUID();
 
@@ -202,7 +204,9 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
             approvalNotes: null,
             isMandatory: false,
             comments: [],
-            tags: []
+            tags: [],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            type: type as any // Cast for now until Task type is updated in file
         } as Task;
 
         setTasks(prev => [...prev, newTask]);
@@ -216,7 +220,8 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
                     description,
                     status,
                     projectId,
-                    priority
+                    priority,
+                    type
                 })
             });
             const savedTask = await res.json();
