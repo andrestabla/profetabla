@@ -177,7 +177,6 @@ export async function POST(request: Request) {
                 ...(dueDate && { dueDate: new Date(dueDate) }),
                 projectId: pid,
                 status: status || 'TODO',
-                status: status || 'TODO',
                 deliverable,
                 evaluationCriteria,
                 type: type || 'TASK',

@@ -17,7 +17,7 @@ async function main() {
     console.log(`Found ${submissions.length} submissions to fix.`);
 
     for (const sub of submissions) {
-        if (!sub.fileUrl.startsWith('/api/file')) {
+        if (sub.fileUrl && !sub.fileUrl.startsWith('/api/file')) {
             const newUrl = `/api/file?key=${encodeURIComponent(sub.fileUrl)}`;
             try {
                 await prisma.submission.update({
