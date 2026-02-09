@@ -31,7 +31,10 @@ type Submission = {
 interface GradingModalProps {
     submission: Submission;
     rubricItems: RubricItem[];
-    quizData?: { questions: any[] } | null;
+    quizData?: {
+        questions: any[];
+        gradingMethod?: 'AUTO' | 'MANUAL';
+    } | null;
     onClose: () => void;
 }
 
@@ -47,8 +50,12 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
         });
         return initialScores;
     });
+
     // Quiz Grading State
-    const [gradingMode, setGradingMode] = useState<'AUTO' | 'MANUAL'>('AUTO');
+    // Default to the quiz's configured method, or AUTO as fallback
+    const [gradingMode, setGradingMode] = useState<'AUTO' | 'MANUAL'>(
+        quizData?.gradingMethod === 'MANUAL' ? 'MANUAL' : 'AUTO'
+    );
     const [manualScore, setManualScore] = useState<number>(0);
 
     const [generalFeedback, setGeneralFeedback] = useState(submission.feedback || '');
@@ -69,6 +76,8 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
     };
 
     // Calculate Max Score for Quiz
+    // If auto-weighted or manual, we typically target 100. If explicit points, sum them.
+    // Ideally usage of `q.points` handles both cases (since auto-distribute updates `q.points`).
     const maxQuizScore = quizData?.questions?.reduce((acc: number, q: any) => acc + (q.points || 1), 0) || 0;
     const autoScore = calculateAutoScore();
 

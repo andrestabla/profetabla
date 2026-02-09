@@ -31,7 +31,11 @@ interface Task {
     comments: Comment[];
     tags: { id: string; name: string; color: string }[];
     type?: 'TASK' | 'QUIZ';
-    quizData?: { questions: Question[] };
+    quizData?: {
+        questions: Question[];
+        gradingMethod?: 'AUTO' | 'MANUAL';
+        autoPoints?: boolean;
+    };
 }
 
 type QuestionType = 'MULTIPLE_CHOICE' | 'TEXT' | 'RATING';
@@ -73,6 +77,9 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
 
     // Quiz State
     const [questions, setQuestions] = useState<Question[]>(task.quizData?.questions || []);
+    const [gradingMethod, setGradingMethod] = useState<'AUTO' | 'MANUAL'>(task.quizData?.gradingMethod || 'AUTO');
+    const [autoPoints, setAutoPoints] = useState<boolean>(task.quizData?.autoPoints || false); // Default to manual point entry for flexibility
+
     const [isTakingQuiz, setIsTakingQuiz] = useState(false);
     const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
     const [quizSubmitted, setQuizSubmitted] = useState(false);
@@ -98,7 +105,11 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
                 rubric,
                 // Legacy field for backward compatibility, mapped from rubric
                 evaluationCriteria: rubric.map(r => `- ${r.criterion} (${r.maxPoints} pts)`).join('\n'),
-                quizData: { questions }
+                quizData: {
+                    questions,
+                    gradingMethod,
+                    autoPoints
+                }
             })
         });
         const updated = await res.json();
@@ -145,6 +156,25 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
     };
 
     // Quiz Handlers
+    const distributePoints = (currentQuestions: Question[]) => {
+        if (currentQuestions.length === 0) return currentQuestions;
+        const totalPoints = 100;
+        const pointsPerQuestion = Math.floor(totalPoints / currentQuestions.length);
+        const remainder = totalPoints % currentQuestions.length;
+
+        return currentQuestions.map((q, i) => ({
+            ...q,
+            points: pointsPerQuestion + (i < remainder ? 1 : 0) // Distribute remainder to first few questions
+        }));
+    };
+
+    const handleAutoPointsToggle = (enabled: boolean) => {
+        setAutoPoints(enabled);
+        if (enabled) {
+            setQuestions(distributePoints(questions));
+        }
+    };
+
     const addQuestion = (type: QuestionType) => {
         const newQ: Question = {
             id: crypto.randomUUID(),
@@ -379,6 +409,60 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
                                 </div>
 
                                 <div className="space-y-6">
+                                    {/* Grading Configuration Panel */}
+                                    {canEditStructural && (
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                            <div className="flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center">
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Método de Calificación</label>
+                                                    <div className="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm inline-flex">
+                                                        <button
+                                                            onClick={() => setGradingMethod('AUTO')}
+                                                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${gradingMethod === 'AUTO' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-slate-400 hover:text-slate-600'}`}
+                                                        >
+                                                            Automático
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setGradingMethod('MANUAL')}
+                                                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${gradingMethod === 'MANUAL' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-slate-400 hover:text-slate-600'}`}
+                                                        >
+                                                            Manual
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {gradingMethod === 'AUTO' && (
+                                                    <div className="flex items-center gap-3 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                id="autoPoints"
+                                                                checked={autoPoints}
+                                                                onChange={(e) => handleAutoPointsToggle(e.target.checked)}
+                                                                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                                                            />
+                                                            <label htmlFor="autoPoints" className="text-sm text-slate-700 font-medium cursor-pointer select-none">
+                                                                Ponderar automáticamente
+                                                            </label>
+                                                        </div>
+                                                        <div className="h-6 w-px bg-slate-200 mx-1"></div>
+                                                        <div className="text-sm font-bold text-slate-600">
+                                                            Total: <span className={`${questions.reduce((sum, q) => sum + (q.points || 0), 0) === 100 ? 'text-green-600' : 'text-amber-500'}`}>
+                                                                {questions.reduce((sum, q) => sum + (q.points || 0), 0)} pts
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {gradingMethod === 'MANUAL' && (
+                                                <p className="text-xs text-slate-400 mt-2 italic">
+                                                    En el modo manual, el profesor asignará una calificación global (0-100) después de revisar las respuestas.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {questions.length === 0 && (
                                         <div className="text-center py-8 border-2 border-dashed border-slate-100 rounded-xl">
                                             <p className="text-slate-400 font-medium">No hay preguntas agregadas.</p>
@@ -401,16 +485,20 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
 
                                                     {canEditStructural && (
                                                         <div className="flex gap-4 items-center">
-                                                            <div className="flex items-center gap-2 bg-slate-100 px-2 py-1 rounded-lg">
-                                                                <span className="text-xs font-bold text-slate-500">Puntos:</span>
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    className="w-12 bg-transparent text-sm font-bold text-slate-700 outline-none text-center"
-                                                                    value={q.points || 0}
-                                                                    onChange={(e) => updateQuestion(q.id, 'points', parseInt(e.target.value) || 0)}
-                                                                />
-                                                            </div>
+                                                            {gradingMethod === 'AUTO' && (
+                                                                <div className={`flex items-center gap-2 px-2 py-1 rounded-lg ${autoPoints ? 'bg-slate-50 opacity-70' : 'bg-slate-100'}`}>
+                                                                    <span className="text-xs font-bold text-slate-500">Puntos:</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        className="w-12 bg-transparent text-sm font-bold text-slate-700 outline-none text-center disabled:cursor-not-allowed"
+                                                                        value={q.points || 0}
+                                                                        onChange={(e) => updateQuestion(q.id, 'points', parseInt(e.target.value) || 0)}
+                                                                        disabled={autoPoints}
+                                                                        title={autoPoints ? "Ponderación automática activada" : "Asignar puntos manualmente"}
+                                                                    />
+                                                                </div>
+                                                            )}
                                                             {q.type === 'TEXT' && (
                                                                 <input
                                                                     type="text"
