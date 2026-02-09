@@ -609,54 +609,58 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
                             </div>
                         </div>
 
-                        {/* Deliverables Card */}
-                        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <div className="flex items-center gap-2 mb-3 text-indigo-600">
-                                <Package size={16} />
-                                <h3 className="text-sm font-bold">Entregable</h3>
-                            </div>
+                        {/* Deliverables Card (Hide for Quizzes) */}
+                        {task.type !== 'QUIZ' && (
+                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3 text-indigo-600">
+                                    <Package size={16} />
+                                    <h3 className="text-sm font-bold">Entregable</h3>
+                                </div>
 
-                            <div className="space-y-3">
-                                <input
-                                    type="text"
-                                    value={deliverable}
-                                    onChange={(e) => setDeliverable(e.target.value)}
-                                    disabled={!canEditStructural}
-                                    placeholder="Nombre del entregable..."
-                                    className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                />
+                                <div className="space-y-3">
+                                    <input
+                                        type="text"
+                                        value={deliverable}
+                                        onChange={(e) => setDeliverable(e.target.value)}
+                                        disabled={!canEditStructural}
+                                        placeholder="Nombre del entregable..."
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
 
-                                <div>
-                                    <label className="text-xs text-slate-500 mb-2 block font-medium">Formatos permitidos:</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {['URL', 'PDF', 'PPTX', 'XLS', 'DOC'].map((type) => (
-                                            <button
-                                                key={type}
-                                                onClick={() => canEditStructural && toggleFileType(type)}
-                                                disabled={!canEditStructural}
-                                                className={`px-2.5 py-1 text-xs font-bold rounded-md border transition-all ${allowedFileTypes.includes(type)
-                                                    ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
-                                                    : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
-                                                    }`}
-                                            >
-                                                {type}
-                                            </button>
-                                        ))}
+                                    <div>
+                                        <label className="text-xs text-slate-500 mb-2 block font-medium">Formatos permitidos:</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {['URL', 'PDF', 'PPTX', 'XLS', 'DOC'].map((type) => (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => canEditStructural && toggleFileType(type)}
+                                                    disabled={!canEditStructural}
+                                                    className={`px-2.5 py-1 text-xs font-bold rounded-md border transition-all ${allowedFileTypes.includes(type)
+                                                        ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                                                        : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                                                        }`}
+                                                >
+                                                    {type}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
-                        {/* Actions */}
-                        <div className="space-y-3 pt-2">
-                            <Link
-                                href={`/dashboard/mentorship?projectId=${projectId}&note=Ayuda en tarea: ${encodeURIComponent(task.title)}`}
-                                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-amber-100 text-amber-700 rounded-xl text-sm font-bold hover:bg-amber-50 hover:border-amber-300 transition-all text-center no-underline"
-                            >
-                                <HelpCircle size={16} />
-                                Solicitar Mentoría
-                            </Link>
-                        </div>
+                        {/* Actions (Hide Mentorship for Quizzes) */}
+                        {task.type !== 'QUIZ' && (
+                            <div className="space-y-3 pt-2">
+                                <Link
+                                    href={`/dashboard/mentorship?projectId=${projectId}&note=Ayuda en tarea: ${encodeURIComponent(task.title)}`}
+                                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-amber-100 text-amber-700 rounded-xl text-sm font-bold hover:bg-amber-50 hover:border-amber-300 transition-all text-center no-underline"
+                                >
+                                    <HelpCircle size={16} />
+                                    Solicitar Mentoría
+                                </Link>
+                            </div>
+                        )}
 
                         {isStudent && task.assignment?.id && (
                             task.type === 'QUIZ' ? (
