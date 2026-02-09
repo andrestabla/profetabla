@@ -47,8 +47,30 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
         });
         return initialScores;
     });
+    // Quiz Grading State
+    const [gradingMode, setGradingMode] = useState<'AUTO' | 'MANUAL'>('AUTO');
+    const [manualScore, setManualScore] = useState<number>(0);
+
     const [generalFeedback, setGeneralFeedback] = useState(submission.feedback || '');
     const [isSaving, setIsSaving] = useState(false);
+
+    const isQuiz = submission.type === 'QUIZ' || (!!submission.answers && !submission.fileUrl);
+
+    // Initial Auto-Calculation Effect
+    const calculateAutoScore = () => {
+        if (!quizData?.questions) return 0;
+        let total = 0;
+        quizData.questions.forEach((q: any) => {
+            if (q.correctAnswer && submission.answers?.[q.id] === q.correctAnswer) {
+                total += (q.points || 1);
+            }
+        });
+        return total;
+    };
+
+    // Calculate Max Score for Quiz
+    const maxQuizScore = quizData?.questions?.reduce((acc: number, q: any) => acc + (q.points || 1), 0) || 0;
+    const autoScore = calculateAutoScore();
 
     const handleScoreChange = (itemId: string, val: number) => {
         setScores(prev => ({
@@ -84,8 +106,6 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
 
     const currentTotal = Object.values(scores).reduce((sum, item) => sum + item.score, 0);
     const maxTotal = rubricItems.reduce((sum, item) => sum + item.maxPoints, 0);
-
-    const isQuiz = submission.type === 'QUIZ' || (!!submission.answers && !submission.fileUrl);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -174,38 +194,47 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-8">
                         {isQuiz ? (
-                            // QUIZ GRADING MODE
                             <div className="space-y-6">
                                 {/* Auto/Manual Toggle */}
-                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-bold text-slate-700">Modo de Calificación</h4>
-                                        <div className="flex bg-white rounded-lg p-1 border border-slate-200">
-                                            <button
-                                                onClick={() => setScores({})} // Reset scores when switching
-                                                className="px-3 py-1 text-sm font-bold rounded text-slate-500 hover:text-blue-600 hover:bg-slate-50"
-                                            >
-                                                Automático
-                                            </button>
-                                            <div className="w-px bg-slate-200 my-1 mx-1"></div>
-                                            <button
-                                                onClick={() => { /* Manual mode logic if needed */ }}
-                                                className="px-3 py-1 text-sm font-bold rounded text-slate-500 hover:text-blue-600 hover:bg-slate-50"
-                                            >
-                                                Manual
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Manual Score Input - Only show if in Manual Mode (implied by lack of auto-caluclation displayed here for simplicity first) 
-                                        Actually, let's implement a clean toggle state 
-                                    */}
+                                <div className="bg-slate-50 p-1 rounded-xl border border-slate-200 flex text-sm font-bold">
+                                    <button
+                                        onClick={() => setGradingMode('AUTO')}
+                                        className={`flex-1 py-2 rounded-lg transition-all ${gradingMode === 'AUTO' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                    >
+                                        Automático
+                                    </button>
+                                    <button
+                                        onClick={() => setGradingMode('MANUAL')}
+                                        className={`flex-1 py-2 rounded-lg transition-all ${gradingMode === 'MANUAL' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                    >
+                                        Manual
+                                    </button>
                                 </div>
 
-                                {/* 
-                                    TODO: Full Implementation of Toggle State and Calculation 
-                                    For now, let's replace this entire block with the robust implementation
-                                */}
+                                {gradingMode === 'AUTO' && (
+                                    <div className="p-6 bg-blue-50 border border-blue-100 rounded-xl text-center">
+                                        <p className="text-slate-500 text-sm mb-2">Puntuación calculada automáticamente</p>
+                                        <div className="text-4xl font-black text-blue-600">
+                                            {autoScore} <span className="text-xl text-blue-300">/ {maxQuizScore}</span>
+                                        </div>
+                                        <p className="text-xs text-blue-400 mt-2">Basado en {quizData?.questions?.filter(q => q.correctAnswer).length || 0} respuestas configuradas</p>
+                                    </div>
+                                )}
+
+                                {gradingMode === 'MANUAL' && (
+                                    <div className="p-6 bg-white border border-slate-200 rounded-xl shadow-sm">
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Ingresa la Calificación Manual</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max={maxQuizScore}
+                                            value={manualScore}
+                                            onChange={(e) => setManualScore(parseInt(e.target.value) || 0)}
+                                            className="w-full text-3xl font-bold p-4 text-center border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                        />
+                                        <p className="text-xs text-center text-slate-400 mt-2">Máximo sugerido: {maxQuizScore} pts</p>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             // FILE SUBMISSION GRADING (Existing Rubric Logic)
