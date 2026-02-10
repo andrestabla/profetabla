@@ -188,3 +188,56 @@ export const sendMentorshipNotification = async ({
         html
     });
 };
+
+interface MessageNotificationOptions {
+    recipientEmail: string;
+    senderName: string;
+    projectTitle: string;
+    messageContent: string;
+    projectUrl: string;
+}
+
+export const sendNewMessageNotification = async ({
+    recipientEmail,
+    senderName,
+    projectTitle,
+    messageContent,
+    projectUrl
+}: MessageNotificationOptions) => {
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
+        <h2 style="color: #2563EB; font-size: 20px;">✉️ Nuevo mensaje en ${projectTitle}</h2>
+        
+        <p>Hola,</p>
+        
+        <p><strong>${senderName}</strong> ha enviado un nuevo mensaje en el proyecto <strong>${projectTitle}</strong>:</p>
+        
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #f3f4f6;">
+            <div style="color: #374151; font-size: 15px; line-height: 1.6;">
+                ${messageContent}
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="${projectUrl}" 
+               style="background: #2563EB; color: white; padding: 12px 24px; 
+                      text-decoration: none; border-radius: 6px; display: inline-block;
+                      font-weight: bold; font-size: 14px;">
+                Responder en la plataforma
+            </a>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+        
+        <p style="color: #6b7280; font-size: 12px; text-align: center;">
+            Este es un correo automático de Profe Tabla. Por favor no respondas directamente a este mensaje.
+        </p>
+    </div>
+    `;
+
+    return sendEmail({
+        to: recipientEmail,
+        subject: `Nuevo mensaje de ${senderName} - ${projectTitle}`,
+        html
+    });
+};

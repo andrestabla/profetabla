@@ -4,13 +4,15 @@ import { useState, useTransition, useEffect } from 'react';
 import {
     Calendar, DollarSign, BarChart, ClipboardCheck,
     BookOpen, Briefcase, ChevronLeft, CheckSquare, Layers, Search,
-    Clock3, Target, GraduationCap, Map, Layout, Video, FileText, Play, X, Maximize2
+    Clock3, Target, GraduationCap, Map, Layout, Video, FileText, Play, X, Maximize2, MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
 import { Project } from '@prisma/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { applyToProjectAction } from '@/app/actions/project-actions';
+import { useSession } from 'next-auth/react';
+import ProjectCommunications from '@/components/ProjectCommunications';
 
 interface Resource {
     id: string;
@@ -33,7 +35,8 @@ type ProjectWithRelations = Project & {
 };
 
 export default function ProjectDetailClient({ project, initialStatus }: { project: ProjectWithRelations, initialStatus: string }) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'methodology' | 'logistics' | 'resources'>('overview');
+    const { data: session } = useSession();
+    const [activeTab, setActiveTab] = useState<'overview' | 'methodology' | 'logistics' | 'resources' | 'communications'>('overview');
     const [isPending, startTransition] = useTransition();
     const [applicationStatus, setApplicationStatus] = useState(initialStatus);
     const [viewerResource, setViewerResource] = useState<Resource | null>(null);
@@ -262,6 +265,16 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
                     >
                         <Target className="w-4 h-4" /> Evaluación y Recursos
                     </button>
+                    {applicationStatus === 'ACCEPTED' && (
+                        <button
+                            onClick={() => setActiveTab('communications')}
+                            className={`pb-3 text-sm font-bold transition-all whitespace-nowrap border-b-2 flex items-center gap-2 ${activeTab === 'communications'
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
+                        >
+                            <MessageSquare className="w-4 h-4" /> Comunicaciones
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -473,6 +486,12 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
                     </div>
                 )}
 
+                {/* TAB: COMMUNICATIONS */}
+                {activeTab === 'communications' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <ProjectCommunications projectId={project.id} currentUserId={session?.user?.id || ''} />
+                    </div>
+                )}
             </div>
 
             {/* VIEWER MODAL */}

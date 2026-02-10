@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { KanbanBoard } from '@/components/KanbanBoard';
-import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search, AlertTriangle } from 'lucide-react';
+import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search, AlertTriangle, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, uploadProjectFileToR2Action, extractResourceMetadataAction, updateProjectResourceAction, initializeProjectDriveFolderAction } from './actions';
 import { searchStudentsAction, addStudentToProjectAction, removeStudentFromProjectAction, searchTeachersAction, addTeacherToProjectAction, removeTeacherFromProjectAction } from '@/app/actions/project-enrollment';
@@ -15,6 +15,7 @@ import { DriveSelectorModal } from '@/components/DriveSelectorModal';
 import { EnrollmentControls } from '@/components/EnrollmentControls';
 import { TeamManagement } from '@/components/TeamManagement';
 import { useSession } from 'next-auth/react';
+import ProjectCommunications from '@/components/ProjectCommunications';
 
 // Tipos basados en nuestro esquema Prisma actualizado
 type Resource = {
@@ -54,7 +55,7 @@ type Project = {
 export default function ProjectWorkspaceClient({ project, resources, learningObjects, assignments }: { project: Project, resources: Resource[], learningObjects: any[], assignments: any[] }) {
     // ... (existing state) ...
     const { data: session } = useSession();
-    const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP' | 'ASSIGNMENTS' | 'TEAM'>('RESOURCES');
+    const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP' | 'ASSIGNMENTS' | 'TEAM' | 'COMMS'>('RESOURCES');
     const [isUploading, setIsUploading] = useState(false);
     // const [showContext, setShowContext] = useState(false);
     const [resourceType, setResourceType] = useState('ARTICLE');
@@ -309,6 +310,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                         <button onClick={() => setActiveTab('ASSIGNMENTS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'ASSIGNMENTS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <FileCheck className="w-4 h-4" /> Entregables
                         </button>
+                        <button onClick={() => setActiveTab('COMMS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'COMMS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <MessageSquare className="w-4 h-4" /> Comunicaciones
+                        </button>
                         <button onClick={() => setActiveTab('TEAM')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'TEAM' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <Users className="w-4 h-4" /> Equipo
                         </button>
@@ -319,6 +323,14 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
             </div>
 
             {/* Contenido Principal */}
+            {
+                activeTab === 'COMMS' && (
+                    <div className="animate-in fade-in duration-300">
+                        <ProjectCommunications projectId={project.id} currentUserId={session?.user?.id || ''} />
+                    </div>
+                )
+            }
+
             {
                 activeTab === 'TEAM' && (
                     <div className="animate-in fade-in duration-300 space-y-8">
