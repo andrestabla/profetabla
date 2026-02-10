@@ -8,6 +8,7 @@ import {
     Layers, Search, CheckSquare, AlertTriangle
 } from 'lucide-react';
 import { createProjectAction } from '@/app/actions/project-actions';
+import { useModals } from '@/components/ModalProvider';
 
 // Definición de tipo simple para la prop
 type SimpleOA = {
@@ -18,6 +19,7 @@ type SimpleOA = {
 
 export default function CreateProjectForm({ availableOAs, defaultType, enforceType = false }: { availableOAs: SimpleOA[], defaultType?: 'PROJECT' | 'CHALLENGE' | 'PROBLEM', enforceType?: boolean }) {
     const router = useRouter();
+    const { showAlert } = useModals();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmAction, setConfirmAction] = useState<'DISCARD' | 'PUBLISH' | null>(null);
     const formRef = useRef<HTMLFormElement>(null);
@@ -150,7 +152,7 @@ export default function CreateProjectForm({ availableOAs, defaultType, enforceTy
                 return;
             }
             console.error(error);
-            alert("Error al crear el proyecto");
+            await showAlert("Error", "Ocurrió un error al intentar crear el proyecto. Por favor, verifica los datos.", "error");
             setIsSubmitting(false); // Only reset on error
         }
     }

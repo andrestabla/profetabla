@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { updateResourceAction, updateLearningObjectMetadataAction } from '@/app/(dashboard)/dashboard/learning/actions';
+import { useModals } from '@/components/ModalProvider';
 import { useRouter } from 'next/navigation';
 
 interface Project {
@@ -20,6 +21,7 @@ interface EditResourceModalProps {
 
 export function EditResourceModal({ isOpen, onClose, resource, projects }: EditResourceModalProps) {
     const router = useRouter();
+    const { showAlert, showConfirm } = useModals();
     const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -59,12 +61,13 @@ export function EditResourceModal({ isOpen, onClose, resource, projects }: EditR
                     projectId: selectedProjectId
                 });
             }
+            await showAlert("Cambios Guardados", "La información ha sido actualizada correctamente.", "success");
             router.refresh();
             onClose();
             window.location.reload();
         } catch (error) {
             console.error(error);
-            alert("Error al actualizar");
+            await showAlert("Error al Guardar", "No se pudieron aplicar los cambios en este momento.", "error");
         } finally {
             setLoading(false);
         }
@@ -84,7 +87,10 @@ export function EditResourceModal({ isOpen, onClose, resource, projects }: EditR
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in duration-200">
                 <button
-                    onClick={onClose}
+                    onClick={async () => {
+                        const confirm = await showConfirm("¿Descartar cambios?", "Cualquier modificación no guardada se perderá.", "warning");
+                        if (confirm) onClose();
+                    }}
                     className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                     <X className="w-5 h-5" />

@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from 'react';
 import { addResourceCommentAction, deleteResourceCommentAction } from '@/app/actions/resource-interactions';
 import { Loader2, MessageSquare, Send, Trash2, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useModals } from '@/components/ModalProvider';
 
 type Comment = {
     id: string;
@@ -26,6 +27,7 @@ export function ResourceComments({
     initialComments: Comment[];
     currentUserId: string;
 }) {
+    const { showAlert } = useModals();
     const [comments, setComments] = useState<Comment[]>(initialComments);
     const [content, setContent] = useState('');
     const [isPending, startTransition] = useTransition();
@@ -75,7 +77,7 @@ export function ResourceComments({
             } else {
                 // Revert
                 setComments(prev => prev.filter(c => c.id !== optimisticId));
-                alert('Error al publicar comentario');
+                await showAlert("Error", "No se pudo publicar el comentario. Inténtalo de nuevo.", "error");
             }
         });
     };
@@ -85,7 +87,7 @@ export function ResourceComments({
         startTransition(async () => {
             const result = await deleteResourceCommentAction(commentId);
             if (!result.success) {
-                alert('No se pudo eliminar');
+                await showAlert("Error", "No se pudo eliminar el comentario.", "error");
                 router.refresh();
             }
         });

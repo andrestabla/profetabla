@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, Clock, Video, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useModals } from '@/components/ModalProvider';
 
 interface Slot {
     id: string;
@@ -30,6 +31,7 @@ interface BookingListProps {
 }
 
 export function BookingList({ defaultProjectId, defaultNote, projectTeacherIds, projectStudents }: BookingListProps) {
+    const { showAlert, showPrompt } = useModals();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _ignore = defaultNote;
     const [slots, setSlots] = useState<Slot[]>([]);
@@ -53,7 +55,7 @@ export function BookingList({ defaultProjectId, defaultNote, projectTeacherIds, 
     }, [projectTeacherIds]);
 
     const handleBook = async (slotId: string) => {
-        const note = prompt("Motivo de la sesión:");
+        const note = await showPrompt("Reservar Mentoría", "¿Cuál es el motivo o tema principal de la sesión?", "", "Ej: Revisión de alcance, dudas técnicas...");
         if (!note) return;
 
         setIsBooking(true);
@@ -70,11 +72,11 @@ export function BookingList({ defaultProjectId, defaultNote, projectTeacherIds, 
             });
 
             if (res.ok) {
-                alert("Reserva confirmada");
+                await showAlert("Reserva Exitosa", "Tu sesión de mentoría ha sido confirmada.", "success");
                 window.location.reload();
             } else {
                 const error = await res.json();
-                alert(error.error || "Error al reservar");
+                await showAlert("Error al Reservar", error.error || "No se pudo completar la reserva.", "error");
             }
         } finally {
             setIsBooking(false);
@@ -82,7 +84,7 @@ export function BookingList({ defaultProjectId, defaultNote, projectTeacherIds, 
     };
 
     const handleUpdateMinutes = async (bookingId: string, currentMinutes: string | null) => {
-        const minutes = prompt("Minuta / Acuerdos de la sesión:", currentMinutes || "");
+        const minutes = await showPrompt("Minuta de Sesión", "Registra los acuerdos y observaciones de la mentoría:", currentMinutes || "", "Acuerdos llegados...");
         if (minutes === null) return;
 
         const res = await fetch(`/api/mentorship/bookings/${bookingId}`, {

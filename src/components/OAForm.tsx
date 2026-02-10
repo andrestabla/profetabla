@@ -6,9 +6,11 @@ import Loading from './Loading';
 import { DrivePickerModal } from './DrivePickerModal';
 import { processDriveFileForOAAction } from '@/app/actions/oa-actions';
 import { extractResourceMetadataAction } from '@/app/(dashboard)/dashboard/professor/projects/[id]/actions';
+import { useModals } from '@/components/ModalProvider';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function OAForm({ initialData, action }: { initialData?: any, action: (fd: FormData) => Promise<void> }) {
+    const { showAlert } = useModals();
     const [isSaving, setIsSaving] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [items, setItems] = useState<any[]>(initialData?.items || []);
@@ -22,6 +24,8 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
     const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
     const [isExtractingMetadata, setIsExtractingMetadata] = useState(false);
     const [isGlobalGenerating, setIsGlobalGenerating] = useState(false);
+    // Drive State
+    const [driveFile, setDriveFile] = useState<File | null>(null);
 
     // Edit state
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -41,9 +45,9 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
     const [newItemPresentation, setNewItemPresentation] = useState('');
     const [newItemUtility, setNewItemUtility] = useState('');
 
-    const handleAddItem = () => {
+    const handleAddItem = async () => {
         if (!newItemTitle || !newItemUrl) {
-            alert("Completa el título y la URL del ítem");
+            await showAlert("Datos Incompletos", "Completa el título y la URL del ítem para agregarlo.", "warning");
             return;
         }
 
@@ -105,7 +109,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
 
     const handleAIAutoFillMain = async () => {
         if (!title && !subject) {
-            alert("Escribe al menos el título o materia para orientar a la IA");
+            await showAlert("Guía Necesaria", "Escribe al menos el título o materia para orientar a la IA.", "warning");
             return;
         }
         setIsGlobalGenerating(true);
@@ -128,7 +132,7 @@ export default function OAForm({ initialData, action }: { initialData?: any, act
 
     const handleAIAutoFillItem = async () => {
         if (!newItemUrl) {
-            alert("Ingresa una URL para analizar");
+            await showAlert("URL Requerida", "Ingresa una URL para que la IA la pueda analizar.", "warning");
             return;
         }
         setIsExtractingMetadata(true);

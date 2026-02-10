@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Send, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Send, HelpCircle, Clock, AlertTriangle, X } from 'lucide-react';
+import { useModals } from './ModalProvider';
 
- 
+
 type QuestionType = 'MULTIPLE_CHOICE' | 'TEXT' | 'RATING';
 
 interface Question {
@@ -14,18 +15,22 @@ interface Question {
 }
 
 interface QuizRunnerProps {
-    title: string;
-    questions: Question[];
-    assignmentId?: string;
-    onClose: () => void;
-    onSuccess?: () => void;
+    assignment: {
+        id: string;
+        title: string;
+        questions: Question[];
+    };
+    onCancel: () => void;
+    onComplete: (submissionId: string) => void;
 }
 
-export function QuizRunner({ title, questions, assignmentId, onClose, onSuccess }: QuizRunnerProps) {
+export function QuizRunner({ assignment, onComplete, onCancel }: QuizRunnerProps) {
+    const { showAlert, showConfirm } = useModals();
     const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+    const questions = assignment.questions; // Extract questions from assignment prop
     const totalQuestions = questions.length;
     const currentQuestion = questions[currentQuestionIndex];
     const progress = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
@@ -45,17 +50,28 @@ export function QuizRunner({ title, questions, assignmentId, onClose, onSuccess 
     };
 
     const submitQuiz = async () => {
-        if (!assignmentId) {
-            alert("Error: No se encontró la asignación para este cuestionario.");
+        if (!assignment?.id) {
+            await showAlert("Error", "No se encontró la asignación para este cuestionario.", "error");
             return;
         }
 
         // Validation: Verify all questions are answered or warn
         const answeredCount = Object.keys(quizAnswers).length;
+
         if (answeredCount < totalQuestions) {
-            if (!confirm(`Has respondido ${answeredCount} de ${totalQuestions} preguntas. ¿Seguro que quieres enviar?`)) return;
+            const confirmSubmission = await showConfirm(
+                "Preguntas pendientes",
+                `Has respondido ${answeredCount} de ${totalQuestions} preguntas. ¿Seguro que quieres enviar?`,
+                "warning"
+            );
+            if (!confirmSubmission) return;
         } else {
-            if (!confirm("¿Enviar respuestas? No podrás modificarlas.")) return;
+            const confirmSubmission = await showConfirm(
+                "¿Enviar respuestas?",
+                "No podrás modificarlas una vez enviadas.",
+                "warning"
+            );
+            if (!confirmSubmission) return;
         }
 
         setIsSubmitting(true);
@@ -64,24 +80,22 @@ export function QuizRunner({ title, questions, assignmentId, onClose, onSuccess 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    assignmentId: assignmentId,
+                    assignmentId: assignment.id,
                     answers: quizAnswers,
                     type: 'QUIZ'
                 })
             });
 
             if (res.ok) {
-                // Success animation or alert? 
-                // For now standard alert but maybe we can make it nicer later
-                if (onSuccess) onSuccess();
-                onClose();
+                const data = await res.json();
+                onComplete(data.submissionId);
             } else {
                 const data = await res.json();
-                alert(data.error || "Error al enviar evaluación");
+                await showAlert("Error", data.error || "Error al enviar evaluación", "error");
             }
-        } catch (e) {
-            console.error(e);
-            alert("Error de conexión");
+        } catch (error) {
+            console.error('Submit error:', error);
+            await showAlert("Error", "Error de conexión", "error");
         } finally {
             setIsSubmitting(false);
         }
@@ -93,7 +107,7 @@ export function QuizRunner({ title, questions, assignmentId, onClose, onSuccess 
                 <div className="bg-white p-8 rounded-xl shadow-xl text-center max-w-md border border-slate-100">
                     <h3 className="text-xl font-bold text-slate-800 mb-2">Cuestionario Vacío</h3>
                     <p className="text-slate-500 mb-6">Este cuestionario no tiene preguntas configuradas.</p>
-                    <button onClick={onClose} className="px-6 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition-colors">
+                    <button onClick={onCancel} className="px-6 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition-colors">
                         Cerrar
                     </button>
                 </div>
@@ -115,9 +129,9 @@ export function QuizRunner({ title, questions, assignmentId, onClose, onSuccess 
                                 Pregunta {currentQuestionIndex + 1} de {totalQuestions}
                             </span>
                         </div>
-                        <h2 className="text-lg md:text-xl font-bold text-slate-800 truncate max-w-[200px] md:max-w-md">{title}</h2>
+                        <h2 className="text-lg md:text-xl font-bold text-slate-800 truncate max-w-[200px] md:max-w-md">{assignment.title}</h2>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
+                    <button onClick={onCancel} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 </div>

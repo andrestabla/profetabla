@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { TaskModal } from './TaskModal';
 import { generateTasksFromProject } from '@/app/actions/kanban-actions';
 import { CreateTaskModal } from './CreateTaskModal';
+import { useModals } from './ModalProvider';
 
 type Task = {
     id: string;
@@ -44,6 +45,7 @@ const COLUMNS = [
 
 export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: string; userRole: string; allProjects?: Array<{ id: string; title: string; type: string; industry: string | null }> }) {
     const router = useRouter();
+    const { showAlert, showConfirm } = useModals();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [originalTasks, setOriginalTasks] = useState<Task[]>([]);
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -145,24 +147,34 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
             // Reload to ensure sync
             setOriginalTasks(tasks);
             setIsEditMode(false);
-            alert("Cambios guardados correctamente");
+            await showAlert("Éxito", "Cambios guardados correctamente", "success");
         } catch (error) {
             console.error("Error saving batch:", error);
-            alert("Error al guardar cambios");
+            await showAlert("Error", "Error al guardar cambios", "error");
         } finally {
             setIsSaving(false);
         }
     };
 
-    const handleDiscard = () => {
-        if (confirm("¿Descartar cambios no guardados?")) {
+    const handleDiscard = async () => {
+        const confirmDiscard = await showConfirm(
+            "¿Descartar cambios?",
+            "Se perderán todos los cambios no guardados en el tablero.",
+            "warning"
+        );
+        if (confirmDiscard) {
             setTasks(originalTasks);
             setIsEditMode(false);
         }
     };
 
     const handleDeleteTask = async (taskId: string) => {
-        if (!confirm("¿Estás seguro de eliminar esta tarea?")) return;
+        const confirmDelete = await showConfirm(
+            "¿Eliminar tarea?",
+            "Esta acción no se puede deshacer.",
+            "danger"
+        );
+        if (!confirmDelete) return;
 
         // Optimistic update
         setTasks(prev => prev.filter(t => t.id !== taskId));
@@ -173,7 +185,7 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
             setOriginalTasks(prev => prev.filter(t => t.id !== taskId));
         } catch (error) {
             console.error(error);
-            alert("Error al eliminar la tarea");
+            await showAlert("Error", "Error al eliminar la tarea", "error");
             // Revert? Complex without reload. Simpler to just reload or accept the risk for now.
         }
     };
@@ -229,7 +241,7 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
             setOriginalTasks(prev => [...prev, savedTask]);
         } catch (e) {
             console.error(e);
-            alert("Error al crear tarea");
+            await showAlert("Error", "Error al crear tarea", "error");
             setTasks(prev => prev.filter(t => t.id !== tempId));
         }
     };
@@ -339,7 +351,12 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
                                 {col.id === 'TODO' && (userRole === 'TEACHER' || userRole === 'ADMIN') && (
                                     <button
                                         onClick={async () => {
-                                            if (!confirm("¿Generar tareas automáticas basadas en el proyecto via IA?")) return;
+                                            const confirmIA = await showConfirm(
+                                                "Generar tareas con IA",
+                                                "¿Generar tareas automáticas basadas en el proyecto? Esto sobreescribirá o añadirá nuevas tareas.",
+                                                "info"
+                                            );
+                                            if (!confirmIA) return;
                                             setIsGenerating(true);
                                             try {
                                                 const res = await generateTasksFromProject(projectId);
@@ -355,12 +372,12 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
                                                             setIsGenerating(false);
                                                         });
                                                 } else {
-                                                    alert(res.error || "Error al generar tareas");
+                                                    await showAlert("Error", res.error || "Error al generar tareas", "error");
                                                     setIsGenerating(false);
                                                 }
                                             } catch (error) {
                                                 console.error(error);
-                                                alert("Error de conexión");
+                                                await showAlert("Error", "Error de conexión", "error");
                                                 setIsGenerating(false);
                                             }
                                         }}

@@ -16,6 +16,7 @@ import { EnrollmentControls } from '@/components/EnrollmentControls';
 import { TeamManagement } from '@/components/TeamManagement';
 import { useSession } from 'next-auth/react';
 import ProjectCommunications from '@/components/ProjectCommunications';
+import { useModals } from '@/components/ModalProvider';
 
 // Tipos basados en nuestro esquema Prisma actualizado
 type Resource = {
@@ -54,6 +55,7 @@ type Project = {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function ProjectWorkspaceClient({ project, resources, learningObjects, assignments }: { project: Project, resources: Resource[], learningObjects: any[], assignments: any[] }) {
     // ... (existing state) ...
+    const { showAlert, showConfirm } = useModals();
     const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP' | 'ASSIGNMENTS' | 'TEAM' | 'COMMS'>('RESOURCES');
     const [isUploading, setIsUploading] = useState(false);
@@ -105,7 +107,12 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     };
 
     const handleRemoveStudent = async (studentId: string) => {
-        if (!confirm("¿Estás seguro de querer expulsar a este estudiante del proyecto?")) return;
+        const confirmRemove = await showConfirm(
+            "¿Expulsar estudiante?",
+            "¿Estás seguro de querer expulsar a este estudiante del proyecto?",
+            "danger"
+        );
+        if (!confirmRemove) return;
         await removeStudentFromProjectAction(project.id, studentId);
         window.location.reload();
     };
@@ -135,7 +142,12 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
     };
 
     const handleRemoveTeacher = async (teacherId: string) => {
-        if (!confirm("¿Estás seguro de querer retirar a este profesor del proyecto?")) return;
+        const confirmRemove = await showConfirm(
+            "¿Retirar profesor?",
+            "¿Estás seguro de querer retirar a este profesor del proyecto?",
+            "danger"
+        );
+        if (!confirmRemove) return;
         await removeTeacherFromProjectAction(project.id, teacherId);
         window.location.reload();
     };
@@ -241,11 +253,11 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                 setMetaCitationAuthor(result.data.citationAuthor || '');
                 setMetaApaReference(result.data.apaReference || '');
             } else {
-                alert(result.error || "No se pudo extraer metadatos");
+                await showAlert("Error", result.error || "No se pudo extraer metadatos", "error");
             }
         } catch (e) {
             console.error(e);
-            alert('Error al conectar con la IA');
+            await showAlert("Error", 'Error al conectar con la IA', "error");
         } finally {
             setIsExtracting(false);
         }
@@ -548,7 +560,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                     }
 
                                     if (result?.success === false) {
-                                        alert(`Error: ${result.error}`);
+                                        await showAlert("Error", `Error: ${result.error}`, "error");
                                     } else {
                                         if (editingResource) handleCancelEdit();
                                         else {
@@ -556,7 +568,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                         }
                                     }
                                 } catch (e: any) {
-                                    alert(`Crash crítico: ${e.message || 'Error desconocido'}`);
+                                    await showAlert("Error", `Crash crítico: ${e.message || 'Error desconocido'}`, "error");
                                 } finally {
                                     setIsUploading(false);
                                 }
@@ -627,11 +639,11 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                                                         try {
                                                                             const res = await initializeProjectDriveFolderAction(project.id);
                                                                             if (!res.success) {
-                                                                                alert(res.error || 'Error al crear la carpeta');
+                                                                                await showAlert("Error", res.error || 'Error al crear la carpeta', "error");
                                                                             }
                                                                         } catch (e) {
                                                                             console.error(e);
-                                                                            alert('Error inesperado');
+                                                                            await showAlert("Error", 'Error inesperado', "error");
                                                                         } finally {
                                                                             setIsInitializingFolder(false);
                                                                         }

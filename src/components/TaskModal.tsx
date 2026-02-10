@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { X, MessageSquare, HelpCircle, Package, ClipboardCheck, Send, User, List, Plus, Trash, CheckSquare, AlignLeft, Play, Check } from 'lucide-react';
+import {
+    X, CheckCircle2, FileText, Clock,
+    AlertCircle, ExternalLink, Send, MessageSquare,
+    ChevronRight, BookOpen, Trash2, Edit3, Save, HelpCircle, Package, ClipboardCheck, User, List, Plus, Trash, CheckSquare, AlignLeft, Play, Check
+} from 'lucide-react';
+import { useModals } from './ModalProvider';
 import Link from 'next/link';
 
 interface Comment {
@@ -56,10 +61,13 @@ interface TaskModalProps {
     isOpen: boolean;
     onClose: () => void;
     /* eslint-disable @typescript-eslint/no-explicit-any */
-    onUpdate: (updatedTask: any) => void;
+    onUpdate: (updatedTask?: any) => void;
+    currentUserId?: string;
+    sessionRole?: string;
 }
 
-export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate }: TaskModalProps) {
+export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, projectId, sessionRole, userRole }: TaskModalProps) {
+    const { showAlert, showConfirm } = useModals();
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || '');
     const [priority, setPriority] = useState(task.priority);
@@ -83,6 +91,7 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
     const [isTakingQuiz, setIsTakingQuiz] = useState(false);
     const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
     const [quizSubmitted, setQuizSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false); // Added for submission state
 
     const isStudent = userRole === 'STUDENT';
     const isMandatory = task.isMandatory;
@@ -221,7 +230,13 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
     };
 
     const submitQuiz = async () => {
-        if (!confirm("¿Enviar respuestas? No podrás modificarlas.")) return;
+        const confirm = await showConfirm(
+            "¿Enviar respuestas?",
+            "No podrás modificarlas una vez enviadas.",
+            "warning"
+        );
+        if (!confirm) return;
+        setIsSubmitting(true);
         try {
             // Should create submission
             const res = await fetch('/api/submissions', { // NOTE: Need to ensure this endpoint handles JSON answers
@@ -233,17 +248,19 @@ export function TaskModal({ task, projectId, userRole, isOpen, onClose, onUpdate
                     type: 'QUIZ'
                 })
             });
-            if (res.ok) {
-                alert("Evaluación enviada correctamente");
-                setQuizSubmitted(true);
-                setIsTakingQuiz(false);
-                onClose(); // Or refresh
+            const result = await res.json(); // Assuming the response has a success property
+            if (result.success) {
+                await showAlert("Éxito", "Evaluación enviada correctamente", "success");
+                onUpdate();
+                onClose();
             } else {
-                alert("Error al enviar evaluación");
+                await showAlert("Error", "Error al enviar evaluación", "error");
             }
         } catch (e) {
             console.error(e);
-            alert("Error de conexión");
+            await showAlert("Error", "Error de conexión", "error");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 

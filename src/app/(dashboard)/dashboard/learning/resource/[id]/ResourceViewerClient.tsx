@@ -29,8 +29,9 @@ type Resource = {
 // ... Comment type ...
 
 import { DrivePickerModal } from '@/components/DrivePickerModal';
+import { useModals } from '@/components/ModalProvider';
 
- 
+
 export default function ResourceViewerClient({ resource, currentUserId, currentUserRole, comments: initialComments }: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resource: any;
@@ -39,6 +40,7 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     comments: any[];
 }) {
+    const { showAlert, showConfirm } = useModals();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [comments, setComments] = useState(initialComments);
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -49,7 +51,6 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
     const [isSaving, setIsSaving] = useState(false);
     const [isExtracting, setIsExtracting] = useState(false);
     const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
     // ... Form State ...
@@ -123,7 +124,7 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
                     // Pass 'auto' to let backend resolve mimeType
                     aiData = await processDriveFileForOAAction(fileId, 'auto');
                 } else {
-                    alert("No se pudo identificar el ID del archivo de Drive en la URL.");
+                    await showAlert("Error de Enlace", "No se pudo identificar el ID del archivo de Drive en la URL proporcionada.", "warning");
                     setIsExtracting(false);
                     return;
                 }
@@ -134,6 +135,7 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
             }
 
             if (aiData) {
+                // ... update state ...
                 setFormData(prev => ({
                     ...prev,
                     title: aiData.title || prev.title,
@@ -146,11 +148,11 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
                     apaReference: aiData.apaReference || prev.apaReference
                 }));
             } else {
-                alert("No se pudo extraer información automática de este recurso.");
+                await showAlert("No se pudo extraer", "No logramos obtener información automática de este recurso.", "warning");
             }
         } catch (e) {
             console.error("AI Error", e);
-            alert("Error consultando al asistente IA");
+            await showAlert("Error de IA", "Ocurrió un fallo al consultar al asistente de Inteligencia Artificial.", "error");
         } finally {
             setIsExtracting(false);
         }
@@ -177,31 +179,40 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
             });
 
             setIsEditing(false);
+            await showAlert("Cambios Guardados", "La información del recurso ha sido actualizada correctamente.", "success");
             window.location.reload();
         } catch (e) {
             console.error(e);
-            alert("Error al guardar");
+            await showAlert("Error al Guardar", "No se pudieron guardar las modificaciones en este momento.", "error");
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDelete = async () => {
+        const confirm = await showConfirm(
+            "¿Eliminar Recurso?",
+            `¿Estás seguro de eliminar "${resource.title}"? Esta acción no se puede deshacer.`,
+            "danger"
+        );
+
+        if (!confirm) return;
+
         setIsDeleting(true);
         try {
             const { deleteResourceAction } = await import('@/app/(dashboard)/dashboard/learning/actions');
             const res = await deleteResourceAction(resource.id);
             if (res.success) {
+                await showAlert("Recurso Eliminado", "El material ha sido borrado correctamente.", "success");
                 window.location.href = '/dashboard/learning';
             } else {
-                alert(res.error || "Error al eliminar");
+                await showAlert("Error al Eliminar", res.error || "No se pudo completar la eliminación.", "error");
             }
         } catch (e) {
             console.error(e);
-            alert("Error al eliminar");
+            await showAlert("Error Crítico", "Ocurrió un fallo inesperado al intentar eliminar el recurso.", "error");
         } finally {
             setIsDeleting(false);
-            setShowDeleteConfirm(false);
         }
     };
 
@@ -339,7 +350,7 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setShowDeleteConfirm(true)}
+                                            onClick={handleDelete}
                                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                             title="Eliminar Recurso"
                                         >
@@ -586,47 +597,6 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
                 onSelect={handleDriveFileSelected}
             />
 
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center shrink-0">
-                                    <AlertTriangle className="w-6 h-6 text-red-600" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-900">¿Eliminar Recurso?</h3>
-                                    <p className="text-slate-500 text-sm">Esta acción no se puede deshacer y el recurso desaparecerá de proyectos y biblioteca.</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
-                                <p className="text-sm font-bold text-slate-700 truncate">{resource.title}</p>
-                                <p className="text-xs text-slate-500 mt-1">{resource.type} • {resource.category?.name}</p>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowDeleteConfirm(false)}
-                                    disabled={isDeleting}
-                                    className="flex-1 py-3 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors disabled:opacity-50"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    disabled={isDeleting}
-                                    className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                >
-                                    {isDeleting ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> : null}
-                                    {isDeleting ? 'Eliminando...' : 'Sí, Eliminar'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

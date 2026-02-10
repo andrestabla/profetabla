@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Plus, Trash2, Save, Loader2, GripVertical } from 'lucide-react';
 import { saveRubricAction } from '@/app/actions/rubric-actions';
+import { useModals } from '@/components/ModalProvider';
 
 type RubricItem = {
     id?: string;
@@ -12,6 +13,7 @@ type RubricItem = {
 };
 
 export function RubricEditor({ assignmentId, initialItems = [], onClose }: { assignmentId: string; initialItems?: RubricItem[]; onClose: () => void }) {
+    const { showAlert, showConfirm } = useModals();
     const [items, setItems] = useState<RubricItem[]>(initialItems.sort((a, b) => a.order - b.order));
     const [isSaving, setIsSaving] = useState(false);
 
@@ -37,10 +39,10 @@ export function RubricEditor({ assignmentId, initialItems = [], onClose }: { ass
 
         const res = await saveRubricAction(assignmentId, orderedItems);
         if (res.success) {
-            alert("Rúbrica guardada correctamente");
+            await showAlert("Rúbrica Guardada", "Los criterios de evaluación han sido actualizados correctamente.", "success");
             onClose();
         } else {
-            alert("Error al guardar: " + res.error);
+            await showAlert("Error", "No se pudo guardar la rúbrica: " + res.error, "error");
         }
         setIsSaving(false);
     };
@@ -79,7 +81,10 @@ export function RubricEditor({ assignmentId, initialItems = [], onClose }: { ass
                                 className="w-full text-sm border-slate-200 rounded-md focus:ring-blue-500 text-center font-bold"
                             />
                         </div>
-                        <button onClick={() => deleteItem(index)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
+                        <button onClick={async () => {
+                            const confirm = await showConfirm("¿Eliminar criterio?", "¿Estás seguro de que deseas eliminar este criterio de la rúbrica?", "danger");
+                            if (confirm) deleteItem(index);
+                        }} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
                             <Trash2 className="w-4 h-4" />
                         </button>
                     </div>

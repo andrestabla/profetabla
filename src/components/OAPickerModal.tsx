@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BookOpen, X, Loader2, Plus } from 'lucide-react';
 import { getAvailableLearningObjectsAction, linkLearningObjectToProjectAction } from '@/app/(dashboard)/dashboard/professor/projects/[id]/actions';
+import { useModals } from '@/components/ModalProvider';
 
 interface OAPickerModalProps {
     isOpen: boolean;
@@ -11,6 +12,7 @@ interface OAPickerModalProps {
 }
 
 export function OAPickerModal({ isOpen, onClose, projectId }: OAPickerModalProps) {
+    const { showAlert } = useModals();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [oas, setOas] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -47,11 +49,11 @@ export function OAPickerModal({ isOpen, onClose, projectId }: OAPickerModalProps
             if (result.success) {
                 onClose();
             } else {
-                alert(result.error || 'Error al vincular el OA');
+                await showAlert("Error al Vincular", result.error || 'No se pudo vincular el OA al proyecto.', "error");
             }
         } catch (e) {
             console.error(e);
-            alert('Error desconocido al vincular');
+            await showAlert("Error Inesperado", 'Ocurrió un error desconocido al intentar vincular el objeto.', "error");
         } finally {
             setIsLinking(null);
         }

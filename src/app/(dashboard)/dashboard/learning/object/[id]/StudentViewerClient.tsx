@@ -33,27 +33,35 @@ type LearningObject = {
 };
 
 import { deleteLearningObjectAction } from '../../actions';
+import { useModals } from '@/components/ModalProvider';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function StudentViewerClient({ learningObject, comments, currentUserId, currentUserRole }: { learningObject: LearningObject, comments: any[], currentUserId?: string, currentUserRole?: string }) {
+    const { showAlert, showConfirm } = useModals();
     // Ordenar los items y definir el estado inicial
     const sortedItems = [...learningObject.items].sort((a, b) => a.order - b.order);
     const [currentIndex, setCurrentIndex] = useState(-1); // -1 is Intro
     const activeItem = currentIndex >= 0 ? sortedItems[currentIndex] : null;
 
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
     const handleDelete = async () => {
+        const confirm = await showConfirm(
+            "¿Eliminar Objeto de Aprendizaje?",
+            `Esta acción eliminará "${learningObject.title}" y todos sus recursos de forma permanente.`,
+            "danger"
+        );
+
+        if (!confirm) return;
+
         setIsDeleting(true);
         try {
             await deleteLearningObjectAction(learningObject.id);
         } catch {
-            alert("Error al eliminar");
+            await showAlert("Error al eliminar", "No se pudo completar la eliminación. Inténtalo de nuevo.", "error");
             setIsDeleting(false);
-            setShowDeleteModal(false);
         }
     };
 
@@ -82,43 +90,6 @@ export default function StudentViewerClient({ learningObject, comments, currentU
     return (
         <div className="h-[calc(100vh-80px)] bg-slate-100 flex overflow-hidden rounded-xl border border-slate-200 relative">
 
-            {/* DELETE MODAL */}
-            {showDeleteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                                <AlertTriangle className="w-6 h-6 text-red-600" />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">¿Eliminar Objeto de Aprendizaje?</h3>
-                            <p className="text-slate-500 mb-6 text-sm">
-                                Esta acción es <strong>irreversible</strong>. Se eliminará permanentemente:
-                                <ul className="mt-2 text-left list-disc list-inside bg-red-50 p-3 rounded-lg text-red-700 font-medium">
-                                    <li>El objeto &quot;{learningObject.title}&quot;</li>
-                                    <li>Los {learningObject.items.length} recursos contenidos</li>
-                                    <li>Todos los comentarios e historial de progreso de los estudiantes</li>
-                                </ul>
-                            </p>
-
-                            <div className="flex gap-3 w-full">
-                                <button
-                                    onClick={() => setShowDeleteModal(false)}
-                                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-bold hover:bg-slate-50"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    disabled={isDeleting}
-                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    {isDeleting ? 'Eliminando...' : 'Sí, Eliminar'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* BARRA LATERAL: Índice de Contenidos */}
             <aside className={`bg-white border-r border-slate-200 flex-col shrink-0 transition-all duration-300 ease-in-out hidden md:flex ${isSidebarOpen ? 'w-80 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'}`}>

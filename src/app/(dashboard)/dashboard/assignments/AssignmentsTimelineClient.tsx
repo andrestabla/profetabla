@@ -593,11 +593,13 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
             {/* Quiz Runner Overlay */}
             {selectedAssignment && showSubmissionForm && selectedAssignment.task?.type === 'QUIZ' && selectedAssignment.task.quizData && (
                 <QuizRunner
-                    title={selectedAssignment.title}
-                    questions={selectedAssignment.task.quizData.questions}
-                    assignmentId={selectedAssignment.id}
-                    onClose={() => setShowSubmissionForm(false)}
-                    onSuccess={() => {
+                    assignment={{
+                        id: selectedAssignment.id,
+                        title: selectedAssignment.title,
+                        questions: selectedAssignment.task.quizData.questions
+                    }}
+                    onCancel={() => setShowSubmissionForm(false)}
+                    onComplete={(submissionId) => {
                         setSelectedAssignment(null);
                         // Optional: Refresh data
                     }}

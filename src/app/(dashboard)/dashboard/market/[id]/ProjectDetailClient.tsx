@@ -13,6 +13,7 @@ import remarkGfm from 'remark-gfm';
 import { applyToProjectAction } from '@/app/actions/project-actions';
 import { useSession } from 'next-auth/react';
 import ProjectCommunications from '@/components/ProjectCommunications';
+import { useModals } from '@/components/ModalProvider';
 
 interface Resource {
     id: string;
@@ -36,6 +37,7 @@ type ProjectWithRelations = Project & {
 
 export default function ProjectDetailClient({ project, initialStatus }: { project: ProjectWithRelations, initialStatus: string }) {
     const { data: session } = useSession();
+    const { showAlert } = useModals();
     const [activeTab, setActiveTab] = useState<'overview' | 'methodology' | 'logistics' | 'resources' | 'communications'>('overview');
     const [isPending, startTransition] = useTransition();
     const [applicationStatus, setApplicationStatus] = useState(initialStatus);
@@ -59,7 +61,7 @@ export default function ProjectDetailClient({ project, initialStatus }: { projec
                 setApplicationStatus('PENDING');
             } catch (error) {
                 console.error("❌ [Client] Error in applyToProjectAction:", error);
-                alert("Error al postularse. Revisa la consola para más detalles.");
+                await showAlert("Error al Postularse", "No pudimos procesar tu solicitud. Inténtalo de nuevo en unos minutos.", "error");
             }
         });
     };

@@ -5,9 +5,11 @@ import { Briefcase, GraduationCap, Globe, Heart, Edit2, Plus, ShieldCheck, X, Tr
 import { updateBasicProfileAction, addExperienceAction, addEducationAction, addLanguageAction } from '@/app/actions/profile-actions';
 import { deleteAccountAction } from '@/app/actions/user-actions';
 import { signOut } from 'next-auth/react';
+import { useModals } from '@/components/ModalProvider';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function ProfilePageClient({ user }: { user: any }) {
+    const { showAlert } = useModals();
     const [isEditingBio, setIsEditingBio] = useState(false);
     const [showExpModal, setShowExpModal] = useState(false);
     const [showEduModal, setShowEduModal] = useState(false);
@@ -371,7 +373,7 @@ export default function ProfilePageClient({ user }: { user: any }) {
                                             } catch (error) {
                                                 console.error("Error al eliminar cuenta:", error);
                                                 setIsDeleting(false);
-                                                alert("Hubo un error al intentar eliminar la cuenta.");
+                                                await showAlert("Error", "Hubo un error al intentar eliminar la cuenta.", "error");
                                             }
                                         }}
                                         className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl shadow-lg disabled:opacity-30 transition-all flex items-center justify-center gap-2"

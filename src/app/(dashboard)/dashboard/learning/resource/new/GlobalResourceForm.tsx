@@ -7,9 +7,11 @@ import { Save, Sparkles, Youtube, FileText, Link as LinkIcon, Box, ArrowLeft, Cl
 import Link from 'next/link';
 import { DrivePickerModal } from '@/components/DrivePickerModal';
 import Loading from '@/components/Loading';
+import { useModals } from '@/components/ModalProvider';
 
 
 export default function GlobalResourceForm({ projects }: { projects: { id: string, title: string, type: string }[] }) {
+    const { showAlert, showConfirm } = useModals();
     const [isSaving, setIsSaving] = useState(false);
     const [title, setTitle] = useState('');
     const [url, setUrl] = useState('');
@@ -28,12 +30,12 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
     const [driveFile, setDriveFile] = useState<File | null>(null);
     const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
 
-    // Modal State
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-
     const handleAI = async () => {
         // Validation depends on type
-        if (type !== 'DRIVE' && !url) return alert("Ingresa una URL o código primero");
+        if (type !== 'DRIVE' && !url) {
+            await showAlert("Dato Requerido", "Ingresa una URL o código primero para que la IA pueda analizarlo.", "warning");
+            return;
+        }
 
         setIsThinking(true);
         try {
@@ -66,12 +68,11 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
                 setSubject(data.subject || '');
                 setCompetency(data.competency || '');
                 setKeywords(data.keywords?.join(', ') || '');
-            } else {
-                alert("No se pudo extraer información. " + (res.error || ""));
+                await showAlert("No se pudo extraer", "No logramos obtener información automática. " + (res.error || ""), "warning");
             }
         } catch (e) {
             console.error(e);
-            alert("Error de conexión con IA");
+            await showAlert("Error de IA", "Ocurrió un fallo en la conexión con el asistente de Inteligencia Artificial.", "error");
         } finally {
             setIsThinking(false);
         }
@@ -89,7 +90,7 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
         setIsSaving(true);
         const res = await createGlobalResourceAction(formData);
         if (res && !res.success) {
-            alert(res.error || "Error al crear el recurso");
+            await showAlert("Error al Guardar", res.error || "Hubo un problema al intentar crear el recurso.", "error");
             setIsSaving(false);
         }
         // No catch block here to avoid catching NEXT_REDIRECT
@@ -319,7 +320,14 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
                 <div className="pt-6 border-t flex justify-end">
                     <button
                         type="button"
-                        onClick={() => setShowConfirmModal(true)}
+                        onClick={async () => {
+                            const confirm = await showConfirm(
+                                "¿Crear Recurso?",
+                                `¿Estás seguro de agregar "${title || 'este recurso'}" a la ${projectId === 'GLOBAL' ? 'biblioteca global' : 'biblioteca del proyecto'}?`,
+                                "info"
+                            );
+                            if (confirm) document.getElementById('submit-form-hidden')?.click();
+                        }}
                         disabled={isSaving || (!url && !driveFile)}
                         className="bg-slate-900 text-white font-bold py-3 px-8 rounded-xl hover:bg-black transition-all shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -338,49 +346,7 @@ export default function GlobalResourceForm({ projects }: { projects: { id: strin
                 onSelect={handleDriveFileSelected}
             />
 
-            {/* Confirmation Modal */}
-            {showConfirmModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
-                                    <AlertTriangle className="w-6 h-6 text-indigo-600" />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-xl font-bold text-slate-900">Confirmar Creación</h3>
-                                    <p className="text-slate-500 text-sm">¿Estás seguro de agregar este nuevo recurso a la biblioteca?</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100 italic text-sm text-slate-600">
-                                <p className="font-bold text-slate-800 not-italic">{title || "Sin título"}</p>
-                                <p className="mt-1">{type} • {projectId === 'GLOBAL' ? 'Biblioteca Global' : 'Proyecto Específico'}</p>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirmModal(false)}
-                                    className="flex-1 py-3 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowConfirmModal(false);
-                                        document.getElementById('submit-form-hidden')?.click();
-                                    }}
-                                    className="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all"
-                                >
-                                    Sí, Crear
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Drive Picker integration remains the same */}
         </div>
     );
 }

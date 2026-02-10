@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Users, Plus, UserPlus, LogOut, Shield } from 'lucide-react';
 import { createTeamAction, joinTeamAction, leaveTeamAction } from '@/app/actions/team-actions';
 import { useRouter } from 'next/navigation';
+import { useModals } from './ModalProvider';
 
 interface Team {
     id: string;
@@ -19,6 +20,7 @@ interface TeamManagementProps {
 }
 
 export function TeamManagement({ teams, projectId, currentUser, projectType }: TeamManagementProps) {
+    const { showConfirm } = useModals();
     const [isCreating, setIsCreating] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
     const router = useRouter();
@@ -37,7 +39,12 @@ export function TeamManagement({ teams, projectId, currentUser, projectType }: T
     };
 
     const handleLeaveTeam = async (teamId: string) => {
-        if (!confirm("¿Seguro que quieres salir del equipo?")) return;
+        const confirmLeave = await showConfirm(
+            "¿Salir del equipo?",
+            "Esta acción te retirará del equipo actual.",
+            "warning"
+        );
+        if (!confirmLeave) return;
         await leaveTeamAction(teamId);
         router.refresh();
     }

@@ -14,6 +14,7 @@ import {
 } from '@/app/actions/communication-actions';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useModals } from './ModalProvider';
 
 interface Participant {
     id: string;
@@ -39,6 +40,7 @@ interface Message {
 }
 
 export default function ProjectCommunications({ projectId, currentUserId, initialRecipientId }: { projectId: string; currentUserId: string; initialRecipientId?: string }) {
+    const { showAlert } = useModals();
     const [messages, setMessages] = useState<Message[]>([]);
     const [participants, setParticipants] = useState<Participant[]>([]);
     const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ export default function ProjectCommunications({ projectId, currentUserId, initia
             setSelectedRecipientIds([initialRecipientId]); // eslint-disable-line react-hooks/set-state-in-effect
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-    }, [initialRecipientId, participants.length]);  
+    }, [initialRecipientId, participants.length]);
 
     useEffect(() => {
         loadData(); // eslint-disable-line react-hooks/set-state-in-effect
@@ -98,7 +100,7 @@ export default function ProjectCommunications({ projectId, currentUserId, initia
                 setReplyTo(null);
                 loadData();
             } else {
-                alert(res.error || 'Error al enviar mensaje');
+                await showAlert("Error", res.error || 'Error al enviar mensaje', "error");
             }
         });
     };

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { gradeSubmissionAction } from '@/app/actions/rubric-actions';
 import { Loader2, Save, X, FileText, Download, AlertTriangle } from 'lucide-react';
+import { useModals } from '@/components/ModalProvider';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type RubricItem = {
@@ -39,6 +40,7 @@ interface GradingModalProps {
 }
 
 export function GradingModal({ submission, rubricItems, quizData, onClose }: GradingModalProps) {
+    const { showAlert, showConfirm } = useModals();
     const [scores, setScores] = useState<{ [key: string]: { score: number; feedback: string } }>(() => {
         const initialScores: any = {};
         rubricItems.forEach(item => {
@@ -107,10 +109,10 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
 
         const res = await gradeSubmissionAction(submission.id, scoresPayload, generalFeedback, finalQuizScore);
         if (res.success) {
-            alert("Calificación guardada");
+            await showAlert("Calificación Guardada", "La evaluación se ha registrado correctamente.", "success");
             onClose();
         } else {
-            alert("Error: " + res.error);
+            await showAlert("Error", "No se pudo guardar la calificación: " + res.error, "error");
         }
         setIsSaving(false);
     };
@@ -197,7 +199,10 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
                                     {currentTotal} <span className="text-slate-300 text-lg">/ {maxTotal}</span>
                                 </span>
                             </div>
-                            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg">
+                            <button onClick={async () => {
+                                const confirm = await showConfirm("¿Cerrar evaluación?", "Se perderán los cambios no guardados.", "warning");
+                                if (confirm) onClose();
+                            }} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg">
                                 <X className="w-6 h-6" />
                             </button>
                         </div>

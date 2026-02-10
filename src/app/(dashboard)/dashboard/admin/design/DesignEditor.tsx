@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { Save, Loader2, Layout, Type, Palette as PaletteIcon, RefreshCw, Building } from 'lucide-react';
 import { updateSystemConfigAction } from '@/app/(dashboard)/dashboard/admin/actions';
 import { useRouter } from 'next/navigation';
+import { useModals } from '@/components/ModalProvider';
 // But user said "updateSystemConfigAction to handle design fields".
 // I will check that file next. For now, assuming it handles it or I'll update it.
 // I'll create a dedicated Client Component.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function DesignEditor({ config }: { config: any }) {
+    const { showAlert } = useModals();
     const [isSaving, setIsSaving] = useState(false);
     const router = useRouter();
 
@@ -36,11 +38,12 @@ export function DesignEditor({ config }: { config: any }) {
             setIsSaving(true);
             try {
                 await updateSystemConfigAction(formData);
-                alert("Diseño guardado correctamente. La página se recargará para aplicar los cambios.");
+                await showAlert("Ajustes Guardados", "El diseño ha sido actualizado correctamente. La página se recargará para aplicar los cambios.", "success");
                 router.refresh();
+                window.location.reload();
             } catch (error) {
                 console.error(error);
-                alert("Error al guardar el diseño.");
+                await showAlert("Error al Guardar", "No se pudo actualizar la configuración de diseño.", "error");
             } finally {
                 setIsSaving(false);
             }

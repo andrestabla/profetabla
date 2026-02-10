@@ -2,6 +2,7 @@
 
 import { Cpu, Mail, Cloud, Globe, Lock, CheckCircle, XCircle } from 'lucide-react';
 import { updatePlatformConfigAction, sendTestEmailAction } from '@/app/api/admin/actions';
+import { useModals } from '@/components/ModalProvider';
 import { useState } from 'react';
 import { IntegrationGuide } from './IntegrationGuide';
 
@@ -13,6 +14,7 @@ const StatusBadge = ({ isConfigured }: { isConfigured: boolean }) => (
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ConfigForm({ config }: { config: any }) {
+    const { showAlert } = useModals();
     const [isSaving, setIsSaving] = useState(false);
     const [testEmail, setTestEmail] = useState('');
     const [testStatus, setTestStatus] = useState<'IDLE' | 'SENDING' | 'SUCCESS' | 'ERROR'>('IDLE');
@@ -93,10 +95,10 @@ export function ConfigForm({ config }: { config: any }) {
             try {
                 const result = await updatePlatformConfigAction(fd);
                 if (result?.message) {
-                    alert(result.message);
+                    await showAlert(result.success ? "Éxito" : "Aviso", result.message, result.success ? "success" : "warning");
                 }
             } catch {
-                alert("Error crítico al guardar configuración.");
+                await showAlert("Error", "Error crítico al guardar configuración.", "error");
             } finally {
                 setIsSaving(false);
             }

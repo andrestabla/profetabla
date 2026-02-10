@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { Mail, Key, Trash2, Ban, CheckCircle, Shield, Award } from 'lucide-react';
+import { useModals } from '@/components/ModalProvider';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function UserActionsClient({ user, toggleAction, deleteAction, roleAction, msgAction, resetAction }: any) {
+    const { showAlert, showConfirm } = useModals();
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Message State
@@ -16,21 +18,32 @@ export default function UserActionsClient({ user, toggleAction, deleteAction, ro
         try {
             await fn();
         } catch (e) {
-            alert('Error al ejecutar acción');
+            await showAlert("Error", "Error al ejecutar acción", "error");
         }
         setIsProcessing(false);
     };
 
     const handleResetPassword = async () => {
-        if (!confirm('¿Resetear contraseña? El usuario perderá acceso hasta recibir la nueva clave.')) return;
+        const confirmReset = await showConfirm(
+            "¿Resetear contraseña?",
+            "El usuario perderá acceso hasta recibir la nueva clave.",
+            "warning"
+        );
+        if (!confirmReset) return;
         setIsProcessing(true);
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const res = await resetAction(user.id) as any;
             if (res?.tempPassword) {
-                alert(`Contraseña temporal generada: ${res.tempPassword}\n\nCopiala y envíala al usuario.`);
+                await showAlert(
+                    "Contraseña Reseteada",
+                    `Contraseña temporal generada: ${res.tempPassword}\n\nCópiala y envíala al usuario.`,
+                    "success"
+                );
             }
-        } catch (e) { alert('Error'); }
+        } catch (e) {
+            await showAlert("Error", "Error al resetear contraseña", "error");
+        }
         setIsProcessing(false);
     };
 
@@ -102,8 +115,8 @@ export default function UserActionsClient({ user, toggleAction, deleteAction, ro
                             onClick={() => handleAction(() => roleAction(user.id, role))}
                             disabled={user.role === role || isProcessing}
                             className={`p-2 rounded-lg text-xs font-bold border transition-all ${user.role === role
-                                    ? 'bg-slate-900 text-white border-slate-900'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                                ? 'bg-slate-900 text-white border-slate-900'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                                 }`}
                         >
                             {role}
@@ -120,7 +133,14 @@ export default function UserActionsClient({ user, toggleAction, deleteAction, ro
                     Eliminar al usuario borrará permanentemente todos sus datos.
                 </p>
                 <button
-                    onClick={() => { if (confirm('¿Eliminar permanentemente?')) handleAction(() => deleteAction(user.id)); }}
+                    onClick={async () => {
+                        const confirmDelete = await showConfirm(
+                            "¿Eliminar usuario?",
+                            "¿Eliminar permanentemente? Esta acción borrará todos sus datos y no se puede deshacer.",
+                            "danger"
+                        );
+                        if (confirmDelete) handleAction(() => deleteAction(user.id));
+                    }}
                     disabled={isProcessing}
                     className="w-full bg-white border border-red-300 text-red-600 hover:bg-red-600 hover:text-white font-bold py-2 px-4 rounded-lg text-sm transition-all"
                 >
