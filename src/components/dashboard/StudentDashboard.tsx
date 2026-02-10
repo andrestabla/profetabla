@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { ProgressBar } from '@/components/ProgressBar';
 import { TeamList } from '@/components/TeamList';
 import { UrgentCitationCard } from '@/components/UrgentCitationCard';
-import { Briefcase, Search, Kanban, ChevronRight, Clock, Target, Cloud, ChevronDown } from 'lucide-react';
+import { Briefcase, Search, Kanban, ChevronRight, Clock, Target, ChevronDown, MessageSquare } from 'lucide-react';
+import ProjectCommunications from '../ProjectCommunications';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface StudentDashboardProps {
@@ -17,6 +18,8 @@ interface StudentDashboardProps {
 
 export function StudentDashboard({ user, projects, citation, nextMentorship }: StudentDashboardProps) {
     const [selectedProjectId, setSelectedProjectId] = useState<string>(projects?.[0]?.id || '');
+    const [showComms, setShowComms] = useState(false);
+    const [initialRecipientId, setInitialRecipientId] = useState<string | undefined>(undefined);
 
     // Handle no projects case
     if (!projects || projects.length === 0) {
@@ -130,9 +133,34 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
                                 >
                                     <Briefcase className="w-5 h-5" /> Ver Proyecto
                                 </Link>
+
+                                <button
+                                    onClick={() => { setShowComms(!showComms); setInitialRecipientId(undefined); }}
+                                    className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all text-sm border 
+                                        ${showComms ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'}`}
+                                >
+                                    <MessageSquare className="w-5 h-5" /> Comunicaciones
+                                </button>
                             </div>
                         </div>
                     </div>
+
+                    {showComms && (
+                        <div className="bg-white p-8 rounded-2xl border-2 border-blue-100 shadow-xl shadow-blue-500/5 animate-in slide-in-from-top-4 duration-500">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                                    <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                                    Comunicaciones del Proyecto
+                                </h3>
+                                <button onClick={() => setShowComms(false)} className="text-slate-400 hover:text-slate-600 font-bold text-sm">Cerrar</button>
+                            </div>
+                            <ProjectCommunications
+                                projectId={currentProject.id}
+                                currentUserId={user.id}
+                                initialRecipientId={initialRecipientId}
+                            />
+                        </div>
+                    )}
 
                     {/* TAREAS PRIORITARIAS */}
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -199,8 +227,13 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <h3 className="font-bold text-slate-800 mb-4">Equipo Docente</h3>
                         <TeamList
-                            students={currentProject.students || [{ name: user.name }]}
+                            students={currentProject.students?.map((s: any) => ({ ...s, id: s.id })) || [{ name: user.name, id: user.id }]}
                             teachers={currentProject.teachers || []}
+                            onMessageMember={(id) => {
+                                setInitialRecipientId(id);
+                                setShowComms(true);
+                                // Scroll will be handled by ProjectCommunications useEffect
+                            }}
                         />
                         <Link
                             href={`/dashboard/student/projects/${currentProject.id}/teams`}
@@ -211,6 +244,6 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

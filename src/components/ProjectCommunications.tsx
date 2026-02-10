@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from 'react';
 import {
     Send, User, Clock, Reply,
-    Users, ChevronDown, ChevronUp,
+    Users,
     MessageSquare, AlertCircle
 } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
@@ -38,11 +38,12 @@ interface Message {
     replies?: Message[];
 }
 
-export default function ProjectCommunications({ projectId, currentUserId }: { projectId: string; currentUserId: string }) {
+export default function ProjectCommunications({ projectId, currentUserId, initialRecipientId }: { projectId: string; currentUserId: string; initialRecipientId?: string }) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [participants, setParticipants] = useState<Participant[]>([]);
     const [loading, setLoading] = useState(true);
     const [isPending, startTransition] = useTransition();
+    const [justPreselected, setJustPreselected] = useState(false);
 
     // Form state
     const [content, setContent] = useState('');
@@ -57,9 +58,24 @@ export default function ProjectCommunications({ projectId, currentUserId }: { pr
         ]);
 
         if (msgRes.success) setMessages(msgRes.messages || []);
-        if (partRes.success) setParticipants(partRes.participants || []);
+        if (partRes.success) {
+            setParticipants(partRes.participants || []);
+            // Pre-select if initialRecipientId is provided and we haven't done it yet
+            if (initialRecipientId && !justPreselected) {
+                setSelectedRecipientIds([initialRecipientId]);
+                setJustPreselected(true);
+            }
+        }
         setLoading(false);
     };
+
+    // Watch for initialRecipientId changes (e.g. clicking different members)
+    useEffect(() => {
+        if (initialRecipientId && participants.length > 0) {
+            setSelectedRecipientIds([initialRecipientId]); // eslint-disable-line react-hooks/set-state-in-effect
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [initialRecipientId, participants.length]);  
 
     useEffect(() => {
         loadData(); // eslint-disable-line react-hooks/set-state-in-effect
