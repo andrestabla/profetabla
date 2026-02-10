@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { FileIcon, CheckCircle, Clock, Edit2, Gavel } from 'lucide-react';
+import { FileIcon, CheckCircle, Clock, Edit2, Gavel, BarChart3 } from 'lucide-react';
 import { RubricEditor } from './RubricEditor';
 import { GradingModal } from './GradingModal';
+import { QuizAnalyticsModal } from './QuizAnalyticsModal';
 import { useSession } from 'next-auth/react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -15,26 +16,45 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
     );
     const [isRubricOpen, setIsRubricOpen] = useState(false);
     const [isGradingOpen, setIsGradingOpen] = useState(false);
+    const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
     const isLate = assignment.dueDate ? new Date() > new Date(assignment.dueDate) : false;
     const isTeacher = session?.user?.role === 'TEACHER' || session?.user?.role === 'ADMIN';
+    const isQuiz = assignment.task?.type === 'QUIZ';
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 relative group">
             <div className="flex justify-between items-start mb-4">
                 <div>
-                    <h3 className="text-lg font-bold text-slate-800">{assignment.title}</h3>
-                    <p className="text-slate-500 text-sm mt-1">{assignment.description}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-bold text-slate-800">{assignment.title}</h3>
+                        {isQuiz && (
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded uppercase tracking-wider">Quiz</span>
+                        )}
+                    </div>
+                    <p className="text-slate-500 text-sm">{assignment.description}</p>
 
-                    {/* Rubric Button (Teacher Only) */}
-                    {isTeacher && (
-                        <button
-                            onClick={() => setIsRubricOpen(true)}
-                            className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                            <Edit2 className="w-3 h-3" /> Editar Rúbrica
-                        </button>
-                    )}
+                    <div className="flex items-center gap-4 mt-2">
+                        {/* Rubric Button (Teacher Only) */}
+                        {isTeacher && (
+                            <button
+                                onClick={() => setIsRubricOpen(true)}
+                                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <Edit2 className="w-3 h-3" /> Editar Rúbrica
+                            </button>
+                        )}
+
+                        {/* Analytics Button (Teacher Only, Quiz Only) */}
+                        {isTeacher && isQuiz && (
+                            <button
+                                onClick={() => setIsAnalyticsOpen(true)}
+                                className="text-xs font-bold text-purple-600 hover:text-purple-800 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <BarChart3 className="w-3 h-3" /> Ver Analítica
+                            </button>
+                        )}
+                    </div>
                 </div>
                 {assignment.dueDate && (
                     <div className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 ${isLate ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
@@ -52,7 +72,7 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                                 <CheckCircle className="w-5 h-5" />
                             </div>
                             <div>
-                                <h4 className="font-semibold text-slate-700">Tarea Enviada</h4>
+                                <h4 className="font-semibold text-slate-700">{isQuiz ? 'Cuestionario Completado' : 'Tarea Enviada'}</h4>
                                 {submission.student && (
                                     <div className="flex items-center gap-2 mt-1 mb-1">
                                         {submission.student.avatarUrl ? (
@@ -80,12 +100,14 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                             )}
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm text-slate-600 bg-white p-2 rounded border border-slate-100 mb-3">
-                            <FileIcon className="w-4 h-4 text-slate-400" />
-                            <a href={submission.fileUrl} target="_blank" className="truncate hover:underline hover:text-blue-600">
-                                {submission.fileName}
-                            </a>
-                        </div>
+                        {!isQuiz && (
+                            <div className="flex items-center gap-2 text-sm text-slate-600 bg-white p-2 rounded border border-slate-100 mb-3">
+                                <FileIcon className="w-4 h-4 text-slate-400" />
+                                <a href={submission.fileUrl} target="_blank" className="truncate hover:underline hover:text-blue-600">
+                                    {submission.fileName}
+                                </a>
+                            </div>
+                        )}
 
                         {submission.grade !== null && (
                             <div className="mt-3 pt-3 border-t border-slate-200">
@@ -127,6 +149,14 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                     onClose={() => setIsGradingOpen(false)}
                 />
             )}
+
+            {isAnalyticsOpen && (
+                <QuizAnalyticsModal
+                    assignment={assignment}
+                    onClose={() => setIsAnalyticsOpen(false)}
+                />
+            )}
         </div>
     );
 }
+
