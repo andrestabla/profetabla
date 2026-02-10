@@ -23,6 +23,19 @@ export async function sendMessageAction(formData: {
 
     if (!author) return { success: false, error: 'Usuario no encontrado' };
 
+    // Verify user participation in the project
+    const project = await prisma.project.findFirst({
+        where: {
+            id: formData.projectId,
+            OR: [
+                { teachers: { some: { id: author.id } } },
+                { students: { some: { id: author.id } } }
+            ]
+        }
+    });
+
+    if (!project) return { success: false, error: 'No tienes permiso para enviar mensajes en este proyecto' };
+
     try {
         const message = await prisma.message.create({
             data: {
@@ -57,6 +70,8 @@ export async function sendMessageAction(formData: {
         await Promise.all(notificationPromises);
 
         revalidatePath(`/dashboard/projects/${formData.projectId}`);
+        revalidatePath(`/dashboard/student/projects/${formData.projectId}`);
+        revalidatePath('/dashboard'); // Main dashboard has comms now
         return { success: true, messageId: message.id };
     } catch (error) {
         console.error('[sendMessageAction] Error:', error);
