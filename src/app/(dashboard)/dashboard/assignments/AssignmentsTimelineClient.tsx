@@ -6,6 +6,7 @@ import { Upload, X, FileText, CheckCircle, Clock, Paperclip, Loader2, ExternalLi
 import StatusModal from '@/components/StatusModal';
 import Link from 'next/link';
 import { QuizRunner } from '@/components/QuizRunner';
+import { QuizResultView } from '@/components/QuizResultView';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Assignment = {
@@ -27,7 +28,10 @@ type Assignment = {
         maxDate: string | null;
         comments: any[];
         type?: 'TASK' | 'QUIZ';
-        quizData?: { questions: any[] };
+        quizData?: {
+            questions: any[];
+            gradingMethod?: 'AUTO' | 'MANUAL';
+        };
     } | null;
 };
 
@@ -168,7 +172,7 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
     };
 
     const isUrlAllowed = selectedAssignment?.task?.allowedFileTypes?.includes('URL');
-    const isFileAllowed = selectedAssignment?.task?.allowedFileTypes?.some(t => t !== 'URL') || (!selectedAssignment?.task?.allowedFileTypes?.length); // Default to file if empty? Or block? usually empty means any file? assumed any file default.
+    const isFileAllowed = selectedAssignment?.task?.allowedFileTypes?.some(t => t !== 'URL') || (!selectedAssignment?.task?.allowedFileTypes?.length);
 
     return (
         <div className="w-full max-w-5xl mx-auto pb-20">
@@ -285,13 +289,12 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                                     <div className="flex justify-end gap-3">
                                         {isSubmitted ? (
                                             <div className="flex gap-2">
-                                                {/* If URL, open directly */}
-                                                {submission.fileType === 'URL' ? (
+                                                {submission?.fileType === 'URL' ? (
                                                     <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">
                                                         <ExternalLink className="w-4 h-4" /> Ver Enlace
                                                     </a>
                                                 ) : (
-                                                    <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">
+                                                    <a href={submission?.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">
                                                         <FileText className="w-4 h-4" /> Ver Archivo
                                                     </a>
                                                 )}
@@ -307,306 +310,314 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                                                 onClick={() => handleSelectAssignment(assignment)}
                                                 className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-md shadow-blue-200 hover:bg-blue-700 hover:shadow-lg transition-all"
                                             >
-                                                <FileText className="w-4 h-4" /> Ver Detalles & Entregar
+                                                <FileText className="w-4 h-4" /> {assignment.task?.priority === 'QUIZ' ? 'Ver Detalles & Realizar Cuestionario' : 'Ver Detalles & Entregar'}
                                             </button>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         );
-                    }))}
+                    })
+                )}
             </div>
 
             {/* Modal de Detalles y Entrega */}
             {selectedAssignment && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col md:flex-row animate-in zoom-in-95 duration-200 relative">
-                        <button
-                            onClick={() => setSelectedAssignment(null)}
-                            className="absolute top-4 right-4 p-2 bg-slate-100/50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-full transition-colors z-10"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                        {/* LEFT COLUMN: Details */}
-                        <div className={`p-8 ${showSubmissionForm ? 'hidden md:block md:w-1/2 border-r border-slate-100' : 'w-full'}`}>
-                            {(() => {
-                                const sub = selectedAssignment.submissions && selectedAssignment.submissions.length > 0 ? selectedAssignment.submissions[0] : null;
-                                const isGraded = sub && sub.grade != null;
+                    {(() => {
+                        const sub = selectedAssignment.submissions && selectedAssignment.submissions.length > 0 ? selectedAssignment.submissions[0] : null;
+                        const isGraded = sub && sub.grade != null;
 
-                                return (
-                                    <>
-                                        <div className="flex justify-between items-start mb-6">
-                                            <div>
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Actividad</span>
-                                                <h2 className="text-xl font-bold text-slate-800 mt-1">{selectedAssignment.title}</h2>
+                        return (
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col md:flex-row animate-in zoom-in-95 duration-200 relative">
+                                <button
+                                    onClick={() => setSelectedAssignment(null)}
+                                    className="absolute top-4 right-4 p-2 bg-slate-100/50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-full transition-colors z-10"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+
+                                {/* LEFT COLUMN: Details */}
+                                <div className={`p-8 ${showSubmissionForm && selectedAssignment.task?.type !== 'QUIZ' ? 'hidden md:block md:w-1/2 border-r border-slate-100' : 'w-full'}`}>
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Actividad</span>
+                                            <h2 className="text-xl font-bold text-slate-800 mt-1">{selectedAssignment.title}</h2>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        {isGraded && (
+                                            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 animate-in slide-in-from-top-2">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="font-bold text-indigo-700 flex items-center gap-2">
+                                                        <CheckCircle className="w-4 h-4" /> Calificación
+                                                    </h4>
+                                                    <span className="text-2xl font-black text-indigo-600">{sub.grade} pts</span>
+                                                </div>
+                                                {sub.feedback && (
+                                                    <div className="text-sm text-indigo-800 bg-white/50 p-3 rounded-lg border border-indigo-100/50 italic">
+                                                        &quot;{sub.feedback}&quot;
+                                                    </div>
+                                                )}
                                             </div>
-                                            {!showSubmissionForm && (
-                                                <button onClick={() => setSelectedAssignment(null)} className="text-slate-400 hover:text-slate-600 md:hidden">
-                                                    <X className="w-6 h-6" />
+                                        )}
+
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Descripción</h4>
+                                            <p className="text-sm text-slate-600 leading-relaxed">{selectedAssignment.description}</p>
+                                        </div>
+
+                                        <div className="flex gap-4">
+                                            <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                <div className="flex items-center gap-2 text-slate-400 mb-1">
+                                                    <Calendar className="w-3 h-3" />
+                                                    <span className="text-[10px] font-bold uppercase">Entrega</span>
+                                                </div>
+                                                <p className="text-sm font-semibold text-slate-700">
+                                                    {selectedAssignment.dueDate ? new Date(selectedAssignment.dueDate).toLocaleDateString() : 'Sin fecha'}
+                                                </p>
+                                            </div>
+                                            <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                <div className="flex items-center gap-2 text-slate-400 mb-1">
+                                                    <AlertCircle className="w-3 h-3" />
+                                                    <span className="text-[10px] font-bold uppercase">Límite</span>
+                                                </div>
+                                                <p className="text-sm font-semibold text-slate-700">
+                                                    {selectedAssignment.task?.maxDate ? new Date(selectedAssignment.task.maxDate).toLocaleDateString() : 'No definido'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {selectedAssignment.rubricItems && selectedAssignment.rubricItems.length > 0 && (
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Criterios de Éxito (Rúbrica)</h4>
+                                                <div className="space-y-2">
+                                                    {selectedAssignment.rubricItems.map((item: any, i: number) => {
+                                                        const score = sub?.rubricScores?.find((s: any) => s.rubricItemId === item.id);
+                                                        return (
+                                                            <div key={i} className={`flex flex-col text-sm p-2 rounded-lg border ${score ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100'}`}>
+                                                                <div className="flex justify-between items-start w-full">
+                                                                    <span className="text-slate-700 font-medium">{item.criterion}</span>
+                                                                    <span className={`font-bold text-xs whitespace-nowrap ml-2 ${score ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                                                        {score ? `${score.score} / ` : ''}{item.maxPoints} pts
+                                                                    </span>
+                                                                </div>
+                                                                {score?.feedback && (
+                                                                    <p className="text-xs text-indigo-500 mt-1 italic pl-2 border-l-2 border-indigo-200">
+                                                                        {score.feedback}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="pt-4 flex flex-col gap-3">
+                                            <Link href="/dashboard/mentorship" className="w-full py-2 border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl font-bold text-center text-sm transition-colors flex items-center justify-center gap-2">
+                                                <HelpCircle className="w-4 h-4" /> Solicitar Mentoría
+                                            </Link>
+
+                                            {!showSubmissionForm && !sub && (
+                                                <button
+                                                    onClick={() => setShowSubmissionForm(true)}
+                                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 transition-all"
+                                                >
+                                                    {selectedAssignment.task?.type === 'QUIZ' ? 'Comenzar Cuestionario' : 'Realizar Entrega'}
+                                                </button>
+                                            )}
+
+                                            {!showSubmissionForm && sub && (
+                                                <button
+                                                    onClick={() => setShowSubmissionForm(true)}
+                                                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all"
+                                                >
+                                                    {selectedAssignment.task?.type === 'QUIZ' ? 'Ver Resultados de Cuestionario' : 'Ver Detalles de Envío'}
                                                 </button>
                                             )}
                                         </div>
+                                    </div>
+                                </div>
 
-                                        <div className="space-y-6">
-                                            {isGraded && (
-                                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 animate-in slide-in-from-top-2">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <h4 className="font-bold text-indigo-700 flex items-center gap-2">
-                                                            <CheckCircle className="w-4 h-4" /> Calificación
-                                                        </h4>
-                                                        <span className="text-2xl font-black text-indigo-600">{sub.grade} pts</span>
+                                {/* RIGHT COLUMN: Submission Form */}
+                                {showSubmissionForm && selectedAssignment.task?.type !== 'QUIZ' && (
+                                    <div className="w-full md:w-1/2 bg-slate-50 p-8 flex flex-col relative md:border-l md:border-slate-100">
+                                        <button onClick={() => setShowSubmissionForm(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                                            <X className="w-6 h-6" />
+                                        </button>
+
+                                        <div className="mb-6 mt-2">
+                                            <h3 className="text-lg font-bold text-slate-800">{sub ? 'Tu Envío' : 'Hacer Entrega'}</h3>
+                                            <p className="text-sm text-slate-500">{sub ? 'Resumen del trabajo que enviaste.' : 'Completa el formulario para enviar tu trabajo.'}</p>
+                                        </div>
+
+                                        {sub ? (
+                                            <div className="flex-1 flex flex-col space-y-6">
+                                                <div className="bg-white p-5 rounded-xl border border-slate-200 space-y-4">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tipo de Entrega</label>
+                                                        <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-bold border border-slate-200">
+                                                            {sub.fileType === 'URL' ? 'Enlace / URL' : 'Archivo'}
+                                                        </span>
                                                     </div>
-                                                    {sub.feedback && (
-                                                        <div className="text-sm text-indigo-800 bg-white/50 p-3 rounded-lg border border-indigo-100/50 italic">
-                                                            &quot;{sub.feedback}&quot;
+
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Contenido Enviado</label>
+                                                        {sub.fileType === 'URL' ? (
+                                                            <a
+                                                                href={sub.fileUrl || '#'}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-2 text-blue-600 font-bold hover:underline bg-blue-50 p-3 rounded-lg border border-blue-100"
+                                                            >
+                                                                <ExternalLink className="w-4 h-4" />
+                                                                <span className="truncate">{sub.fileUrl}</span>
+                                                            </a>
+                                                        ) : (
+                                                            <a
+                                                                href={sub.fileUrl || '#'}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-2 text-indigo-600 font-bold hover:underline bg-indigo-50 p-3 rounded-lg border border-indigo-100"
+                                                            >
+                                                                <FileText className="w-4 h-4" />
+                                                                <span className="truncate">{sub.fileName || 'Descargar archivo'}</span>
+                                                                {sub.fileSize && <span className="text-[10px] text-indigo-400 font-normal ml-auto">{(sub.fileSize / 1024 / 1024).toFixed(2)} MB</span>}
+                                                            </a>
+                                                        )}
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Fecha de Envío</label>
+                                                        <p className="text-xs text-slate-600 font-medium">{new Date(sub.createdAt).toLocaleString()}</p>
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowSubmissionForm(false)}
+                                                    className="mt-auto w-full py-3 text-slate-500 hover:text-slate-800 font-bold transition-colors text-sm"
+                                                >
+                                                    Cerrar Detalles
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
+                                                <div className="space-y-6">
+                                                    {isUrlAllowed && (
+                                                        <div className="flex gap-2 p-1 bg-white border border-slate-200 rounded-lg">
+                                                            {isFileAllowed && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setSubmissionType('FILE')}
+                                                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${submissionType === 'FILE' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                                                                >
+                                                                    Subir Archivo
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setSubmissionType('URL')}
+                                                                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${submissionType === 'URL' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                                                            >
+                                                                Enlace / URL
+                                                            </button>
                                                         </div>
                                                     )}
-                                                </div>
-                                            )}
 
-                                            <div>
-                                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Descripción</h4>
-                                                <p className="text-sm text-slate-600 leading-relaxed">{selectedAssignment.description}</p>
-                                            </div>
-
-                                            <div className="flex gap-4">
-                                                <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                                    <div className="flex items-center gap-2 text-slate-400 mb-1">
-                                                        <Calendar className="w-3 h-3" />
-                                                        <span className="text-[10px] font-bold uppercase">Entrega</span>
-                                                    </div>
-                                                    <p className="text-sm font-semibold text-slate-700">
-                                                        {selectedAssignment.dueDate ? new Date(selectedAssignment.dueDate).toLocaleDateString() : 'Sin fecha'}
-                                                    </p>
-                                                </div>
-                                                <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                                    <div className="flex items-center gap-2 text-slate-400 mb-1">
-                                                        <AlertCircle className="w-3 h-3" />
-                                                        <span className="text-[10px] font-bold uppercase">Límite</span>
-                                                    </div>
-                                                    <p className="text-sm font-semibold text-slate-700">
-                                                        {selectedAssignment.task?.maxDate ? new Date(selectedAssignment.task.maxDate).toLocaleDateString() : 'No definido'}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {selectedAssignment.rubricItems && selectedAssignment.rubricItems.length > 0 && (
-                                                <div>
-                                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Criterios de Éxito (Rúbrica)</h4>
-                                                    <div className="space-y-2">
-                                                        {selectedAssignment.rubricItems.map((item: any, i: number) => {
-                                                            const score = sub?.rubricScores?.find((s: any) => s.rubricItemId === item.id);
-                                                            return (
-                                                                <div key={i} className={`flex flex-col text-sm p-2 rounded-lg border ${score ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100'}`}>
-                                                                    <div className="flex justify-between items-start w-full">
-                                                                        <span className="text-slate-700 font-medium">{item.criterion}</span>
-                                                                        <span className={`font-bold text-xs whitespace-nowrap ml-2 ${score ? 'text-indigo-600' : 'text-slate-400'}`}>
-                                                                            {score ? `${score.score} / ` : ''}{item.maxPoints} pts
-                                                                        </span>
-                                                                    </div>
-                                                                    {score?.feedback && (
-                                                                        <p className="text-xs text-indigo-500 mt-1 italic pl-2 border-l-2 border-indigo-200">
-                                                                            {score.feedback}
-                                                                        </p>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div>
-                                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Comentarios</h4>
-                                                {selectedAssignment.task?.comments && selectedAssignment.task.comments.length > 0 ? (
-                                                    <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
-                                                        {selectedAssignment.task.comments.map((c: any) => (
-                                                            <div key={c.id} className="text-xs border-l-2 border-slate-200 pl-2">
-                                                                <p className="text-slate-600">{c.content}</p>
-                                                                <p className="text-[10px] text-slate-400 mt-1">{c.user?.name} &bull; {new Date(c.createdAt).toLocaleDateString()}</p>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-xs text-slate-400 italic">No hay comentarios en la tarea.</p>
-                                                )}
-                                            </div>
-
-                                            <div className="pt-4 flex flex-col gap-3">
-                                                <Link href="/dashboard/mentorship" className="w-full py-2 border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl font-bold text-center text-sm transition-colors flex items-center justify-center gap-2">
-                                                    <HelpCircle className="w-4 h-4" /> Solicitar Mentoría
-                                                </Link>
-
-                                                {!showSubmissionForm && !sub && (
-                                                    <button
-                                                        onClick={() => setShowSubmissionForm(true)}
-                                                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 transition-all"
-                                                    >
-                                                        Hacer Entrega
-                                                    </button>
-                                                )}
-
-                                                {!showSubmissionForm && sub && !isGraded && (
-                                                    <button
-                                                        onClick={() => setShowSubmissionForm(true)}
-                                                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all"
-                                                    >
-                                                        Editar Entrega
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                );
-                            })()}
-                        </div>
-
-                        {/* RIGHT COLUMN: Submission Form OR Quiz Runner Trigger */}
-                        {showSubmissionForm && (
-                            selectedAssignment.task?.type === 'QUIZ' ? (
-                                // If it's a quiz, we don't show the side panel form, we show the full screen runner
-                                // But we are inside the modal structure. 
-                                // Actually, QuizRunner is a full screen modal itself.
-                                // So if we are here, we should hide this modal and show QuizRunner?
-                                // OR render QuizRunner INSTEAD of this entire modal?
-                                // Let's render QuizRunner as an overlay on top of this, 
-                                // or better: logic in the parent return.
-                                null
-                            ) : (
-                                <div className="w-full md:w-1/2 bg-slate-50 p-8 flex flex-col relative md:border-l md:border-slate-100">
-                                    <button onClick={() => { setShowSubmissionForm(false); setSelectedAssignment(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
-                                        <X className="w-6 h-6" />
-                                    </button>
-
-                                    <div className="mb-6 mt-2">
-                                        <h3 className="text-lg font-bold text-slate-800">Tu Entrega</h3>
-                                        <p className="text-sm text-slate-500">Completa el formulario para enviar tu trabajo.</p>
-                                    </div>
-
-                                    <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
-                                        <div className="space-y-6">
-                                            {/* File Type Selector if multiple allowed or just visual indicator */}
-                                            <div className="bg-white p-4 rounded-xl border border-slate-200">
-                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Formato Requerido</label>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {selectedAssignment.task?.allowedFileTypes.length ? (
-                                                        selectedAssignment.task.allowedFileTypes.map((t: string) => (
-                                                            <span key={t} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-bold border border-slate-200">{t}</span>
-                                                        ))
-                                                    ) : <span className="text-xs text-slate-400">Cualquier formato</span>}
-                                                </div>
-                                            </div>
-
-                                            {/* Format Toggle */}
-                                            {isUrlAllowed && (
-                                                <div className="flex gap-2 p-1 bg-white border border-slate-200 rounded-lg">
-                                                    {isFileAllowed && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setSubmissionType('FILE')}
-                                                            className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${submissionType === 'FILE' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
-                                                        >
-                                                            Subir Archivo
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setSubmissionType('URL')}
-                                                        className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${submissionType === 'URL' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
-                                                    >
-                                                        Enlace / URL
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            {/* Input Area */}
-                                            {submissionType === 'URL' ? (
-                                                <div className="bg-white rounded-xl p-4 border border-slate-200 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <label className="block text-sm font-bold text-slate-700 mb-2">Enlace del Trabajo</label>
-                                                    <div className="relative">
-                                                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                        <input
-                                                            type="url"
-                                                            value={url}
-                                                            onChange={(e) => setUrl(e.target.value)}
-                                                            placeholder="https://docs.google.com/..."
-                                                            className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
-                                                            required
-                                                        />
-                                                    </div>
-                                                    <p className="text-xs text-slate-400 mt-2">Asegúrate de que el enlace sea público o accesible.</p>
-                                                </div>
-                                            ) : (
-                                                <div className="border-2 border-dashed border-slate-300 bg-white rounded-xl p-8 hover:bg-blue-50/30 transition-colors relative text-center animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <input
-                                                        type="file"
-                                                        onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                                                        required={submissionType === 'FILE'}
-                                                    />
-                                                    {file ? (
-                                                        <div>
-                                                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                                <FileText className="w-6 h-6" />
-                                                            </div>
-                                                            <p className="font-bold text-blue-700 text-sm truncate max-w-[200px] mx-auto">{file.name}</p>
-                                                            <p className="text-xs text-blue-400 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                                            <p className="text-xs text-slate-400 mt-3">Clic para cambiar archivo</p>
+                                                    {submissionType === 'URL' ? (
+                                                        <div className="bg-white rounded-xl p-4 border border-slate-200">
+                                                            <label className="block text-sm font-bold text-slate-700 mb-2">Enlace del Trabajo</label>
+                                                            <input
+                                                                type="url"
+                                                                value={url}
+                                                                onChange={(e) => setUrl(e.target.value)}
+                                                                placeholder="https://..."
+                                                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
+                                                                required
+                                                            />
                                                         </div>
                                                     ) : (
-                                                        <div>
-                                                            <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                                <Paperclip className="w-6 h-6" />
-                                                            </div>
-                                                            <p className="font-medium text-slate-600 text-sm">Arrastra tu archivo aquí o clic para seleccionar</p>
-                                                            <p className="text-xs text-slate-400 mt-2">Formatos permitidos: {selectedAssignment.task?.allowedFileTypes?.join(', ') || 'Todos'}</p>
+                                                        <div className="border-2 border-dashed border-slate-300 bg-white rounded-xl p-8 text-center relative hover:bg-blue-50/30 transition-colors">
+                                                            <input
+                                                                type="file"
+                                                                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                                required
+                                                            />
+                                                            <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                                                            <p className="text-sm text-slate-600">{file ? file.name : 'Seleccionar archivo'}</p>
                                                         </div>
                                                     )}
                                                 </div>
-                                            )}
-                                        </div>
 
-                                        <div className="mt-8 flex flex-col gap-3">
-                                            <button
-                                                type="submit"
-                                                disabled={isSubmitting || (submissionType === 'FILE' && !file) || (submissionType === 'URL' && !url)}
-                                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 transition-all"
-                                            >
-                                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                                {isSubmitting ? 'Enviando...' : 'Confirmar Entrega'}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowSubmissionForm(false)} // Back to details
-                                                disabled={isSubmitting}
-                                                className="w-full py-3 text-slate-500 hover:text-slate-800 font-bold transition-colors text-sm"
-                                            >
-                                                Volver a detalles
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            ))}
-                    </div>
+                                                <div className="mt-8 flex flex-col gap-3">
+                                                    <button
+                                                        type="submit"
+                                                        disabled={isSubmitting}
+                                                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                                                    >
+                                                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                                        {isSubmitting ? 'Enviando...' : 'Confirmar Entrega'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowSubmissionForm(false)}
+                                                        className="w-full py-3 text-slate-500 hover:text-slate-800 font-bold transition-colors text-sm"
+                                                    >
+                                                        Volver
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
-            {/* Quiz Runner Overlay */}
-            {selectedAssignment && showSubmissionForm && selectedAssignment.task?.type === 'QUIZ' && selectedAssignment.task.quizData && (
-                <QuizRunner
-                    assignment={{
-                        id: selectedAssignment.id,
-                        title: selectedAssignment.title,
-                        questions: selectedAssignment.task.quizData.questions
-                    }}
-                    onCancel={() => setShowSubmissionForm(false)}
-                    onComplete={(submissionId) => {
-                        setSelectedAssignment(null);
-                        // Optional: Refresh data
-                    }}
-                />
+
+            {/* Quiz Overlay */}
+            {selectedAssignment && showSubmissionForm && selectedAssignment.task?.type === 'QUIZ' && (
+                <div className="fixed inset-0 z-[60] bg-white overflow-y-auto">
+                    {(() => {
+                        const sub = selectedAssignment.submissions && selectedAssignment.submissions.length > 0 ? selectedAssignment.submissions[0] : null;
+
+                        if (sub) {
+                            return (
+                                <div className="max-w-4xl mx-auto p-8">
+                                    <QuizResultView
+                                        questions={selectedAssignment.task?.quizData?.questions || []}
+                                        answers={sub.answers || {}}
+                                        gradingMethod={selectedAssignment.task?.quizData?.gradingMethod}
+                                        onBack={() => setShowSubmissionForm(false)}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <QuizRunner
+                                assignment={{
+                                    id: selectedAssignment.id,
+                                    title: selectedAssignment.title,
+                                    questions: selectedAssignment.task?.quizData?.questions || []
+                                }}
+                                onCancel={() => setShowSubmissionForm(false)}
+                                onComplete={() => {
+                                    setSelectedAssignment(null);
+                                    window.location.reload();
+                                }}
+                            />
+                        );
+                    })()}
+                </div>
             )}
 
-            {/* Status Modal for Success/Error */}
+            {/* Status Modal */}
             <StatusModal
                 isOpen={!!statusModal}
                 onClose={() => setStatusModal(null)}
