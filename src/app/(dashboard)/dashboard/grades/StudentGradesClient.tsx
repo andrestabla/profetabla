@@ -7,7 +7,8 @@ import {
     Clock,
     TrendingUp,
     Search,
-    Filter
+    Filter,
+    Percent
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +23,7 @@ type Submission = {
 type Assignment = {
     id: string;
     title: string;
+    weight: number;
     dueDate: Date | null;
     submissions: Submission[];
     projectTitle?: string;
@@ -46,9 +48,26 @@ export default function StudentGradesClient({ projects }: { projects: Project[] 
         p.assignments.map(a => ({ ...a, projectTitle: p.title }))
     ).filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const gradedSubmissions = allAssignments.flatMap(a => a.submissions).filter(s => s.grade !== null);
-    const averageGrade = gradedSubmissions.length > 0
-        ? (gradedSubmissions.reduce((acc, s) => acc + (s.grade || 0), 0) / gradedSubmissions.length).toFixed(1)
+    // Weighted average calculation for the "Promedio General"
+    // If multiple projects are selected, we calculate weighted average per project and then average those,
+    // OR just a global weighted average across all visible assignments.
+    // Given the UI, a global weighted average of all assignments in the filtered projects makes sense.
+
+    let totalWeightedScore = 0;
+    let totalWeights = 0;
+    let hasGrades = false;
+
+    allAssignments.forEach(a => {
+        const submission = a.submissions[0];
+        if (submission?.grade !== null && submission?.grade !== undefined) {
+            totalWeightedScore += submission.grade * (a.weight || 1);
+            totalWeights += (a.weight || 1);
+            hasGrades = true;
+        }
+    });
+
+    const averageGrade = hasGrades && totalWeights > 0
+        ? (totalWeightedScore / totalWeights).toFixed(1)
         : '0.0';
 
     return (
@@ -65,7 +84,7 @@ export default function StudentGradesClient({ projects }: { projects: Project[] 
                         <TrendingUp className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-wider opacity-80">Promedio General</p>
+                        <p className="text-xs font-bold uppercase tracking-wider opacity-80">Promedio Ponderado</p>
                         <p className="text-3xl font-black">{averageGrade} <span className="text-sm font-bold opacity-70">pts</span></p>
                     </div>
                 </div>
@@ -107,6 +126,7 @@ export default function StudentGradesClient({ projects }: { projects: Project[] 
                             <tr className="bg-slate-50 border-b border-slate-100 text-left">
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actividad</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:table-cell">Proyecto</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Peso</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fecha</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Nota</th>
@@ -115,7 +135,7 @@ export default function StudentGradesClient({ projects }: { projects: Project[] 
                         <tbody className="divide-y divide-slate-50">
                             {allAssignments.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-20 text-center">
+                                    <td colSpan={6} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="p-4 bg-slate-50 rounded-full">
                                                 <FileText className="w-8 h-8 text-slate-300" />
@@ -129,6 +149,11 @@ export default function StudentGradesClient({ projects }: { projects: Project[] 
                                     const submission = a.submissions[0];
                                     const isGraded = submission?.grade !== null && submission?.grade !== undefined;
                                     const isSubmitted = !!submission;
+
+                                    // Calculate relative weight if in a specific project view, otherwise just show the weight value
+                                    // For simplicity, let's show the weight value or percentage if it's within one project
+                                    const projectTotalWeight = projects.find(p => p.assignments.some(ass => ass.id === a.id))?.assignments.reduce((sum, ass) => sum + (ass.weight || 1), 0) || 1;
+                                    const percentage = (((a.weight || 1) / projectTotalWeight) * 100).toFixed(0);
 
                                     return (
                                         <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
@@ -154,6 +179,12 @@ export default function StudentGradesClient({ projects }: { projects: Project[] 
                                                 <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full whitespace-nowrap">
                                                     {a.projectTitle}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Percent className="w-3 h-3 text-blue-500" />
+                                                    <span className="text-xs font-black text-slate-600">{percentage}%</span>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-6">
                                                 {isGraded ? (
@@ -189,8 +220,8 @@ export default function StudentGradesClient({ projects }: { projects: Project[] 
                 </div>
             </div>
 
-            {/* Feedback Section (Optional: only if one is selected or just show all feedback cards at bottom) */}
-            {gradedSubmissions.length > 0 && (
+            {/* Feedback Section */}
+            {hasGrades && allAssignments.some(a => a.submissions[0]?.feedback) && (
                 <div className="space-y-6">
                     <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
                         <CheckCircle className="w-6 h-6 text-emerald-500" /> Retroalimentación Reciente
