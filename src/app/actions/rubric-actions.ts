@@ -167,3 +167,48 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
         return { success: false, error: errorMessage };
     }
 }
+
+export async function resetSubmissionAction(submissionId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        return { success: false, error: 'No autorizado' };
+    }
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            const submission = await tx.submission.findUnique({
+                where: { id: submissionId },
+                include: { assignment: { include: { task: true } } }
+            });
+
+            if (!submission) throw new Error("Entrega no encontrada");
+
+            // Delete specific rubric scores first (cascade should handle it, but being explicit)
+            await tx.rubricScore.deleteMany({
+                where: { submissionId }
+            });
+
+            // Delete the submission
+            await tx.submission.delete({
+                where: { id: submissionId }
+            });
+
+            // Reset associated task status to TODO if it exists
+            if (submission.assignment?.task?.id) {
+                await tx.task.update({
+                    where: { id: submission.assignment.task.id },
+                    data: { status: 'TODO' }
+                });
+            }
+        });
+
+        revalidatePath('/dashboard/kanban');
+        revalidatePath('/dashboard/professor/projects/[id]');
+        revalidatePath('/dashboard/student');
+        return { success: true };
+    } catch (e: unknown) {
+        console.error("Error resetting submission:", e);
+        const errorMessage = e instanceof Error ? e.message : 'Error al reiniciar entrega';
+        return { success: false, error: errorMessage };
+    }
+}

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { gradeSubmissionAction } from '@/app/actions/rubric-actions';
-import { Loader2, Save, X, FileText, Download, AlertTriangle } from 'lucide-react';
+import { gradeSubmissionAction, resetSubmissionAction } from '@/app/actions/rubric-actions';
+import { Loader2, Save, X, FileText, Download, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useModals } from '@/components/ModalProvider';
+import { cn } from '@/lib/utils';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type RubricItem = {
@@ -120,6 +121,26 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
             await showAlert("Error", "No se pudo guardar la calificación: " + res.error, "error");
         }
         setIsSaving(false);
+    };
+
+    const handleReset = async () => {
+        const confirm = await showConfirm(
+            "¿Reiniciar Cuestionario?",
+            "Esta acción eliminará la entrega actual y permitirá que el estudiante realice el cuestionario nuevamente. No se puede deshacer.",
+            "danger"
+        );
+
+        if (confirm) {
+            setIsSaving(true);
+            const res = await resetSubmissionAction(submission.id);
+            if (res.success) {
+                await showAlert("Cuestionario Reiniciado", "La entrega ha sido eliminada correctamente.", "success");
+                onClose();
+            } else {
+                await showAlert("Error", "No se pudo reiniciar: " + res.error, "error");
+            }
+            setIsSaving(false);
+        }
     };
 
     const currentTotal = Object.values(scores).reduce((sum, item) => sum + item.score, 0);
@@ -324,11 +345,25 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
                         </div>
                     </div>
 
-                    <div className="p-6 border-t border-slate-100 bg-slate-50">
+                    <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+                        {isQuiz && (
+                            <button
+                                onClick={handleReset}
+                                disabled={isSaving}
+                                className="flex-1 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                                title="Reiniciar entrega para que el estudiante pueda repetir"
+                            >
+                                <RotateCcw className="w-5 h-5" />
+                                Reiniciar
+                            </button>
+                        )}
                         <button
                             onClick={handleSave}
                             disabled={isSaving || (rubricItems.length === 0 && !isQuiz)} // Allow save for quiz without rubric
-                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 transition-all"
+                            className={cn(
+                                "py-3 text-white rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 transition-all",
+                                isQuiz ? "flex-[2] bg-blue-600 hover:bg-blue-700 shadow-blue-200" : "w-full bg-blue-600 hover:bg-blue-700 shadow-blue-200"
+                            )}
                         >
                             {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                             Guardar Evaluación

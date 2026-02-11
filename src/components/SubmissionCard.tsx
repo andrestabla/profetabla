@@ -1,17 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { FileIcon, CheckCircle, Clock, Edit2, Gavel, BarChart3 } from 'lucide-react';
+import { FileIcon, CheckCircle, Clock, Edit2, Gavel, BarChart3, RotateCcw } from 'lucide-react';
 import { RubricEditor } from './RubricEditor';
 import { GradingModal } from './GradingModal';
 import { QuizAnalyticsModal } from './QuizAnalyticsModal';
 import { useSession } from 'next-auth/react';
+import { resetSubmissionAction } from '@/app/actions/rubric-actions';
+import { useModals } from '@/components/ModalProvider';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function SubmissionCard({ assignment }: { assignment: any }) {
     const { data: session } = useSession();
+    const { showConfirm, showAlert } = useModals();
 
-    const [submission] = useState<any | null>(
+    const [submission, setSubmission] = useState<any | null>(
         assignment.submissions?.[0] || null
     );
     const [isRubricOpen, setIsRubricOpen] = useState(false);
@@ -91,12 +94,38 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                                 </p>
                             </div>
                             {isTeacher && (
-                                <button
-                                    onClick={() => setIsGradingOpen(true)}
-                                    className="ml-auto px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-colors"
-                                >
-                                    <Gavel className="w-3 h-3" /> Calificar
-                                </button>
+                                <div className="ml-auto flex items-center gap-2">
+                                    {isQuiz && (
+                                        <button
+                                            onClick={async () => {
+                                                const confirm = await showConfirm(
+                                                    "¿Reiniciar Cuestionario?",
+                                                    "Esta acción eliminará la entrega actual de este estudiante. No se puede deshacer.",
+                                                    "danger"
+                                                );
+                                                if (confirm) {
+                                                    const res = await resetSubmissionAction(submission.id);
+                                                    if (res.success) {
+                                                        await showAlert("Cuestionario Reiniciado", "La entrega ha sido eliminada.", "success");
+                                                        setSubmission(null);
+                                                    } else {
+                                                        await showAlert("Error", res.error, "error");
+                                                    }
+                                                }
+                                            }}
+                                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                            title="Reiniciar Cuestionario"
+                                        >
+                                            <RotateCcw className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => setIsGradingOpen(true)}
+                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-colors"
+                                    >
+                                        <Gavel className="w-3 h-3" /> Calificar
+                                    </button>
+                                </div>
                             )}
                         </div>
 
