@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { gradeSubmissionAction, resetSubmissionAction } from '@/app/actions/rubric-actions';
+import { calculateTotalQuizScore, calculateMaxQuizScore } from '@/lib/quiz-utils';
 import { Loader2, Save, X, FileText, Download, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useModals } from '@/components/ModalProvider';
 import { cn } from '@/lib/utils';
@@ -68,25 +69,11 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
 
     // Initial Auto-Calculation Effect
     const calculateAutoScore = () => {
-        if (!quizData?.questions) return 0;
-        let total = 0;
-        quizData.questions.forEach((q: any) => {
-            const answer = submission.answers?.[q.id];
-            if (q.type === 'RATING') {
-                const val = parseInt(answer);
-                if (!isNaN(val)) {
-                    // Assuming scale is 1-5, awarded points are proportional
-                    total += (val / 5) * (q.points || 1);
-                }
-            } else if (q.correctAnswer && answer === q.correctAnswer) {
-                total += (q.points || 1);
-            }
-        });
-        return Math.round(total * 10) / 10;
+        return calculateTotalQuizScore(quizData?.questions || [], submission.answers || {});
     };
 
     // Calculate Max Score for Quiz
-    const maxQuizScore = quizData?.questions?.reduce((acc: number, q: any) => acc + (q.points || 1), 0) || 0;
+    const maxQuizScore = calculateMaxQuizScore(quizData?.questions || []);
     const autoScore = calculateAutoScore();
 
     const handleScoreChange = (itemId: string, val: number) => {

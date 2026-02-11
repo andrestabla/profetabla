@@ -22,8 +22,21 @@ export default async function GradesPage() {
             include: {
                 assignments: {
                     include: {
+                        task: {
+                            select: {
+                                type: true,
+                                quizData: true
+                            }
+                        },
                         submissions: {
                             where: { studentId: userId },
+                            select: {
+                                id: true,
+                                grade: true,
+                                feedback: true,
+                                createdAt: true,
+                                answers: true
+                            },
                             orderBy: { createdAt: 'desc' }
                         }
                     }

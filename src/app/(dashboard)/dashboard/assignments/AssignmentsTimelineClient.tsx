@@ -7,6 +7,7 @@ import StatusModal from '@/components/StatusModal';
 import Link from 'next/link';
 import { QuizRunner } from '@/components/QuizRunner';
 import { QuizResultView } from '@/components/QuizResultView';
+import { calculateTotalQuizScore } from '@/lib/quiz-utils';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Assignment = {
@@ -28,10 +29,7 @@ type Assignment = {
         maxDate: string | null;
         comments: any[];
         type?: 'TASK' | 'QUIZ';
-        quizData?: {
-            questions: any[];
-            gradingMethod?: 'AUTO' | 'MANUAL';
-        };
+        quizData?: any;
     } | null;
 };
 
@@ -241,7 +239,13 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                     filteredAssignments.map((assignment, index) => {
                         const isSubmitted = assignment.submissions && assignment.submissions.length > 0;
                         const submission = isSubmitted ? assignment.submissions[0] : null;
-                        const isGraded = submission && submission.grade != null;
+                        let grade = submission?.grade;
+
+                        // Fallback for auto-graded quizzes
+                        if (grade === null && assignment.task?.type === 'QUIZ' && (assignment.task as any)?.quizData?.gradingMethod === 'AUTO' && submission) {
+                            grade = calculateTotalQuizScore((assignment.task as any).quizData.questions || [], submission.answers || {});
+                        }
+                        const isGraded = grade != null;
 
                         return (
                             <div key={assignment.id} className="relative pl-8 animate-in slide-in-from-bottom-5 duration-500" style={{ animationDelay: `${index * 100}ms` }}>
@@ -274,19 +278,21 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                                             </div>
                                             <h3 className="text-lg font-bold text-slate-800">{assignment.title}</h3>
                                         </div>
-                                        {isGraded ? (
-                                            <div className="flex items-center gap-1.5 text-indigo-600 bg-indigo-100 px-3 py-1 rounded-lg text-xs font-bold">
-                                                <CheckCircle className="w-4 h-4" /> Revisado
-                                            </div>
-                                        ) : isSubmitted ? (
-                                            <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-100 px-3 py-1 rounded-lg text-xs font-bold">
-                                                <CheckCircle className="w-4 h-4" /> Entregado
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg text-xs font-bold border border-amber-100">
-                                                <Clock className="w-4 h-4" /> Pendiente
-                                            </div>
-                                        )}
+                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                            {isGraded ? (
+                                                <div className="flex items-center gap-1.5 text-indigo-600 bg-indigo-100 px-3 py-1 rounded-lg text-xs font-bold">
+                                                    <CheckCircle className="w-4 h-4" /> Revisado {grade != null && `(${grade} pts)`}
+                                                </div>
+                                            ) : isSubmitted ? (
+                                                <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-100 px-3 py-1 rounded-lg text-xs font-bold">
+                                                    <CheckCircle className="w-4 h-4" /> Entregado
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg text-xs font-bold border border-amber-100">
+                                                    <Clock className="w-4 h-4" /> Pendiente
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="text-sm text-slate-600 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 leading-relaxed line-clamp-3">
@@ -333,7 +339,13 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
                     {(() => {
                         const sub = selectedAssignment.submissions && selectedAssignment.submissions.length > 0 ? selectedAssignment.submissions[0] : null;
-                        const isGraded = sub && sub.grade != null;
+                        let grade = sub?.grade;
+
+                        if (grade === null && selectedAssignment.task?.type === 'QUIZ' && (selectedAssignment.task as any)?.quizData?.gradingMethod === 'AUTO' && sub) {
+                            grade = calculateTotalQuizScore((selectedAssignment.task as any).quizData.questions || [], sub.answers || {});
+                        }
+
+                        const isGraded = grade != null;
 
                         return (
                             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col md:flex-row animate-in zoom-in-95 duration-200 relative">
@@ -360,7 +372,7 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                                                     <h4 className="font-bold text-indigo-700 flex items-center gap-2">
                                                         <CheckCircle className="w-4 h-4" /> Calificación
                                                     </h4>
-                                                    <span className="text-2xl font-black text-indigo-600">{sub.grade} pts</span>
+                                                    <span className="text-2xl font-black text-indigo-600">{grade} pts</span>
                                                 </div>
                                                 {sub.feedback && (
                                                     <div className="text-sm text-indigo-800 bg-white/50 p-3 rounded-lg border border-indigo-100/50 italic">

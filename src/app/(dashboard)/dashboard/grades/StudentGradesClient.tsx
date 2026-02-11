@@ -11,6 +11,7 @@ import {
     Percent
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { calculateTotalQuizScore } from '@/lib/quiz-utils';
 
 type Submission = {
     id: string;
@@ -18,6 +19,7 @@ type Submission = {
     feedback: string | null;
     createdAt: Date;
     status: string;
+    answers?: Record<string, unknown>;
 };
 
 type Assignment = {
@@ -27,6 +29,11 @@ type Assignment = {
     dueDate: Date | null;
     submissions: Submission[];
     projectTitle?: string;
+    task?: {
+        type: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        quizData: any;
+    };
 };
 
 type Project = {
@@ -59,8 +66,17 @@ export default function StudentGradesClient({ projects }: { projects: Project[] 
 
     allAssignments.forEach(a => {
         const submission = a.submissions[0];
-        if (submission?.grade !== null && submission?.grade !== undefined) {
-            totalWeightedScore += submission.grade * (a.weight || 1);
+        let grade = submission?.grade;
+
+        // Fallback for auto-graded quizzes that might not have a persisted grade yet
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as any)?.gradingMethod === 'AUTO') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            grade = calculateTotalQuizScore((a.task.quizData as any).questions || [], (submission.answers as Record<string, string>) || {});
+        }
+
+        if (grade !== null && grade !== undefined) {
+            totalWeightedScore += grade * (a.weight || 1);
             totalWeights += (a.weight || 1);
             hasGrades = true;
         }
@@ -205,11 +221,21 @@ export default function StudentGradesClient({ projects }: { projects: Project[] 
                                                 {a.dueDate ? new Date(a.dueDate).toLocaleDateString() : 'Sin fecha'}
                                             </td>
                                             <td className="px-6 py-6 text-right">
-                                                {isGraded ? (
-                                                    <span className="text-xl font-black text-blue-600">{submission.grade} <span className="text-[10px] opacity-70">pts</span></span>
-                                                ) : (
-                                                    <span className="text-sm font-bold text-slate-300">--</span>
-                                                )}
+                                                {(() => {
+                                                    const submission = a.submissions[0];
+                                                    let grade = submission?.grade;
+
+                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                    if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as any)?.gradingMethod === 'AUTO' && submission) {
+                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                        grade = calculateTotalQuizScore((a.task.quizData as any).questions || [], (submission.answers as Record<string, string>) || {});
+                                                    }
+
+                                                    if (grade !== null && grade !== undefined) {
+                                                        return <span className="text-xl font-black text-blue-600">{grade} <span className="text-[10px] opacity-70">pts</span></span>;
+                                                    }
+                                                    return <span className="text-sm font-bold text-slate-300">--</span>;
+                                                })()}
                                             </td>
                                         </tr>
                                     );
