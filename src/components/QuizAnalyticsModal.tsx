@@ -37,16 +37,36 @@ export function QuizAnalyticsModal({ assignment, onClose }: QuizAnalyticsModalPr
     const questionStats = useMemo(() => {
         return questions.map((q: any) => {
             let correctCount = 0;
+            let totalRating = 0;
+            let respondedCount = 0;
+
             submissions.forEach((s: any) => {
-                if (s.answers?.[q.id] === q.correctAnswer) {
-                    correctCount++;
+                const answer = s.answers?.[q.id];
+                if (answer !== undefined && answer !== null && answer !== '') {
+                    respondedCount++;
+                    if (q.type === 'RATING') {
+                        totalRating += parseInt(answer);
+                    } else if (answer === q.correctAnswer) {
+                        correctCount++;
+                    }
                 }
             });
-            const rate = submissions.length > 0 ? (correctCount / submissions.length) * 100 : 0;
+
+            let rate = 0;
+            let avgValue = 0;
+            if (q.type === 'RATING') {
+                avgValue = respondedCount > 0 ? totalRating / respondedCount : 0;
+                rate = (avgValue / 5) * 100; // Assuming 1-5 scale
+            } else {
+                rate = respondedCount > 0 ? (correctCount / respondedCount) * 100 : 0;
+            }
+
             return {
                 ...q,
                 correctCount,
-                successRate: rate.toFixed(0)
+                avgValue: avgValue.toFixed(1),
+                successRate: rate.toFixed(0),
+                respondedCount
             };
         });
     }, [questions, submissions]);
@@ -166,9 +186,11 @@ export function QuizAnalyticsModal({ assignment, onClose }: QuizAnalyticsModalPr
                                                             "text-lg font-black",
                                                             successRate >= 80 ? "text-emerald-500" : successRate >= 50 ? "text-blue-500" : "text-amber-500"
                                                         )}>
-                                                            {q.successRate}%
+                                                            {q.type === 'RATING' ? q.avgValue : `${q.successRate}%`}
                                                         </span>
-                                                        <p className="text-[9px] text-slate-400 font-bold uppercase">Éxito</p>
+                                                        <p className="text-[9px] text-slate-400 font-bold uppercase">
+                                                            {q.type === 'RATING' ? 'Promedio' : 'Éxito'}
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
@@ -181,7 +203,10 @@ export function QuizAnalyticsModal({ assignment, onClose }: QuizAnalyticsModalPr
                                                     />
                                                 </div>
                                                 <div className="flex justify-between items-center mt-3">
-                                                    <p className="text-[10px] text-slate-400 font-medium">Correctas: <span className="text-slate-700 font-bold">{q.correctCount}</span></p>
+                                                    <p className="text-[10px] text-slate-400 font-medium">
+                                                        {q.type === 'RATING' ? 'Respondido por: ' : 'Correctas: '}
+                                                        <span className="text-slate-700 font-bold">{q.type === 'RATING' ? q.respondedCount : q.correctCount}</span>
+                                                    </p>
                                                     <p className="text-[10px] text-slate-400 font-medium">Peso: <span className="text-blue-600 font-black">{q.points || 1} pts</span></p>
                                                 </div>
                                             </div>
@@ -226,7 +251,13 @@ export function QuizAnalyticsModal({ assignment, onClose }: QuizAnalyticsModalPr
                                                 </td>
                                             </tr>
                                         ) : filteredSubmissions.map((s: any) => {
-                                            const correctAnswers = questions.filter((q: any) => s.answers?.[q.id] === q.correctAnswer).length;
+                                            // Calculate actual points vs max points for display purposes
+                                            const correctCount = questions.filter((q: any) => {
+                                                const answer = s.answers?.[q.id];
+                                                if (q.type === 'RATING') return parseInt(answer) >= 3; // Arbitrary "positive" rating
+                                                return answer === q.correctAnswer;
+                                            }).length;
+
                                             return (
                                                 <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">
                                                     <td className="px-8 py-5">
@@ -253,11 +284,11 @@ export function QuizAnalyticsModal({ assignment, onClose }: QuizAnalyticsModalPr
                                                     </td>
                                                     <td className="px-8 py-5 text-center">
                                                         <div className="flex items-center justify-center gap-2">
-                                                            <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                                                                <CheckCircle2 className="w-3 h-3" /> {correctAnswers}
+                                                            <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md" title="Respuestas Correctas / Calificaciones Altas">
+                                                                <CheckCircle2 className="w-3 h-3" /> {correctCount}
                                                             </div>
-                                                            <div className="flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md">
-                                                                <XCircle className="w-3 h-3" /> {questions.length - correctAnswers}
+                                                            <div className="flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md" title="Respuestas Incorrectas / Calificaciones Bajas">
+                                                                <XCircle className="w-3 h-3" /> {questions.length - correctCount}
                                                             </div>
                                                         </div>
                                                     </td>

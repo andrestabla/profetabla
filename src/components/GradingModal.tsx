@@ -70,16 +70,21 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
         if (!quizData?.questions) return 0;
         let total = 0;
         quizData.questions.forEach((q: any) => {
-            if (q.correctAnswer && submission.answers?.[q.id] === q.correctAnswer) {
+            const answer = submission.answers?.[q.id];
+            if (q.type === 'RATING') {
+                const val = parseInt(answer);
+                if (!isNaN(val)) {
+                    // Assuming scale is 1-5, awarded points are proportional
+                    total += (val / 5) * (q.points || 1);
+                }
+            } else if (q.correctAnswer && answer === q.correctAnswer) {
                 total += (q.points || 1);
             }
         });
-        return total;
+        return Math.round(total * 10) / 10;
     };
 
     // Calculate Max Score for Quiz
-    // If auto-weighted or manual, we typically target 100. If explicit points, sum them.
-    // Ideally usage of `q.points` handles both cases (since auto-distribute updates `q.points`).
     const maxQuizScore = quizData?.questions?.reduce((acc: number, q: any) => acc + (q.points || 1), 0) || 0;
     const autoScore = calculateAutoScore();
 
@@ -120,6 +125,10 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
     const currentTotal = Object.values(scores).reduce((sum, item) => sum + item.score, 0);
     const maxTotal = rubricItems.reduce((sum, item) => sum + item.maxPoints, 0);
 
+    const quizScoreResult = isQuiz ? (gradingMode === 'AUTO' ? autoScore : manualScore) : 0;
+    const displayedTotal = rubricItems.length > 0 ? currentTotal : quizScoreResult;
+    const displayedMax = rubricItems.length > 0 ? maxTotal : (isQuiz ? maxQuizScore : 0);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex overflow-hidden animate-in zoom-in-95 duration-200">
@@ -151,6 +160,11 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
                                             </div>
                                             <div className="ml-9 p-3 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-700">
                                                 {answer || <span className="text-slate-400 italic">Sin respuesta</span>}
+                                                {q.type === 'RATING' && answer && (
+                                                    <span className="ml-2 text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">
+                                                        {(parseInt(answer) / 5 * (q.points || 1)).toFixed(1)} / {q.points || 1} pts
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     )
@@ -195,8 +209,8 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
                         <div className="flex items-center gap-4">
                             <div className="text-right">
                                 <span className="block text-xs uppercase text-slate-400 font-bold tracking-wider">Nota Final</span>
-                                <span className={`text-2xl font-black ${currentTotal >= maxTotal * 0.6 ? 'text-green-600' : 'text-amber-600'}`}>
-                                    {currentTotal} <span className="text-slate-300 text-lg">/ {maxTotal}</span>
+                                <span className={`text-2xl font-black ${displayedTotal >= (displayedMax || 1) * 0.6 ? 'text-green-600' : 'text-amber-600'}`}>
+                                    {displayedTotal} <span className="text-slate-300 text-lg">/ {displayedMax}</span>
                                 </span>
                             </div>
                             <button onClick={async () => {
