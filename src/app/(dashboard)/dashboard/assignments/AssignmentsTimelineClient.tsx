@@ -54,6 +54,13 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
         return null;
     });
 
+    useEffect(() => {
+        if (selectedAssignment) {
+            const up = assignments.find(a => a.id === selectedAssignment.id);
+            if (up) setSelectedAssignment(up);
+        }
+    }, [assignments, selectedAssignment?.id]);
+
     const [submissionType, setSubmissionType] = useState<'FILE' | 'URL'>(() => {
         if (initialSelectedId) {
             const found = assignments.find(a => a.id === initialSelectedId);
@@ -310,7 +317,7 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                                                 onClick={() => handleSelectAssignment(assignment)}
                                                 className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-md shadow-blue-200 hover:bg-blue-700 hover:shadow-lg transition-all"
                                             >
-                                                <FileText className="w-4 h-4" /> {assignment.task?.priority === 'QUIZ' ? 'Ver Detalles & Realizar Cuestionario' : 'Ver Detalles & Entregar'}
+                                                <FileText className="w-4 h-4" /> {assignment.task?.priority === 'QUIZ' ? 'Ver Detalles & Iniciar' : 'Ver Detalles & Entregar'}
                                             </button>
                                         )}
                                     </div>
@@ -423,9 +430,9 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                                             {!showSubmissionForm && !sub && (
                                                 <button
                                                     onClick={() => setShowSubmissionForm(true)}
-                                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 transition-all"
+                                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 transition-all font-[Inter]"
                                                 >
-                                                    {selectedAssignment.task?.type === 'QUIZ' ? 'Comenzar Cuestionario' : 'Realizar Entrega'}
+                                                    {selectedAssignment.task?.type === 'QUIZ' ? (selectedAssignment.task?.status === 'TODO' ? 'Iniciar Cuestionario' : 'Continuar Cuestionario') : 'Realizar Entrega'}
                                                 </button>
                                             )}
 

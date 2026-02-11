@@ -817,7 +817,7 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
                                         onClick={() => setIsTakingQuiz(true)}
                                         className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition-all text-sm shadow-md shadow-purple-200"
                                     >
-                                        <Play className="w-4 h-4" /> Comenzar Cuestionario
+                                        <Play className="w-4 h-4" /> {task.status === 'TODO' ? 'Iniciar Cuestionario' : 'Continuar Cuestionario'}
                                     </button>
                                 </div>
                             ) : (

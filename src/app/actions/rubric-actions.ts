@@ -205,6 +205,8 @@ export async function resetSubmissionAction(submissionId: string) {
         revalidatePath('/dashboard/kanban');
         revalidatePath('/dashboard/professor/projects/[id]');
         revalidatePath('/dashboard/student');
+        revalidatePath('/dashboard/assignments');
+        revalidatePath('/dashboard/student/projects/[id]', 'page');
         return { success: true };
     } catch (e: unknown) {
         console.error("Error resetting submission:", e);
