@@ -16,10 +16,12 @@ interface QuizResultViewProps {
     questions: Question[];
     answers: Record<string, string>;
     gradingMethod?: 'AUTO' | 'MANUAL';
+    score?: number;
+    maxScore?: number;
     onBack: () => void;
 }
 
-export function QuizResultView({ questions, answers, gradingMethod, onBack }: QuizResultViewProps) {
+export function QuizResultView({ questions, answers, gradingMethod, score, maxScore, onBack }: QuizResultViewProps) {
     return (
         <div className="flex flex-col h-full bg-white font-[Inter]">
             <div className="flex items-center gap-4 mb-8">
@@ -30,6 +32,15 @@ export function QuizResultView({ questions, answers, gradingMethod, onBack }: Qu
                     <ChevronLeft className="w-6 h-6" />
                 </button>
                 <h2 className="text-2xl font-bold text-slate-800">Resultados de la Evaluación</h2>
+                {score !== undefined && maxScore !== undefined && (
+                    <div className="ml-auto flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100">
+                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Nota Final</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-black text-indigo-600">{score}</span>
+                            <span className="text-sm font-bold text-indigo-300">/ {maxScore} pts</span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-8 pr-2 custom-scrollbar">

@@ -594,12 +594,15 @@ export default function AssignmentsTimelineClient({ assignments, initialSelected
                         const sub = selectedAssignment.submissions && selectedAssignment.submissions.length > 0 ? selectedAssignment.submissions[0] : null;
 
                         if (sub) {
+                            const totalPoints = selectedAssignment.task?.quizData?.questions.reduce((acc: number, q: any) => acc + (q.points || 1), 0) || 0;
                             return (
                                 <div className="max-w-4xl mx-auto p-8">
                                     <QuizResultView
                                         questions={selectedAssignment.task?.quizData?.questions || []}
                                         answers={sub.answers || {}}
                                         gradingMethod={selectedAssignment.task?.quizData?.gradingMethod}
+                                        score={sub.grade ?? undefined}
+                                        maxScore={totalPoints}
                                         onBack={() => setShowSubmissionForm(false)}
                                     />
                                 </div>
