@@ -9,6 +9,7 @@ export interface QuizQuestion {
     options?: string[];
     correctAnswer?: string;
     points?: number;
+    maxRating?: number;
 }
 
 export interface QuizData {
@@ -26,8 +27,8 @@ export function calculateQuestionScore(question: QuizQuestion, answer: string | 
     if (question.type === 'RATING') {
         const val = parseInt(answer);
         if (!isNaN(val)) {
-            // Assuming scale is 1-5, awarded points are proportional
-            return (val / 5) * points;
+            const maxRating = question.maxRating || 5;
+            return (val / maxRating) * points;
         }
     } else if (question.type === 'MULTIPLE_CHOICE') {
         if (question.correctAnswer && answer === question.correctAnswer) {

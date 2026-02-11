@@ -10,6 +10,7 @@ interface Question {
     options?: string[];
     correctAnswer?: string;
     points?: number;
+    maxRating?: number;
 }
 
 interface QuizResultViewProps {
@@ -105,11 +106,11 @@ export function QuizResultView({ questions, answers, gradingMethod, score, maxSc
                                 )}
 
                                 {q.type === 'RATING' && (
-                                    <div className="flex justify-between px-4 py-2 bg-white rounded-lg border border-slate-100">
-                                        {[1, 2, 3, 4, 5].map((val) => (
+                                    <div className="flex justify-between px-4 py-2 bg-white rounded-lg border border-slate-100 italic">
+                                        {Array.from({ length: q.maxRating || 5 }, (_, i) => i + 1).map((val) => (
                                             <div
                                                 key={val}
-                                                className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center transition-all ${studentAnswer === val.toString() ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-slate-50 text-slate-300'}`}
+                                                className={`w-9 h-9 rounded-full font-bold text-xs flex items-center justify-center transition-all ${studentAnswer === val.toString() ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-slate-50 text-slate-300'}`}
                                             >
                                                 {val}
                                             </div>

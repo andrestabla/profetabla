@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
     X, CheckCircle2, FileText, Clock,
     AlertCircle, ExternalLink, Send, MessageSquare,
-    ChevronRight, BookOpen, Trash2, Edit3, Save, HelpCircle, Package, ClipboardCheck, User, List, Plus, Trash, CheckSquare, AlignLeft, Play, Check
+    ChevronRight, BookOpen, Trash2, Edit3, Save, HelpCircle, Package, ClipboardCheck, User, List, Plus, Trash, CheckSquare, AlignLeft, Play, Check, Copy
 } from 'lucide-react';
 import { useModals } from './ModalProvider';
 import Link from 'next/link';
@@ -52,6 +52,7 @@ interface Question {
     options?: string[];
     correctAnswer?: string;
     points?: number;
+    maxRating?: number;
 }
 
 interface TaskModalProps {
@@ -229,6 +230,22 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
         setQuestions(questions.filter(q => q.id !== id));
     };
 
+    const duplicateQuestion = (id: string) => {
+        const questionToCopy = questions.find(q => q.id === id);
+        if (!questionToCopy) return;
+
+        const newQ: Question = {
+            ...questionToCopy,
+            id: crypto.randomUUID(),
+            prompt: questionToCopy.prompt ? `${questionToCopy.prompt} (copia)` : ''
+        };
+
+        const index = questions.findIndex(q => q.id === id);
+        const newQuestions = [...questions];
+        newQuestions.splice(index + 1, 0, newQ);
+        setQuestions(newQuestions);
+    };
+
     const submitQuiz = async () => {
         const confirm = await showConfirm(
             "¿Enviar respuestas?",
@@ -312,7 +329,7 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
 
                                 {q.type === 'RATING' && (
                                     <div className="flex justify-between px-4">
-                                        {[1, 2, 3, 4, 5].map((val) => (
+                                        {Array.from({ length: q.maxRating || 5 }, (_, i) => i + 1).map((val) => (
                                             <button
                                                 key={val}
                                                 onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: val.toString() })}
@@ -516,6 +533,19 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
                                                                     />
                                                                 </div>
                                                             )}
+                                                            {q.type === 'RATING' && (
+                                                                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-orange-50">
+                                                                    <span className="text-xs font-bold text-orange-600">Escala:</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="2"
+                                                                        max="10"
+                                                                        className="w-10 bg-transparent text-sm font-bold text-orange-700 outline-none text-center"
+                                                                        value={q.maxRating || 5}
+                                                                        onChange={(e) => updateQuestion(q.id, 'maxRating', parseInt(e.target.value) || 5)}
+                                                                    />
+                                                                </div>
+                                                            )}
                                                             {q.type === 'TEXT' && (
                                                                 <input
                                                                     type="text"
@@ -529,9 +559,14 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
                                                     )}
                                                 </div>
                                                 {canEditStructural && (
-                                                    <button onClick={() => removeQuestion(q.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                                                        <Trash className="w-4 h-4" />
-                                                    </button>
+                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                        <button onClick={() => duplicateQuestion(q.id)} className="text-slate-300 hover:text-blue-500 p-1" title="Duplicar">
+                                                            <Copy className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => removeQuestion(q.id)} className="text-slate-300 hover:text-red-500 p-1" title="Eliminar">
+                                                            <Trash className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
 
@@ -544,7 +579,9 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
                                                 )}
                                                 {q.type === 'RATING' && (
                                                     <div className="flex gap-2">
-                                                        {[1, 2, 3, 4, 5].map(v => <div key={v} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400">{v}</div>)}
+                                                        {Array.from({ length: q.maxRating || 5 }, (_, i) => i + 1).map(v => (
+                                                            <div key={v} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400">{v}</div>
+                                                        ))}
                                                     </div>
                                                 )}
                                                 {q.type === 'MULTIPLE_CHOICE' && (

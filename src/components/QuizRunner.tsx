@@ -12,6 +12,7 @@ interface Question {
     type: QuestionType;
     prompt: string;
     options?: string[];
+    maxRating?: number;
 }
 
 interface QuizRunnerProps {
@@ -222,14 +223,14 @@ export function QuizRunner({ assignment, onComplete, onCancel }: QuizRunnerProps
                                 {currentQuestion.type === 'RATING' && (
                                     <div className="py-8">
                                         <div className="flex justify-between items-center max-w-xl mx-auto">
-                                            {[1, 2, 3, 4, 5].map((val) => {
+                                            {Array.from({ length: currentQuestion.maxRating || 5 }, (_, i) => i + 1).map((val) => {
                                                 const isSelected = quizAnswers[currentQuestion.id] === val.toString();
                                                 return (
                                                     <button
                                                         key={val}
                                                         onClick={() => setQuizAnswers({ ...quizAnswers, [currentQuestion.id]: val.toString() })}
                                                         className={`
-                                                            w-14 h-14 md:w-16 md:h-16 rounded-2xl font-bold text-xl md:text-2xl transition-all duration-300 flex items-center justify-center
+                                                            w-12 h-12 md:w-14 md:h-14 rounded-2xl font-bold text-lg md:text-xl transition-all duration-300 flex items-center justify-center
                                                             ${isSelected
                                                                 ? 'bg-purple-600 text-white shadow-xl shadow-purple-200 scale-110 -translate-y-2'
                                                                 : 'bg-white border-2 border-slate-100 text-slate-400 hover:border-purple-200 hover:text-purple-600 hover:bg-purple-50'
