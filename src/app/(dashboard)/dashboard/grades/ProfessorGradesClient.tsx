@@ -20,6 +20,7 @@ import NextImage from 'next/image';
 import { cn } from '@/lib/utils';
 import { updateAssignmentWeightsAction } from './actions';
 import StatusModal from '@/components/StatusModal';
+import { calculateTotalQuizScore } from '@/lib/quiz-utils';
 
 type Submission = {
     id: string;
@@ -31,6 +32,7 @@ type Submission = {
         email: string | null;
         avatarUrl: string | null;
     };
+    answers?: Record<string, unknown>;
 };
 
 type Assignment = {
@@ -38,6 +40,11 @@ type Assignment = {
     title: string;
     weight: number;
     submissions: Submission[];
+    task?: {
+        type: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        quizData: any;
+    };
 };
 
 type Student = {
@@ -117,8 +124,17 @@ export default function ProfessorGradesClient({ projects }: { projects: Project[
 
         project.assignments.forEach(a => {
             const sub = a.submissions.find(s => s.studentId === studentId);
-            if (sub?.grade !== null && sub?.grade !== undefined) {
-                totalWeightedScore += sub.grade * (a.weight || 1);
+            let grade = sub?.grade;
+
+            // Fallback for auto-graded quizzes
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as any)?.gradingMethod === 'AUTO' && sub) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                grade = calculateTotalQuizScore((a.task.quizData as any).questions || [], (sub.answers as Record<string, string>) || {});
+            }
+
+            if (grade !== null && grade !== undefined) {
+                totalWeightedScore += grade * (a.weight || 1);
                 totalWeights += (a.weight || 1);
                 hasGrades = true;
             }
@@ -145,7 +161,15 @@ export default function ProfessorGradesClient({ projects }: { projects: Project[
         const rows = project.students.map(student => {
             const studentGrades = project.assignments.map(a => {
                 const sub = a.submissions.find(s => s.studentId === student.id);
-                return sub?.grade ?? '--';
+                let grade = sub?.grade;
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as any)?.gradingMethod === 'AUTO' && sub) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    grade = calculateTotalQuizScore((a.task.quizData as any).questions || [], (sub.answers as Record<string, string>) || {});
+                }
+
+                return grade ?? '--';
             });
 
             const average = calculateWeightedAverage(student.id);
@@ -309,7 +333,14 @@ export default function ProfessorGradesClient({ projects }: { projects: Project[
                                                 </td>
                                                 {project.assignments.map((a) => {
                                                     const sub = a.submissions.find(s => s.studentId === student.id);
-                                                    const grade = sub?.grade;
+                                                    let grade = sub?.grade;
+
+                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                    if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as any)?.gradingMethod === 'AUTO' && sub) {
+                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                        grade = calculateTotalQuizScore((a.task.quizData as any).questions || [], (sub.answers as Record<string, string>) || {});
+                                                    }
+
                                                     return (
                                                         <td key={a.id} className="px-6 py-4 text-center">
                                                             {grade !== undefined && grade !== null ? (

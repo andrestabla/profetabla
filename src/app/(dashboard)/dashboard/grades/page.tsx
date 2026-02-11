@@ -59,6 +59,12 @@ export default async function GradesPage() {
                 },
                 assignments: {
                     include: {
+                        task: {
+                            select: {
+                                type: true,
+                                quizData: true
+                            }
+                        },
                         submissions: {
                             include: {
                                 student: {
