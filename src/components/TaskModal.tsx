@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useModals } from './ModalProvider';
 import Link from 'next/link';
+import { RATING_TYPES_CONFIG } from '@/lib/quiz-utils';
 
 interface Comment {
     id: string;
@@ -53,6 +54,7 @@ interface Question {
     correctAnswer?: string;
     points?: number;
     maxRating?: number;
+    ratingType?: 'NUMERIC' | 'SATISFACTION' | 'AGREEMENT' | 'PERFORMANCE' | 'FREQUENCY' | 'INTENSITY';
 }
 
 interface TaskModalProps {
@@ -192,6 +194,8 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
             prompt: '',
             options: type === 'MULTIPLE_CHOICE' ? ['Opción 1', 'Opción 2'] : undefined,
             points: 1,
+            maxRating: 5,
+            ratingType: 'NUMERIC',
             correctAnswer: ''
         };
         setQuestions([...questions, newQ]);
@@ -328,16 +332,22 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
                                 )}
 
                                 {q.type === 'RATING' && (
-                                    <div className="flex justify-between px-4">
-                                        {Array.from({ length: q.maxRating || 5 }, (_, i) => i + 1).map((val) => (
-                                            <button
-                                                key={val}
-                                                onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: val.toString() })}
-                                                className={`w-12 h-12 rounded-full font-bold text-lg transition-all ${quizAnswers[q.id] === val.toString() ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                                            >
-                                                {val}
-                                            </button>
-                                        ))}
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between px-4">
+                                            {Array.from({ length: q.maxRating || 5 }, (_, i) => i + 1).map((val) => (
+                                                <button
+                                                    key={val}
+                                                    onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: val.toString() })}
+                                                    className={`w-12 h-12 rounded-full font-bold text-lg transition-all ${quizAnswers[q.id] === val.toString() ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                                >
+                                                    {val}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex justify-between px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                            <span>{RATING_TYPES_CONFIG[q.ratingType || 'NUMERIC'].minLabel}</span>
+                                            <span>{RATING_TYPES_CONFIG[q.ratingType || 'NUMERIC'].maxLabel}</span>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -534,17 +544,28 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
                                                                 </div>
                                                             )}
                                                             {q.type === 'RATING' && (
-                                                                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-orange-50">
-                                                                    <span className="text-xs font-bold text-orange-600">Escala:</span>
-                                                                    <input
-                                                                        type="number"
-                                                                        min="2"
-                                                                        max="10"
-                                                                        className="w-10 bg-transparent text-sm font-bold text-orange-700 outline-none text-center"
-                                                                        value={q.maxRating || 5}
-                                                                        onChange={(e) => updateQuestion(q.id, 'maxRating', parseInt(e.target.value) || 5)}
-                                                                    />
-                                                                </div>
+                                                                <>
+                                                                    <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-orange-50">
+                                                                        <span className="text-xs font-bold text-orange-600">Escala:</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="2"
+                                                                            max="10"
+                                                                            className="w-10 bg-transparent text-sm font-bold text-orange-700 outline-none text-center"
+                                                                            value={q.maxRating || 5}
+                                                                            onChange={(e) => updateQuestion(q.id, 'maxRating', parseInt(e.target.value) || 5)}
+                                                                        />
+                                                                    </div>
+                                                                    <select
+                                                                        className="bg-slate-100 text-xs font-bold text-slate-600 px-2 py-1 rounded-lg outline-none border border-transparent focus:border-slate-300 transition-colors"
+                                                                        value={q.ratingType || 'NUMERIC'}
+                                                                        onChange={(e) => updateQuestion(q.id, 'ratingType', e.target.value)}
+                                                                    >
+                                                                        {Object.entries(RATING_TYPES_CONFIG).map(([key, config]) => (
+                                                                            <option key={key} value={key}>{config.label}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </>
                                                             )}
                                                             {q.type === 'TEXT' && (
                                                                 <input
@@ -578,10 +599,16 @@ export function TaskModal({ task, isOpen, onClose, onUpdate, currentUserId, proj
                                                     </div>
                                                 )}
                                                 {q.type === 'RATING' && (
-                                                    <div className="flex gap-2">
-                                                        {Array.from({ length: q.maxRating || 5 }, (_, i) => i + 1).map(v => (
-                                                            <div key={v} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400">{v}</div>
-                                                        ))}
+                                                    <div className="space-y-3">
+                                                        <div className="flex gap-2">
+                                                            {Array.from({ length: q.maxRating || 5 }, (_, i) => i + 1).map(v => (
+                                                                <div key={v} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400">{v}</div>
+                                                            ))}
+                                                        </div>
+                                                        <div className="flex justify-between max-w-[200px] px-1 text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                                            <span>{RATING_TYPES_CONFIG[q.ratingType || 'NUMERIC'].minLabel}</span>
+                                                            <span>{RATING_TYPES_CONFIG[q.ratingType || 'NUMERIC'].maxLabel}</span>
+                                                        </div>
                                                     </div>
                                                 )}
                                                 {q.type === 'MULTIPLE_CHOICE' && (

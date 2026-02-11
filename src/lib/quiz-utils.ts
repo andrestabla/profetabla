@@ -10,7 +10,17 @@ export interface QuizQuestion {
     correctAnswer?: string;
     points?: number;
     maxRating?: number;
+    ratingType?: 'NUMERIC' | 'SATISFACTION' | 'AGREEMENT' | 'PERFORMANCE' | 'FREQUENCY' | 'INTENSITY';
 }
+
+export const RATING_TYPES_CONFIG = {
+    NUMERIC: { label: 'Numérico', minLabel: 'Bajo', maxLabel: 'Alto' },
+    SATISFACTION: { label: 'Satisfacción', minLabel: 'Muy insatisfecho', maxLabel: 'Muy satisfecho' },
+    AGREEMENT: { label: 'Acuerdo', minLabel: 'Totalmente en desacuerdo', maxLabel: 'Totalmente de acuerdo' },
+    PERFORMANCE: { label: 'Desempeño', minLabel: 'Muy bajo', maxLabel: 'Muy alto' },
+    FREQUENCY: { label: 'Frecuencia', minLabel: 'Nunca', maxLabel: 'Siempre' },
+    INTENSITY: { label: 'Intensidad', minLabel: 'Nula', maxLabel: 'Muy alta' }
+};
 
 export interface QuizData {
     questions: QuizQuestion[];

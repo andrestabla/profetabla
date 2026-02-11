@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle2, ChevronLeft, ChevronRight, Send, HelpCircle, Clock, AlertTriangle, X } from 'lucide-react';
 import { useModals } from './ModalProvider';
+import { RATING_TYPES_CONFIG } from '@/lib/quiz-utils';
 
 
 type QuestionType = 'MULTIPLE_CHOICE' | 'TEXT' | 'RATING';
@@ -13,6 +14,7 @@ interface Question {
     prompt: string;
     options?: string[];
     maxRating?: number;
+    ratingType?: 'NUMERIC' | 'SATISFACTION' | 'AGREEMENT' | 'PERFORMANCE' | 'FREQUENCY' | 'INTENSITY';
 }
 
 interface QuizRunnerProps {
@@ -242,9 +244,13 @@ export function QuizRunner({ assignment, onComplete, onCancel }: QuizRunnerProps
                                                 );
                                             })}
                                         </div>
-                                        <div className="flex justify-between max-w-xl mx-auto mt-4 px-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                                            <span>Bajo</span>
-                                            <span>Alto</span>
+                                        <div className="flex justify-between max-w-xl mx-auto mt-6 px-2 text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest text-center">
+                                            <span className="max-w-[100px] leading-tight text-left italic">
+                                                {RATING_TYPES_CONFIG[currentQuestion.ratingType || 'NUMERIC'].minLabel}
+                                            </span>
+                                            <span className="max-w-[100px] leading-tight text-right italic">
+                                                {RATING_TYPES_CONFIG[currentQuestion.ratingType || 'NUMERIC'].maxLabel}
+                                            </span>
                                         </div>
                                     </div>
                                 )}

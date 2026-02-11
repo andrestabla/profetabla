@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { CheckCircle2, XCircle, HelpCircle, ChevronLeft } from 'lucide-react';
+import { RATING_TYPES_CONFIG } from '@/lib/quiz-utils';
 
 interface Question {
     id: string;
@@ -11,6 +12,7 @@ interface Question {
     correctAnswer?: string;
     points?: number;
     maxRating?: number;
+    ratingType?: 'NUMERIC' | 'SATISFACTION' | 'AGREEMENT' | 'PERFORMANCE' | 'FREQUENCY' | 'INTENSITY';
 }
 
 interface QuizResultViewProps {
@@ -106,15 +108,21 @@ export function QuizResultView({ questions, answers, gradingMethod, score, maxSc
                                 )}
 
                                 {q.type === 'RATING' && (
-                                    <div className="flex justify-between px-4 py-2 bg-white rounded-lg border border-slate-100 italic">
-                                        {Array.from({ length: q.maxRating || 5 }, (_, i) => i + 1).map((val) => (
-                                            <div
-                                                key={val}
-                                                className={`w-9 h-9 rounded-full font-bold text-xs flex items-center justify-center transition-all ${studentAnswer === val.toString() ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-slate-50 text-slate-300'}`}
-                                            >
-                                                {val}
-                                            </div>
-                                        ))}
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between px-4 py-2 bg-white rounded-lg border border-slate-100 italic">
+                                            {Array.from({ length: q.maxRating || 5 }, (_, i) => i + 1).map((val) => (
+                                                <div
+                                                    key={val}
+                                                    className={`w-9 h-9 rounded-full font-bold text-xs flex items-center justify-center transition-all ${studentAnswer === val.toString() ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-slate-50 text-slate-300'}`}
+                                                >
+                                                    {val}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="flex justify-between px-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">
+                                            <span>{RATING_TYPES_CONFIG[q.ratingType || 'NUMERIC'].minLabel}</span>
+                                            <span>{RATING_TYPES_CONFIG[q.ratingType || 'NUMERIC'].maxLabel}</span>
+                                        </div>
                                     </div>
                                 )}
                             </div>
