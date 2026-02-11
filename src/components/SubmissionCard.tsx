@@ -109,7 +109,7 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                                                         await showAlert("Cuestionario Reiniciado", "La entrega ha sido eliminada.", "success");
                                                         setSubmission(null);
                                                     } else {
-                                                        await showAlert("Error", res.error, "error");
+                                                        await showAlert("Error", res.error || "Algo salió mal", "error");
                                                     }
                                                 }
                                             }}
