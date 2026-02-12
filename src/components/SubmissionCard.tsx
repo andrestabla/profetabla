@@ -14,11 +14,9 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
     const { data: session } = useSession();
     const { showConfirm, showAlert } = useModals();
 
-    const [submission, setSubmission] = useState<any | null>(
-        assignment.submissions?.[0] || null
-    );
+    const submissions = assignment.submissions || [];
     const [isRubricOpen, setIsRubricOpen] = useState(false);
-    const [isGradingOpen, setIsGradingOpen] = useState(false);
+    const [gradingSubmission, setGradingSubmission] = useState<any | null>(null);
     const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
     const isLate = assignment.dueDate ? new Date() > new Date(assignment.dueDate) : false;
@@ -26,8 +24,8 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
     const isQuiz = assignment.task?.type === 'QUIZ';
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 relative group">
-            <div className="flex justify-between items-start mb-4">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 relative group h-full flex flex-col">
+            <div className="flex justify-between items-start mb-4 shrink-0">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-lg font-bold text-slate-800">{assignment.title}</h3>
@@ -60,101 +58,107 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                     </div>
                 </div>
                 {assignment.dueDate && (
-                    <div className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 ${isLate ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                    <div className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 shrink-0 ${isLate ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
                         <Clock className="w-3 h-3" />
                         {new Date(assignment.dueDate).toLocaleDateString()}
                     </div>
                 )}
             </div>
 
-            <div className="mt-6">
-                {submission ? (
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
-                                <CheckCircle className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h4 className="font-semibold text-slate-700">{isQuiz ? 'Cuestionario Completado' : 'Tarea Enviada'}</h4>
-                                {submission.student && (
-                                    <div className="flex items-center gap-2 mt-1 mb-1">
-                                        {submission.student.avatarUrl ? (
-                                            /* eslint-disable-next-line @next/next/no-img-element */
-                                            <img src={submission.student.avatarUrl} alt={submission.student.name} className="w-5 h-5 rounded-full object-cover" />
-                                        ) : (
-                                            <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">
-                                                {submission.student.name?.charAt(0) || '?'}
+            <div className="mt-4 flex-1 overflow-auto space-y-4 pr-1 custom-scrollbar">
+                {submissions.length > 0 ? (
+                    submissions.map((sub: any) => (
+                        <div key={sub.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-blue-200 transition-all">
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 shrink-0">
+                                        <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        {sub.student && (
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                {sub.student.avatarUrl ? (
+                                                    <img src={sub.student.avatarUrl} alt={sub.student.name} className="w-4 h-4 rounded-full object-cover" />
+                                                ) : (
+                                                    <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-[8px] font-bold text-blue-600">
+                                                        {sub.student.name?.charAt(0) || '?'}
+                                                    </div>
+                                                )}
+                                                <span className="text-xs font-bold text-slate-700 truncate">{sub.student.name}</span>
                                             </div>
                                         )}
-                                        <span className="text-sm font-medium text-slate-600">{submission.student.name}</span>
+                                        <p className="text-[10px] text-slate-400 font-medium">
+                                            Entregado: {new Date(sub.createdAt).toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {isTeacher && (
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {isQuiz && (
+                                            <button
+                                                onClick={async () => {
+                                                    const confirm = await showConfirm(
+                                                        "¿Reiniciar Cuestionario?",
+                                                        `¿Estás seguro de reiniciar el cuestionario de ${sub.student?.name}? Esta acción no se puede deshacer.`,
+                                                        "danger"
+                                                    );
+                                                    if (confirm) {
+                                                        const res = await resetSubmissionAction(sub.id);
+                                                        if (res.success) {
+                                                            await showAlert("Éxito", "Cuestionario reiniciado.", "success");
+                                                            window.location.reload();
+                                                        } else {
+                                                            await showAlert("Error", res.error || "Algo salió mal", "error");
+                                                        }
+                                                    }
+                                                }}
+                                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                title="Reiniciar Cuestionario"
+                                            >
+                                                <RotateCcw className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => setGradingSubmission(sub)}
+                                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm transition-colors"
+                                        >
+                                            <Gavel className="w-3 h-3" /> Calificar
+                                        </button>
                                     </div>
                                 )}
-                                <p className="text-xs text-slate-400">
-                                    {new Date(submission.createdAt).toLocaleString()}
-                                </p>
                             </div>
-                            {isTeacher && (
-                                <div className="ml-auto flex items-center gap-2">
-                                    {isQuiz && (
-                                        <button
-                                            onClick={async () => {
-                                                const confirm = await showConfirm(
-                                                    "¿Reiniciar Cuestionario?",
-                                                    "Esta acción eliminará la entrega actual de este estudiante. No se puede deshacer.",
-                                                    "danger"
-                                                );
-                                                if (confirm) {
-                                                    const res = await resetSubmissionAction(submission.id);
-                                                    if (res.success) {
-                                                        await showAlert("Cuestionario Reiniciado", "La entrega ha sido eliminada.", "success");
-                                                        setSubmission(null);
-                                                    } else {
-                                                        await showAlert("Error", res.error || "Algo salió mal", "error");
-                                                    }
-                                                }
-                                            }}
-                                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                            title="Reiniciar Cuestionario"
-                                        >
-                                            <RotateCcw className="w-4 h-4" />
-                                        </button>
+
+                            {!isQuiz && (
+                                <div className="flex items-center gap-2 text-[11px] text-slate-600 bg-white p-2 rounded border border-slate-100 mb-3 group/file">
+                                    <FileIcon className="w-3.5 h-3.5 text-slate-400" />
+                                    <a href={sub.fileUrl} target="_blank" className="truncate hover:underline hover:text-blue-600 font-medium">
+                                        {sub.fileName}
+                                    </a>
+                                </div>
+                            )}
+
+                            {sub.grade !== null && (
+                                <div className="mt-2 pt-2 border-t border-slate-200">
+                                    <div className="flex justify-between items-center bg-blue-50/50 px-2 py-1.5 rounded-lg border border-blue-100/50">
+                                        <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Calificación:</span>
+                                        <span className="text-sm font-black text-blue-600">{sub.grade} pts</span>
+                                    </div>
+                                    {sub.feedback && (
+                                        <div className="mt-2 text-[10px] text-slate-500 italic bg-amber-50/50 p-2 rounded border border-amber-100/50 leading-relaxed">
+                                            &quot;{sub.feedback}&quot;
+                                        </div>
                                     )}
-                                    <button
-                                        onClick={() => setIsGradingOpen(true)}
-                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-colors"
-                                    >
-                                        <Gavel className="w-3 h-3" /> Calificar
-                                    </button>
                                 </div>
                             )}
                         </div>
-
-                        {!isQuiz && (
-                            <div className="flex items-center gap-2 text-sm text-slate-600 bg-white p-2 rounded border border-slate-100 mb-3">
-                                <FileIcon className="w-4 h-4 text-slate-400" />
-                                <a href={submission.fileUrl} target="_blank" className="truncate hover:underline hover:text-blue-600">
-                                    {submission.fileName}
-                                </a>
-                            </div>
-                        )}
-
-                        {submission.grade !== null && (
-                            <div className="mt-3 pt-3 border-t border-slate-200">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm font-bold text-slate-600">Calificación:</span>
-                                    <span className="text-xl font-bold text-blue-600">{submission.grade} pts</span>
-                                </div>
-                                {submission.feedback && (
-                                    <div className="text-sm text-slate-500 italic bg-amber-50 p-2 rounded border border-amber-100">
-                                        &quot;{submission.feedback}&quot;
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                    ))
                 ) : (
-                    <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-lg">
-                        <p className="text-sm text-slate-400">Sin entrega aún</p>
+                    <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/30 flex flex-col items-center justify-center">
+                        <div className="p-3 bg-white rounded-full shadow-sm mb-3">
+                            <Clock className="w-5 h-5 text-slate-300" />
+                        </div>
+                        <p className="text-sm text-slate-400 font-medium">Sin entregas por ahora</p>
                     </div>
                 )}
             </div>
@@ -170,12 +174,12 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                 </div>
             )}
 
-            {isGradingOpen && submission && (
+            {gradingSubmission && (
                 <GradingModal
-                    submission={submission}
+                    submission={gradingSubmission}
                     rubricItems={assignment.rubricItems || []}
                     quizData={assignment.task?.type === 'QUIZ' ? assignment.task.quizData : null}
-                    onClose={() => setIsGradingOpen(false)}
+                    onClose={() => setGradingSubmission(null)}
                 />
             )}
 
