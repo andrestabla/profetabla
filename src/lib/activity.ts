@@ -1,12 +1,15 @@
 import { prisma } from '@/lib/prisma';
 
-export async function logActivity(userId: string, action: string, description: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function logActivity(userId: string | undefined, action: string, description: string, level: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL' = 'INFO', metadata?: any) {
     try {
         await prisma.activityLog.create({
             data: {
                 userId,
                 action,
-                description
+                description,
+                level,
+                metadata: metadata ? metadata : undefined
             }
         });
     } catch (error) {

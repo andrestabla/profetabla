@@ -45,7 +45,7 @@ export default function AdminDashboardPage({ users, config, logs }: { users: any
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[500px] p-6">
                 {activeTab === 'USERS' && <AdminUserTable users={users} />}
                 {activeTab === 'CONFIG' && <ConfigForm config={config} />}
-                {activeTab === 'LOGS' && <SystemLogsViewer logs={logs} />}
+                {activeTab === 'LOGS' && <SystemLogsViewer initialLogs={logs} />}
             </div>
         </div>
     );

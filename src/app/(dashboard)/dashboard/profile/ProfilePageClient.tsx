@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Briefcase, GraduationCap, Globe, Heart, Edit2, Plus, ShieldCheck, X, Trash2, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Briefcase, GraduationCap, Globe, Heart, Edit2, Plus, ShieldCheck, X, Trash2, AlertCircle, History } from 'lucide-react';
 import { updateBasicProfileAction, addExperienceAction, addEducationAction, addLanguageAction } from '@/app/actions/profile-actions';
 import { deleteAccountAction } from '@/app/actions/user-actions';
 import { signOut } from 'next-auth/react';
 import { useModals } from '@/components/ModalProvider';
+import { getUserActivityLogs } from '@/app/actions/log-actions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function ProfilePageClient({ user }: { user: any }) {
@@ -18,6 +19,7 @@ export default function ProfilePageClient({ user }: { user: any }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [confirmEmail, setConfirmEmail] = useState("");
+    const [showActivityHistory, setShowActivityHistory] = useState(false);
 
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-6">
@@ -88,94 +90,69 @@ export default function ProfilePageClient({ user }: { user: any }) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 1.5. TABS DE NAVEGACIÓN */}
+            <div className="flex gap-4 border-b border-slate-200">
+                <button
+                    className={`pb-4 px-2 font-bold text-sm border-b-2 transition-colors ${!showActivityHistory ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setShowActivityHistory(false)}
+                >
+                    Información Personal
+                </button>
+                <button
+                    className={`pb-4 px-2 font-bold text-sm border-b-2 transition-colors ${showActivityHistory ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setShowActivityHistory(true)}
+                >
+                    Historial de Actividad
+                </button>
+            </div>
 
-                {/* 2. EXPERIENCIA LABORAL */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <Briefcase className="w-5 h-5 text-blue-600" /> Experiencia
-                        </h2>
-                        <button onClick={() => setShowExpModal(true)} className="p-1.5 hover:bg-slate-100 rounded-lg text-blue-600 transition-colors">
-                            <Plus className="w-5 h-5" />
-                        </button>
-                    </div>
+            {showActivityHistory ? (
+                <ActivityHistoryTab userId={user.id} />
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                    <div className="space-y-6 relative border-l-2 border-slate-100 ml-3 pl-6">
-                        {user.workExperiences.length === 0 && <p className="text-slate-400 text-sm italic">No hay experiencia registrada.</p>}
-
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {user.workExperiences.map((exp: any) => (
-                            <div key={exp.id} className="relative">
-                                <span className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-blue-100 border-2 border-blue-500"></span>
-                                <h3 className="font-bold text-slate-800">{exp.position}</h3>
-                                <p className="text-sm font-medium text-slate-600">{exp.company}</p>
-                                <p className="text-xs text-slate-400 mb-2">
-                                    {new Date(exp.startDate).getFullYear()} - {exp.endDate ? new Date(exp.endDate).getFullYear() : 'Presente'}
-                                </p>
-                                <p className="text-sm text-slate-600">{exp.description}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Modal Simplificado Experiencia */}
-                    {showExpModal && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                            <form action={async (fd) => { await addExperienceAction(fd); setShowExpModal(false); }} className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
-                                <h3 className="text-lg font-bold">Agregar Experiencia</h3>
-                                <input name="position" placeholder="Cargo (Ej: Dev Junior)" className="w-full border p-2 rounded" required />
-                                <input name="company" placeholder="Empresa" className="w-full border p-2 rounded" required />
-                                <div className="flex gap-2">
-                                    <input type="date" name="startDate" className="w-full border p-2 rounded" required title="Inicio" />
-                                    <input type="date" name="endDate" className="w-full border p-2 rounded" title="Fin (Dejar vacío si es actual)" />
-                                </div>
-                                <textarea name="description" placeholder="Descripción" className="w-full border p-2 rounded"></textarea>
-                                <div className="flex justify-end gap-2">
-                                    <button type="button" onClick={() => setShowExpModal(false)} className="px-4 py-2 bg-slate-100 rounded">Cancelar</button>
-                                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded font-bold">Guardar</button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-                </div>
-
-                {/* 3. EDUCACIÓN E IDIOMAS */}
-                <div className="space-y-6">
-                    {/* Educación */}
+                    {/* 2. EXPERIENCIA LABORAL */}
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <GraduationCap className="w-5 h-5 text-emerald-600" /> Estudios
+                                <Briefcase className="w-5 h-5 text-blue-600" /> Experiencia
                             </h2>
-                            <button onClick={() => setShowEduModal(true)} className="p-1.5 hover:bg-slate-100 rounded-lg text-blue-600 transition-colors">
+                            <button onClick={() => setShowExpModal(true)} className="p-1.5 hover:bg-slate-100 rounded-lg text-blue-600 transition-colors">
                                 <Plus className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="space-y-4">
+
+                        <div className="space-y-6 relative border-l-2 border-slate-100 ml-3 pl-6">
+                            {user.workExperiences.length === 0 && <p className="text-slate-400 text-sm italic">No hay experiencia registrada.</p>}
+
                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            {user.education.map((edu: any) => (
-                                <div key={edu.id} className="pb-4 border-b border-slate-50 last:border-0 last:pb-0">
-                                    <h3 className="font-bold text-slate-800">{edu.institution}</h3>
-                                    <p className="text-sm text-slate-600">{edu.degree} en {edu.fieldOfStudy}</p>
-                                    <p className="text-xs text-slate-400">Graduado en {edu.endDate ? new Date(edu.endDate).getFullYear() : 'En curso'}</p>
+                            {user.workExperiences.map((exp: any) => (
+                                <div key={exp.id} className="relative">
+                                    <span className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-blue-100 border-2 border-blue-500"></span>
+                                    <h3 className="font-bold text-slate-800">{exp.position}</h3>
+                                    <p className="text-sm font-medium text-slate-600">{exp.company}</p>
+                                    <p className="text-xs text-slate-400 mb-2">
+                                        {new Date(exp.startDate).getFullYear()} - {exp.endDate ? new Date(exp.endDate).getFullYear() : 'Presente'}
+                                    </p>
+                                    <p className="text-sm text-slate-600">{exp.description}</p>
                                 </div>
                             ))}
                         </div>
 
-                        {/* Modal Simplificado Edu */}
-                        {showEduModal && (
+                        {/* Modal Simplificado Experiencia */}
+                        {showExpModal && (
                             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                                <form action={async (fd) => { await addEducationAction(fd); setShowEduModal(false); }} className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
-                                    <h3 className="text-lg font-bold">Agregar Educación</h3>
-                                    <input name="institution" placeholder="Institución" className="w-full border p-2 rounded" required />
-                                    <input name="degree" placeholder="Título" className="w-full border p-2 rounded" required />
-                                    <input name="fieldOfStudy" placeholder="Campo de Estudio" className="w-full border p-2 rounded" />
+                                <form action={async (fd) => { await addExperienceAction(fd); setShowExpModal(false); }} className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
+                                    <h3 className="text-lg font-bold">Agregar Experiencia</h3>
+                                    <input name="position" placeholder="Cargo (Ej: Dev Junior)" className="w-full border p-2 rounded" required />
+                                    <input name="company" placeholder="Empresa" className="w-full border p-2 rounded" required />
                                     <div className="flex gap-2">
                                         <input type="date" name="startDate" className="w-full border p-2 rounded" required title="Inicio" />
-                                        <input type="date" name="endDate" className="w-full border p-2 rounded" title="Fin" />
+                                        <input type="date" name="endDate" className="w-full border p-2 rounded" title="Fin (Dejar vacío si es actual)" />
                                     </div>
+                                    <textarea name="description" placeholder="Descripción" className="w-full border p-2 rounded"></textarea>
                                     <div className="flex justify-end gap-2">
-                                        <button type="button" onClick={() => setShowEduModal(false)} className="px-4 py-2 bg-slate-100 rounded">Cancelar</button>
+                                        <button type="button" onClick={() => setShowExpModal(false)} className="px-4 py-2 bg-slate-100 rounded">Cancelar</button>
                                         <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded font-bold">Guardar</button>
                                     </div>
                                 </form>
@@ -183,43 +160,88 @@ export default function ProfilePageClient({ user }: { user: any }) {
                         )}
                     </div>
 
-                    {/* Idiomas */}
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <Globe className="w-5 h-5 text-purple-600" /> Idiomas
-                            </h2>
-                            <button onClick={() => setShowLangModal(true)} className="p-1.5 hover:bg-slate-100 rounded-lg text-blue-600 transition-colors">
-                                <Plus className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            {user.languages.map((lang: any) => (
-                                <div key={lang.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                    <span className="font-medium text-slate-700">{lang.name}</span>
-                                    <span className="text-xs font-bold text-white bg-slate-400 px-2 py-0.5 rounded">{lang.level}</span>
+                    {/* 3. EDUCACIÓN E IDIOMAS */}
+                    <div className="space-y-6">
+                        {/* Educación */}
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <GraduationCap className="w-5 h-5 text-emerald-600" /> Estudios
+                                </h2>
+                                <button onClick={() => setShowEduModal(true)} className="p-1.5 hover:bg-slate-100 rounded-lg text-blue-600 transition-colors">
+                                    <Plus className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="space-y-4">
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {user.education.map((edu: any) => (
+                                    <div key={edu.id} className="pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                                        <h3 className="font-bold text-slate-800">{edu.institution}</h3>
+                                        <p className="text-sm text-slate-600">{edu.degree} en {edu.fieldOfStudy}</p>
+                                        <p className="text-xs text-slate-400">Graduado en {edu.endDate ? new Date(edu.endDate).getFullYear() : 'En curso'}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Modal Simplificado Edu */}
+                            {showEduModal && (
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                    <form action={async (fd) => { await addEducationAction(fd); setShowEduModal(false); }} className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
+                                        <h3 className="text-lg font-bold">Agregar Educación</h3>
+                                        <input name="institution" placeholder="Institución" className="w-full border p-2 rounded" required />
+                                        <input name="degree" placeholder="Título" className="w-full border p-2 rounded" required />
+                                        <input name="fieldOfStudy" placeholder="Campo de Estudio" className="w-full border p-2 rounded" />
+                                        <div className="flex gap-2">
+                                            <input type="date" name="startDate" className="w-full border p-2 rounded" required title="Inicio" />
+                                            <input type="date" name="endDate" className="w-full border p-2 rounded" title="Fin" />
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <button type="button" onClick={() => setShowEduModal(false)} className="px-4 py-2 bg-slate-100 rounded">Cancelar</button>
+                                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded font-bold">Guardar</button>
+                                        </div>
+                                    </form>
                                 </div>
-                            ))}
+                            )}
                         </div>
 
-                        {/* Modal Simplificado Lang */}
-                        {showLangModal && (
-                            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                                <form action={async (fd) => { await addLanguageAction(fd); setShowLangModal(false); }} className="bg-white rounded-xl p-6 w-full max-w-sm space-y-4">
-                                    <h3 className="text-lg font-bold">Agregar Idioma</h3>
-                                    <input name="name" placeholder="Idioma (Ej: Inglés)" className="w-full border p-2 rounded" required />
-                                    <input name="level" placeholder="Nivel (Ej: B2)" className="w-full border p-2 rounded" required />
-                                    <div className="flex justify-end gap-2">
-                                        <button type="button" onClick={() => setShowLangModal(false)} className="px-4 py-2 bg-slate-100 rounded">Cancelar</button>
-                                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded font-bold">Guardar</button>
-                                    </div>
-                                </form>
+                        {/* Idiomas */}
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <Globe className="w-5 h-5 text-purple-600" /> Idiomas
+                                </h2>
+                                <button onClick={() => setShowLangModal(true)} className="p-1.5 hover:bg-slate-100 rounded-lg text-blue-600 transition-colors">
+                                    <Plus className="w-5 h-5" />
+                                </button>
                             </div>
-                        )}
+                            <div className="grid grid-cols-2 gap-3">
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {user.languages.map((lang: any) => (
+                                    <div key={lang.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                                        <span className="font-medium text-slate-700">{lang.name}</span>
+                                        <span className="text-xs font-bold text-white bg-slate-400 px-2 py-0.5 rounded">{lang.level}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Modal Simplificado Lang */}
+                            {showLangModal && (
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                    <form action={async (fd) => { await addLanguageAction(fd); setShowLangModal(false); }} className="bg-white rounded-xl p-6 w-full max-w-sm space-y-4">
+                                        <h3 className="text-lg font-bold">Agregar Idioma</h3>
+                                        <input name="name" placeholder="Idioma (Ej: Inglés)" className="w-full border p-2 rounded" required />
+                                        <input name="level" placeholder="Nivel (Ej: B2)" className="w-full border p-2 rounded" required />
+                                        <div className="flex justify-end gap-2">
+                                            <button type="button" onClick={() => setShowLangModal(false)} className="px-4 py-2 bg-slate-100 rounded">Cancelar</button>
+                                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded font-bold">Guardar</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* 4. POLÍTICAS DE PRIVACIDAD Y DATOS */}
             <div className="bg-slate-50 border-t border-slate-100 p-6 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -396,6 +418,75 @@ export default function ProfilePageClient({ user }: { user: any }) {
                         </div>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function ActivityHistoryTab({ userId }: { userId: string }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [logs, setLogs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLoading(true);
+        getUserActivityLogs(userId)
+            .then(setLogs)
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, [userId]);
+
+    if (loading) {
+        return <div className="p-12 text-center text-slate-400">Cargando historial...</div>;
+    }
+
+    if (logs.length === 0) {
+        return (
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <History className="w-8 h-8 text-slate-300" />
+                </div>
+                <h3 className="text-slate-900 font-bold text-lg">Sin actividad reciente</h3>
+                <p className="text-slate-500">Tus acciones en la plataforma aparecerán aquí.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="p-6 border-b border-slate-100">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <History className="w-5 h-5 text-slate-500" /> Últimas Acciones
+                </h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {logs.map((log: any) => (
+                    <div key={log.id} className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start">
+                        <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${log.action === 'LOGIN' ? 'bg-green-500' :
+                            log.action === 'REGISTER' ? 'bg-blue-500' :
+                                'bg-slate-300'
+                            }`} />
+                        <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                                <p className="font-bold text-slate-800 text-sm">{log.action}</p>
+                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                    {new Date(log.createdAt).toLocaleString()}
+                                </span>
+                            </div>
+                            <p className="text-slate-600 text-sm mt-0.5">{log.description}</p>
+                            {log.metadata && (
+                                <details className="mt-2">
+                                    <summary className="text-[10px] text-slate-400 cursor-pointer hover:text-slate-600 font-medium">Ver detalles técnicos</summary>
+                                    <pre className="mt-1 bg-slate-900 text-slate-300 p-2 rounded text-[10px] overflow-x-auto">
+                                        {JSON.stringify(log.metadata, null, 2)}
+                                    </pre>
+                                </details>
+                            )}
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

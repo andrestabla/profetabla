@@ -143,7 +143,7 @@ export const authOptions: NextAuthOptions = {
             }
             return session;
         },
-        async jwt({ token, user, session: _session, trigger: _trigger }) {
+        async jwt({ token, user }) {
             // Force fetch user from DB to ensure we have the correct ID and Role (especially for new Google users)
             // 'user' param is present only on initial sign in
             const email = token.email || user?.email;
@@ -159,6 +159,20 @@ export const authOptions: NextAuthOptions = {
                 }
             }
             return token;
+        }
+    },
+    events: {
+        async signIn({ user, account }) {
+            if (user && user.id) {
+                const { logActivity } = await import('@/lib/activity');
+                await logActivity(user.id, 'LOGIN', `Inicio de sesión exitoso vía ${account?.provider}`, 'INFO', { provider: account?.provider });
+            }
+        },
+        async createUser({ user }) {
+            if (user && user.id) {
+                const { logActivity } = await import('@/lib/activity');
+                await logActivity(user.id, 'REGISTER', `Usuario registrado en la plataforma`, 'INFO', { email: user.email });
+            }
         }
     },
     pages: {
