@@ -270,7 +270,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
                 <div className="relative">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-                        <div>
+                        <div className="w-full md:w-auto">
                             <div className="flex items-center gap-2 mb-2">
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg uppercase tracking-wider">Proyecto Activo</span>
                                 <span className="text-slate-300">/</span>
@@ -287,10 +287,10 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                 </p>
                             )}
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                             <Link
                                 href={`/dashboard/professor/projects/${project.id}/edit`}
-                                className="flex items-center gap-2 px-4 py-2 text-slate-600 font-bold bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all text-xs"
+                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 text-slate-600 font-bold bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all text-xs"
                             >
                                 <Edit3 className="w-4 h-4" /> Editar Metadatos
                             </Link>
@@ -299,9 +299,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                     href={`https://drive.google.com/drive/folders/${project.googleDriveFolderId}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-4 py-2 text-blue-600 font-bold bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-all text-xs"
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 text-blue-600 font-bold bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-all text-xs"
                                 >
-                                    <Cloud className="w-4 h-4" /> Drive del Proyecto
+                                    <Cloud className="w-4 h-4" /> Drive
                                 </a>
                             )}
                         </div>
@@ -309,23 +309,23 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
 
 
 
-                    <div className="flex bg-slate-100 p-1 rounded-xl w-fit flex-wrap">
-                        <button onClick={() => setActiveTab('KANBAN')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'KANBAN' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                    <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth">
+                        <button onClick={() => setActiveTab('KANBAN')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm shrink-0 ${activeTab === 'KANBAN' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <Kanban className="w-4 h-4" /> Kanban
                         </button>
-                        <button onClick={() => setActiveTab('RESOURCES')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'RESOURCES' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                        <button onClick={() => setActiveTab('RESOURCES')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm shrink-0 ${activeTab === 'RESOURCES' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <BookOpen className="w-4 h-4" /> Recursos
                         </button>
-                        <button onClick={() => setActiveTab('MENTORSHIP')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'MENTORSHIP' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                        <button onClick={() => setActiveTab('MENTORSHIP')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm shrink-0 ${activeTab === 'MENTORSHIP' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <Calendar className="w-4 h-4" /> Mentorías
                         </button>
-                        <button onClick={() => setActiveTab('ASSIGNMENTS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'ASSIGNMENTS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                        <button onClick={() => setActiveTab('ASSIGNMENTS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm shrink-0 ${activeTab === 'ASSIGNMENTS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <FileCheck className="w-4 h-4" /> Entregables
                         </button>
-                        <button onClick={() => setActiveTab('COMMS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'COMMS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                        <button onClick={() => setActiveTab('COMMS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm shrink-0 ${activeTab === 'COMMS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <MessageSquare className="w-4 h-4" /> Comunicaciones
                         </button>
-                        <button onClick={() => setActiveTab('TEAM')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm ${activeTab === 'TEAM' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                        <button onClick={() => setActiveTab('TEAM')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm shrink-0 ${activeTab === 'TEAM' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <Users className="w-4 h-4" /> Equipo
                         </button>
                     </div>

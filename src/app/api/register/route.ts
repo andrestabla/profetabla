@@ -59,8 +59,12 @@ export async function POST(request: Request) {
         });
 
         // 3. Send Email
-        const { sendVerificationEmail } = await import('@/lib/email');
-        await sendVerificationEmail(email, token);
+        try {
+            const { sendVerificationEmail } = await import('@/lib/email');
+            await sendVerificationEmail(email, token);
+        } catch (emailError) {
+            console.error('Failed to send verification email, but continuing registration:', emailError);
+        }
 
         // Log the activity
         await prisma.activityLog.create({

@@ -27,7 +27,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function Sidebar({ config }: { config?: any }) {
+export function Sidebar({ config, isMobile, onClose }: { config?: any, isMobile?: boolean, onClose?: () => void }) {
     const pathname = usePathname();
     const { data: session } = useSession();
     const role = session?.user?.role;
@@ -78,30 +78,33 @@ export function Sidebar({ config }: { config?: any }) {
 
     return (
         <aside className={cn(
-            "bg-[#0F172A] text-slate-300 flex flex-col transition-all duration-300 ease-in-out border-r border-slate-800 h-screen sticky top-0",
-            isCollapsed ? "w-20" : "w-64"
+            "bg-[#0F172A] text-slate-300 flex flex-col transition-all duration-300 ease-in-out border-r border-slate-800",
+            isMobile ? "w-full h-full border-none" : "h-screen sticky top-0 hidden lg:flex",
+            !isMobile && (isCollapsed ? "w-20" : "w-64")
         )}>
             {/* Header */}
-            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                {!isCollapsed && (
-                    logo ? (
-                        <div className="flex items-center gap-2">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={logo} alt={title} className="h-8 w-auto object-contain" />
-                        </div>
-                    ) : (
-                        <h1 className="text-2xl font-bold text-primary truncate" title={title}>
-                            {title}
-                        </h1>
-                    )
-                )}
-                <button
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors ml-auto"
-                >
-                    {isCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-                </button>
-            </div>
+            {!isMobile && (
+                <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+                    {!isCollapsed && (
+                        logo ? (
+                            <div className="flex items-center gap-2">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={logo} alt={title} className="h-8 w-auto object-contain" />
+                            </div>
+                        ) : (
+                            <h1 className="text-2xl font-bold text-primary truncate" title={title}>
+                                {title}
+                            </h1>
+                        )
+                    )}
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors ml-auto"
+                    >
+                        {isCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+                    </button>
+                </div>
+            )}
 
             {/* Profile Summary if NOT collapsed */}
             {!isCollapsed && session?.user && (
@@ -153,6 +156,7 @@ export function Sidebar({ config }: { config?: any }) {
                                         <li key={item.name}>
                                             <Link
                                                 href={item.href}
+                                                onClick={() => isMobile && onClose?.()}
                                                 className={cn(
                                                     "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group relative",
                                                     active

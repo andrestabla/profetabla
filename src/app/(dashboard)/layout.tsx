@@ -1,4 +1,5 @@
 import { Sidebar } from '@/components/Sidebar';
+import { MobileNavbar } from '@/components/MobileNavbar';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -20,14 +21,15 @@ export default async function DashboardLayout({
     ]);
 
     return (
-        <div className="flex bg-slate-50 min-h-screen font-sans">
+        <div className="flex flex-col lg:flex-row bg-slate-50 min-h-screen font-sans">
             {/* Si el usuario NO ha aceptado las políticas, mostramos el modal forzado */}
             {session && user && !user.policiesAccepted && (
                 <PoliciesModal />
             )}
 
+            <MobileNavbar config={config} />
             <Sidebar config={config} />
-            <main className="flex-1 p-8 overflow-y-auto h-screen">
+            <main className="flex-1 p-4 md:p-8 overflow-y-auto h-screen">
                 <div className="max-w-7xl mx-auto">
                     {children}
                 </div>
