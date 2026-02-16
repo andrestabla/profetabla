@@ -2,14 +2,16 @@ import 'server-only';
 
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
     try {
+         
+        const { PdfDataParser } = await import('pdf-data-parser');
+        // Explicitly cast buffer to any if type definition is missing 'data' option but it exists in library
+        const parser = new PdfDataParser({ data: buffer });
+        const data = await parser.parse();
 
-        const pdfModule = await import('pdf-parse');
-        // Handle both CJS (default export) and ESM interop
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pdf = (pdfModule as any).default || pdfModule;
+        if (!data || !Array.isArray(data)) return "";
 
-        const data = await pdf(buffer);
-        return data.text;
+        // data is an array of arrays (rows), we need to join them
+        return data.map((row: string[]) => row.join(' ')).join('\n');
     } catch (error: unknown) {
         console.error('Error parsing PDF:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
