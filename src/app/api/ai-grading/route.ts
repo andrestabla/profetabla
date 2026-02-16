@@ -59,7 +59,8 @@ export async function POST(req: NextRequest) {
         console.log(`[AI Grading] File Buffer Size: ${fileBuffer.length} bytes`);
 
         // 3. Extract Text
-        const textContent = await extractTextFromBuffer(fileBuffer, submission.fileName || 'document.pdf');
+        const extracted = await extractTextFromBuffer(fileBuffer, submission.fileName || 'document.pdf');
+        const textContent = String(extracted || '');
         const truncatedText = textContent.slice(0, 30000);
 
         // 4. Call OpenAI

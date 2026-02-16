@@ -54,13 +54,10 @@ export async function extractTextFromBuffer(buffer: Buffer, fileName: string): P
                 return docxResult.value;
 
             case 'pptx':
-                return new Promise((resolve, reject) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    officeparser.parseOffice(buffer, (data: any, err: any) => {
-                        if (err) return reject(new Error(`Failed to parse PPTX: ${err}`));
-                        resolve(data);
-                    });
-                });
+                // officeparser.parseOffice can return a promise if no callback is provided, 
+                // but let's be explicit with the version that supports buffers.
+                const pptxText = await officeparser.parseOfficeAsync(buffer);
+                return typeof pptxText === 'string' ? pptxText : String(pptxText || '');
 
             case 'xlsx':
             case 'xls':
