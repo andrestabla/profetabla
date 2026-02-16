@@ -152,7 +152,7 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
             });
 
             const res = await Promise.race([
-                fetch('/api/grading', {
+                fetch('/api/ai-grading', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ submissionId: submission.id, rubric: rubricItems })
