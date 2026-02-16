@@ -54,10 +54,9 @@ export async function extractTextFromBuffer(buffer: Buffer, fileName: string): P
                 return docxResult.value;
 
             case 'pptx':
-                // officeparser.parseOffice can return a promise if no callback is provided, 
-                // but let's be explicit with the version that supports buffers.
-                const pptxText = await officeparser.parseOfficeAsync(buffer);
-                return typeof pptxText === 'string' ? pptxText : String(pptxText || '');
+                // officeparser v6 returns an AST object. We use .toText() for plain text.
+                const pptxAst = await officeparser.parseOffice(buffer);
+                return (pptxAst && typeof pptxAst.toText === 'function') ? pptxAst.toText() : String(pptxAst || '');
 
             case 'xlsx':
             case 'xls':
