@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { FileIcon, CheckCircle, Clock, Edit2, Gavel, BarChart3, RotateCcw } from 'lucide-react';
 import { RubricEditor } from './RubricEditor';
-import { GradingModal } from './GradingModal';
+// import { GradingModal } from './GradingModal'; // Removed
 import { QuizAnalyticsModal } from './QuizAnalyticsModal';
 import { useSession } from 'next-auth/react';
 import { resetSubmissionAction } from '@/app/actions/rubric-actions';
 import { useModals } from '@/components/ModalProvider';
+import Link from 'next/link';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function SubmissionCard({ assignment }: { assignment: any }) {
@@ -16,7 +17,7 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
 
     const submissions = assignment.submissions || [];
     const [isRubricOpen, setIsRubricOpen] = useState(false);
-    const [gradingSubmission, setGradingSubmission] = useState<any | null>(null);
+    // const [gradingSubmission, setGradingSubmission] = useState<any | null>(null); // Removed
     const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
     const isLate = assignment.dueDate ? new Date() > new Date(assignment.dueDate) : false;
@@ -119,12 +120,12 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                                                 <RotateCcw className="w-4 h-4" />
                                             </button>
                                         )}
-                                        <button
-                                            onClick={() => setGradingSubmission(sub)}
+                                        <Link
+                                            href={`/dashboard/professor/grading/${sub.id}`}
                                             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm transition-colors"
                                         >
                                             <Gavel className="w-3 h-3" /> Calificar
-                                        </button>
+                                        </Link>
                                     </div>
                                 )}
                             </div>
@@ -174,15 +175,6 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
                 </div>
             )}
 
-            {gradingSubmission && (
-                <GradingModal
-                    submission={gradingSubmission}
-                    rubricItems={assignment.rubricItems || []}
-                    quizData={assignment.task?.type === 'QUIZ' ? assignment.task.quizData : null}
-                    onClose={() => setGradingSubmission(null)}
-                />
-            )}
-
             {isAnalyticsOpen && (
                 <QuizAnalyticsModal
                     assignment={assignment}
@@ -192,4 +184,3 @@ export function SubmissionCard({ assignment }: { assignment: any }) {
         </div>
     );
 }
-

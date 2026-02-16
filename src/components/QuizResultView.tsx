@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, XCircle, HelpCircle, ChevronLeft } from 'lucide-react';
+import { CheckCircle2, XCircle, ChevronLeft } from 'lucide-react';
 import { RATING_TYPES_CONFIG } from '@/lib/quiz-utils';
 
 interface Question {
@@ -22,18 +22,21 @@ interface QuizResultViewProps {
     score?: number;
     maxScore?: number;
     onBack: () => void;
+    hideBack?: boolean;
 }
 
-export function QuizResultView({ questions, answers, gradingMethod, score, maxScore, onBack }: QuizResultViewProps) {
+export function QuizResultView({ questions, answers, gradingMethod, score, maxScore, onBack, hideBack }: QuizResultViewProps) {
     return (
         <div className="flex flex-col h-full bg-white font-[Inter]">
             <div className="flex items-center gap-4 mb-8">
-                <button
-                    onClick={onBack}
-                    className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
-                >
-                    <ChevronLeft className="w-6 h-6" />
-                </button>
+                {!hideBack && (
+                    <button
+                        onClick={onBack}
+                        className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+                    >
+                        <ChevronLeft className="w-6 h-6" />
+                    </button>
+                )}
                 <h2 className="text-2xl font-bold text-slate-800">Resultados de la Evaluación</h2>
                 {score !== undefined && maxScore !== undefined && (
                     <div className="ml-auto flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100">
