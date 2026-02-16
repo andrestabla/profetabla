@@ -152,7 +152,17 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
             });
 
             const res = await Promise.race([
-                generateGradeWithAI(submission.id, rubricItems),
+                fetch('/api/grading', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ submissionId: submission.id, rubric: rubricItems })
+                }).then(async r => {
+                    if (!r.ok) {
+                        const err = await r.json();
+                        throw new Error(err.error || "Error en la solicitud");
+                    }
+                    return r.json() as Promise<AIGradeResponse>;
+                }),
                 timeoutPromise
             ]) as AIGradeResponse;
 
