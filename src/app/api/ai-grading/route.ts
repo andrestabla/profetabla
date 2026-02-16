@@ -47,14 +47,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: "AI Grading for external URLs is not supported yet." }, { status: 400 });
         } else {
             const response = await fetch(submission.fileUrl);
-            if (!response.ok) throw new Error("Failed to download file.");
+            if (!response.ok) throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
+            console.log(`[AI Grading] Downloaded file from ${submission.fileUrl}, Content-Type: ${response.headers.get('content-type')}`);
             const arrayBuffer = await response.arrayBuffer();
             fileBuffer = Buffer.from(arrayBuffer);
         }
 
-        if (!fileBuffer) {
-            return NextResponse.json({ success: false, error: "Could not retrieve file content." }, { status: 500 });
+        if (!fileBuffer || fileBuffer.length === 0) {
+            return NextResponse.json({ success: false, error: "Retrieved file content is empty." }, { status: 500 });
         }
+        console.log(`[AI Grading] File Buffer Size: ${fileBuffer.length} bytes`);
 
         // 3. Extract Text
         const textContent = await extractTextFromPdf(fileBuffer);
