@@ -4,11 +4,11 @@ import { notFound, redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export default async function AssignmentDetailPage({ params }: { params: { assignmentId: string } }) {
+export default async function AssignmentDetailPage({ params }: { params: Promise<{ assignmentId: string }> }) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) redirect('/auth/login');
 
-    const assignmentId = params.assignmentId;
+    const { assignmentId } = await params;
     const userId = session.user.id;
 
     const assignment = await prisma.assignment.findUnique({

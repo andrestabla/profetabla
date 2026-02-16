@@ -4,11 +4,11 @@ import { notFound, redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export default async function GradingPage({ params }: { params: { submissionId: string } }) {
+export default async function GradingPage({ params }: { params: Promise<{ submissionId: string }> }) {
     const session = await getServerSession(authOptions);
     if (!session) redirect('/auth/login');
 
-    const submissionId = params.submissionId;
+    const { submissionId } = await params;
 
     const submission = await prisma.submission.findUnique({
         where: { id: submissionId },
