@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { gradeSubmissionAction, resetSubmissionAction } from '@/app/actions/rubric-actions';
 import { generateGradeWithAI, type AIGradeResponse } from '@/app/actions/grading-ai';
