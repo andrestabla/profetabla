@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { gradeSubmissionAction, resetSubmissionAction } from '@/app/actions/rubric-actions';
-import { generateGradeWithAI } from '@/app/actions/grading-ai';
 import { type AIGradeResponse } from '@/types/grading';
 import { calculateTotalQuizScore, calculateMaxQuizScore } from '@/lib/quiz-utils';
 import { Loader2, Save, FileText, Download, AlertTriangle, RotateCcw, Sparkles, ArrowLeft } from 'lucide-react';
