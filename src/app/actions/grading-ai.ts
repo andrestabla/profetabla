@@ -5,6 +5,8 @@ import { getR2FileUrl } from '@/lib/r2';
 import { extractTextFromPdf } from '@/lib/pdf'; // This must be a server-only utility
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+export const maxDuration = 60; // Set timeout to 60 seconds for AI processing
+
 export type AIGradeResponse = {
     success: boolean;
     grades?: { rubricItemId: string; score: number; feedback: string; }[];

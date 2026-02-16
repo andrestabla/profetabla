@@ -148,7 +148,7 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
 
         try {
             const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error("La solicitud excedió el tiempo de espera (55s).")), 55000);
+                setTimeout(() => reject(new Error("La solicitud excedió el tiempo de espera (120s).")), 120000);
             });
 
             const res = await Promise.race([
@@ -178,7 +178,7 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
             }
         } catch (error: any) {
             console.error(error);
-            const msg = error.message === "La solicitud excedió el tiempo de espera (55s)."
+            const msg = error.message === "La solicitud excedió el tiempo de espera (120s)."
                 ? "El análisis está tardando demasiado. Es posible que el archivo sea muy grande o el servicio de IA esté lento."
                 : "Ocurrió un error inesperado durante el análisis.";
             await showAlert("Error de Tiempo de Espera", msg, "error");
