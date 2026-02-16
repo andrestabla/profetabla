@@ -7,6 +7,10 @@ import { RubricItem } from '@/types/grading';
 
 export const maxDuration = 60; // Allow 60 seconds
 
+export async function GET() {
+    return NextResponse.json({ message: "AI Grading API is active" });
+}
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
