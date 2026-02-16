@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getR2FileUrl } from '@/lib/r2';
-import { extractTextFromPdf } from '@/lib/pdf';
+import { extractTextFromBuffer } from '@/lib/document-parser';
 import OpenAI from 'openai';
 import { RubricItem } from '@/types/grading';
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         console.log(`[AI Grading] File Buffer Size: ${fileBuffer.length} bytes`);
 
         // 3. Extract Text
-        const textContent = await extractTextFromPdf(fileBuffer);
+        const textContent = await extractTextFromBuffer(fileBuffer, submission.fileName || 'document.pdf');
         const truncatedText = textContent.slice(0, 30000);
 
         // 4. Call OpenAI
