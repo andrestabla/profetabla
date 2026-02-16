@@ -69,28 +69,39 @@ export async function POST(req: NextRequest) {
         const openai = new OpenAI({ apiKey });
 
         const prompt = `
-        You are an expert academic grader. Grade the following student submission based on the provided rubric.
-        
-        SUBMISSION CONTENT:
+        Eres un evaluador académico de postgrado extremadamente exigente, crítico y exhaustivo. 
+        Tu tarea es calificar el siguiente trabajo de un estudiante siguiendo ESTRICTAMENTE la rúbrica proporcionada.
+
+        CONTEXTO DEL TRABAJO:
         """
         ${truncatedText}
         """
 
-        RUBRIC:
+        RÚBRICA DE EVALUACIÓN (JSON):
         ${JSON.stringify(rubric, null, 2)}
 
-        INSTRUCTIONS:
-        1. Evaluate the submission against each rubric item.
-        2. Assign a score (integer) between 0 and maxPoints for each item.
-        3. Provide specific, constructive feedback (in Spanish) for each item, justifying the score.
-        4. Provide a general feedback summary (in Spanish) for the entire work.
-        5. Return ONLY a valid JSON object.
+        INSTRUCCIONES CRÍTICAS:
+        1. RIGOR EXTREMO: No regales puntos. Sé crítico. Si algo no está excepcional, no debe tener el puntaje máximo.
+        2. ANÁLISIS PROFUNDO: Evalúa no solo la presencia de elementos, sino la calidad, coherencia, profundidad y viabilidad de la propuesta.
+        3. FEEDBACK POR CRITERIO: Para CADA ítem de la rúbrica, debes proporcionar un comentario detallado (propiedad "comment") justificando el puntaje basado en evidencias del texto o ausencias notables. El feedback debe ser constructivo pero directo sobre las fallas.
+        4. FEEDBACK GENERAL: Proporciona una síntesis global detallada y profunda (mínimo 3 párrafos) que resuma fortalezas, debilidades críticas y áreas de mejora estratégica.
+        5. IDIOMA: Todo el feedback (específico y general) debe ser en ESPAÑOL.
+        6. FORMATO DE SALIDA: Devuelve ÚNICAMENTE un objeto JSON con la siguiente estructura:
+           {
+             "grades": [
+               { "id": "ID_DEL_ITEM", "score": N, "comment": "Feedback detallado..." }
+             ],
+             "generalFeedback": "Feedback global profundo..."
+           }
         `;
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
-                { role: "system", content: "You are a helpful assistant that outputs JSON." },
+                {
+                    role: "system",
+                    content: "Eres un evaluador académico senior de alto nivel. Evalúas trabajos con rigor científico y profesional. Siempre respondes en formato JSON."
+                },
                 { role: "user", content: prompt }
             ],
             response_format: { type: "json_object" }
