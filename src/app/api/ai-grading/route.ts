@@ -62,58 +62,89 @@ export async function POST(req: NextRequest) {
         const textContent = await extractTextFromPdf(fileBuffer);
         const truncatedText = textContent.slice(0, 30000);
 
-        // 4. Call OpenAI
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) return NextResponse.json({ success: false, error: "AI Configuration missing (OPENAI_API_KEY)." }, { status: 500 });
+        // 4. Call AI (OpenAI or Gemini)
+        const openaiKey = process.env.OPENAI_API_KEY;
+        const geminiKey = process.env.GEMINI_API_KEY;
 
-        const openai = new OpenAI({ apiKey });
+        let responseContent = "";
 
-        const prompt = `
-        Eres un evaluador académico de postgrado extremadamente exigente, crítico y exhaustivo. 
-        Tu tarea es calificar el siguiente trabajo de un estudiante siguiendo ESTRICTAMENTE la rúbrica proporcionada.
+        if (openaiKey) {
+            console.log("[AI Grading] Using OpenAI");
+            const openai = new OpenAI({ apiKey: openaiKey });
+            const prompt = `
+            Eres un EVALUADOR ACADÉMICO DE POSTGRADO extremadamente exigente, crítico y exhaustivo. 
+            Tu misión es calificar con RIGOR EXTREMO el siguiente trabajo siguiendo la rúbrica.
+    
+            TRABAJO DEL ESTUDIANTE:
+            """
+            ${truncatedText}
+            """
+    
+            RÚBRICA DE EVALUACIÓN (JSON):
+            ${JSON.stringify(rubric, null, 2)}
+    
+            REGLAS DE ORO:
+            1. RIGOR INFLEXIBLE: No regales puntos. Si la calidad es media, la nota debe ser media. El 100% es solo para la excelencia absoluta.
+            2. COMENTARIOS OBLIGATORIOS: Para CADA criterio de la rúbrica, escribe un análisis profundo (propiedad "comment" o "feedback") de por qué tiene esa nota.
+            3. FEEDBACK GENERAL: Escribe una síntesis global detallada y crítica (mínimo 3 párrafos) en la propiedad "generalFeedback".
+            4. IDIOMA: Responde siempre en ESPAÑOL.
+            5. FORMATO: Devuelve ÚNICAMENTE un objeto JSON con esta estructura:
+               {
+                 "grades": [
+                   { "rubricItemId": "ID", "score": N, "feedback": "Análisis profundo..." }
+                 ],
+                 "generalFeedback": "Feedback global..."
+               }
+            `;
 
-        CONTEXTO DEL TRABAJO:
-        """
-        ${truncatedText}
-        """
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: "Eres un evaluador académico senior. Siempre respondes con JSON puro." },
+                    { role: "user", content: prompt }
+                ],
+                response_format: { type: "json_object" }
+            });
+            responseContent = completion.choices[0].message.content || "";
+        } else if (geminiKey) {
+            console.log("[AI Grading] Using Google Gemini");
+            const { GoogleGenerativeAI } = await import('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(geminiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        RÚBRICA DE EVALUACIÓN (JSON):
-        ${JSON.stringify(rubric, null, 2)}
+            const prompt = `
+            Eres un EVALUADOR ACADÉMICO DE POSTGRADO extremadamente exigente, crítico y exhaustivo. 
+            Califica este trabajo con RIGOR EXTREMO.
+    
+            TRABAJO: ${truncatedText}
+    
+            RÚBRICA: ${JSON.stringify(rubric)}
+    
+            INSTRUCCIONES:
+            - Sé muy crítico.
+            - Feedback detallado por CADA ítem.
+            - Feedback general profundo (3 párrafos).
+            - Responde en ESPAÑOL.
+            - Devuelve SOLO un JSON con: { "grades": [{ "rubricItemId": "ID", "score": number, "feedback": "texto" }], "generalFeedback": "texto" }
+            `;
 
-        INSTRUCCIONES CRÍTICAS:
-        1. RIGOR EXTREMO: No regales puntos. Sé crítico. Si algo no está excepcional, no debe tener el puntaje máximo.
-        2. ANÁLISIS PROFUNDO: Evalúa no solo la presencia de elementos, sino la calidad, coherencia, profundidad y viabilidad de la propuesta.
-        3. FEEDBACK POR CRITERIO: Para CADA ítem de la rúbrica, debes proporcionar un comentario detallado (propiedad "comment") justificando el puntaje basado en evidencias del texto o ausencias notables. El feedback debe ser constructivo pero directo sobre las fallas.
-        4. FEEDBACK GENERAL: Proporciona una síntesis global detallada y profunda (mínimo 3 párrafos) que resuma fortalezas, debilidades críticas y áreas de mejora estratégica.
-        5. IDIOMA: Todo el feedback (específico y general) debe ser en ESPAÑOL.
-        6. FORMATO DE SALIDA: Devuelve ÚNICAMENTE un objeto JSON con la siguiente estructura:
-           {
-             "grades": [
-               { "id": "ID_DEL_ITEM", "score": N, "comment": "Feedback detallado..." }
-             ],
-             "generalFeedback": "Feedback global profundo..."
-           }
-        `;
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            responseContent = response.text();
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: "Eres un evaluador académico senior de alto nivel. Evalúas trabajos con rigor científico y profesional. Siempre respondes en formato JSON."
-                },
-                { role: "user", content: prompt }
-            ],
-            response_format: { type: "json_object" }
-        });
+            // Clean markdown if Gemini adds it
+            if (responseContent.includes('```json')) {
+                responseContent = responseContent.split('```json')[1].split('```')[0].trim();
+            } else if (responseContent.includes('```')) {
+                responseContent = responseContent.split('```')[1].split('```')[0].trim();
+            }
+        } else {
+            return NextResponse.json({ success: false, error: "AI Configuration missing (Add OPENAI_API_KEY or GEMINI_API_KEY to environment)." }, { status: 500 });
+        }
 
-        const responseContent = completion.choices[0].message.content;
         if (!responseContent) throw new Error("No response from AI.");
 
         const data = JSON.parse(responseContent);
-
-        // Ensure the structure matches what the frontend expects
-        // OpenAI might return { grades: ... } directly if prompted well, but let's be safe
         const grades = data.grades || [];
         const generalFeedback = data.generalFeedback || "";
 
