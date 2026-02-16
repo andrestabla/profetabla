@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { gradeSubmissionAction, resetSubmissionAction } from '@/app/actions/rubric-actions';
-import { generateGradeWithAI } from '@/app/actions/ai-grading';
+import { generateGradeWithAI, type AIGradeResponse } from '@/app/actions/grading-ai';
 import { calculateTotalQuizScore, calculateMaxQuizScore } from '@/lib/quiz-utils';
 import { Loader2, Save, X, FileText, Download, AlertTriangle, RotateCcw, Sparkles } from 'lucide-react';
 import { useModals } from '@/components/ModalProvider';
@@ -147,31 +147,50 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
         if (!confirm) return;
 
         setIsAnalyzing(true);
-        const res = await generateGradeWithAI(submission.id, rubricItems);
 
-        if (res.success && res.grades) {
-            // Update scores
-            const newScores = { ...scores };
-            res.grades.forEach(g => {
-                if (newScores[g.rubricItemId]) {
-                    newScores[g.rubricItemId] = {
-                        score: g.score,
-                        feedback: g.feedback
-                    };
-                }
+        try {
+            // Create a promise that rejects after 55 seconds
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error("La solicitud excedió el tiempo de espera (55s).")), 55000);
             });
-            setScores(newScores);
 
-            // Update general feedback if provided
-            if (res.generalFeedback) {
-                setGeneralFeedback(res.generalFeedback);
+            // Race the grading action against the timeout
+            const res = await Promise.race([
+                generateGradeWithAI(submission.id, rubricItems),
+                timeoutPromise
+            ]) as AIGradeResponse; // Cast because Promise.race returns unknown | AIGradeResponse
+
+            if (res.success && res.grades) {
+                // Update scores
+                const newScores = { ...scores };
+                res.grades.forEach(g => {
+                    if (newScores[g.rubricItemId]) {
+                        newScores[g.rubricItemId] = {
+                            score: g.score,
+                            feedback: g.feedback
+                        };
+                    }
+                });
+                setScores(newScores);
+
+                // Update general feedback if provided
+                if (res.generalFeedback) {
+                    setGeneralFeedback(res.generalFeedback);
+                }
+
+                await showAlert("Análisis Completado", "Se han generado puntajes y feedback sugeridos. Por favor revisa y ajusta según sea necesario antes de guardar.", "success");
+            } else {
+                await showAlert("Error en Análisis", res.error || "No se pudo completar el análisis con IA.", "error");
             }
-
-            await showAlert("Análisis Completado", "Se han generado puntajes y feedback sugeridos. Por favor revisa y ajusta según sea necesario antes de guardar.", "success");
-        } else {
-            await showAlert("Error en Análisis", res.error || "No se pudo completar el análisis con IA.", "error");
+        } catch (error: any) {
+            console.error(error);
+            const msg = error.message === "La solicitud excedió el tiempo de espera (55s)."
+                ? "El análisis está tardando demasiado. Es posible que el archivo sea muy grande o el servicio de IA esté lento."
+                : "Ocurrió un error inesperado durante el análisis.";
+            await showAlert("Error de Tiempo de Espera", msg, "error");
+        } finally {
+            setIsAnalyzing(false);
         }
-        setIsAnalyzing(false);
     };
 
     const currentTotal = Object.values(scores).reduce((sum, item) => sum + item.score, 0);
