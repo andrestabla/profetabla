@@ -23,9 +23,10 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
             };
         }
 
-        // Use dynamic import for pdf-parse to handle it as a server package correctly
+        // Use dynamic import for pdf-parse core to bypass the buggy index.js
+        // which triggers a test mode in production (ENOENT error).
          
-        const pdfModule = await import('pdf-parse');
+        const pdfModule = await import('pdf-parse/lib/pdf-parse.js');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pdf = (pdfModule as any).default || pdfModule;
 
