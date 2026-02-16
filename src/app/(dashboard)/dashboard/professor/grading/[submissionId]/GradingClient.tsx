@@ -158,8 +158,16 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                     body: JSON.stringify({ submissionId: submission.id, rubric: rubricItems })
                 }).then(async r => {
                     if (!r.ok) {
-                        const err = await r.json();
-                        throw new Error(err.error || "Error en la solicitud");
+                        const status = r.status;
+                        let details = "";
+                        try {
+                            const json = await r.json();
+                            details = json.error || JSON.stringify(json);
+                        } catch {
+                            details = await r.text();
+                            if (details.includes("<!DOCTYPE html>")) details = "Vercel Error Page (HTML)";
+                        }
+                        throw new Error(`Error API (${status}): ${details.slice(0, 100)}`);
                     }
                     return r.json() as Promise<AIGradeResponse>;
                 }),
@@ -178,20 +186,16 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                 });
                 setScores(newScores);
 
-                if (res.generalFeedback) {
-                    setGeneralFeedback(res.generalFeedback);
-                }
+                if (res.generalFeedback) setGeneralFeedback(res.generalFeedback);
 
-                await showAlert("Análisis Completado", "Se han generado puntajes y feedback sugeridos. Por favor revisa y ajusta según sea necesario antes de guardar.", "success");
+                await showAlert("Análisis Completado", "Se han generado puntajes sugeridos.", "success");
             } else {
-                await showAlert("Error en Análisis", res.error || "No se pudo completar el análisis con IA.", "error");
+                await showAlert("Error en Análisis", res.error || "Falló el análisis.", "error");
             }
         } catch (error: any) {
             console.error(error);
-            const msg = error.message === "La solicitud excedió el tiempo de espera (120s)."
-                ? "El análisis está tardando demasiado. Es posible que el archivo sea muy grande o el servicio de IA esté lento."
-                : "Ocurrió un error inesperado durante el análisis.";
-            await showAlert("Error de Tiempo de Espera", msg, "error");
+            // Show the actual error message for debugging
+            await showAlert("Falló la Solicitud", error.message || "Error desconocido", "error");
         } finally {
             setIsAnalyzing(false);
         }
