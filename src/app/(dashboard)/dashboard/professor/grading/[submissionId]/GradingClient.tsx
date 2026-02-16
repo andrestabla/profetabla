@@ -65,6 +65,7 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
     const [generalFeedback, setGeneralFeedback] = useState(submission.feedback || '');
     const [isSaving, setIsSaving] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [hasAiSuggestions, setHasAiSuggestions] = useState(false);
 
     const isQuiz = submission.type === 'QUIZ' || (!!submission.answers && !submission.fileUrl);
 
@@ -138,7 +139,7 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
 
         const confirm = await showConfirm(
             "¿Auto-Calificar con IA?",
-            "La inteligencia artificial analizará el documento y sugerirá puntajes y feedback basados en la rúbrica. Esto reemplazará las notas actuales no guardadas.",
+            "La inteligencia artificial analizará el documento y sugerirá puntajes y feedback basados en la rúbrica exigente. Esto reemplazará las notas actuales no guardadas. Luego podrá editarlas y validarlas.",
             "info"
         );
 
@@ -188,14 +189,14 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                 setScores(newScores);
 
                 if (res.generalFeedback) setGeneralFeedback(res.generalFeedback);
+                setHasAiSuggestions(true);
 
-                await showAlert("Análisis Completado", "Se han generado puntajes sugeridos.", "success");
+                await showAlert("Análisis Completado", "Se han generado sugerencias profundas. Por favor, revíselas antes de guardar.", "success");
             } else {
                 await showAlert("Error en Análisis", res.error || "Falló el análisis.", "error");
             }
         } catch (error: any) {
             console.error(error);
-            // Show the actual error message for debugging
             await showAlert("Falló la Solicitud", error.message || "Error desconocido", "error");
         } finally {
             setIsAnalyzing(false);
@@ -370,6 +371,18 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                             </button>
                         )}
                     </div>
+
+                    {hasAiSuggestions && (
+                        <div className="bg-amber-50 border-b border-amber-100 p-4 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                            <div>
+                                <p className="text-xs font-bold text-amber-800">Sugerencias de IA Generadas</p>
+                                <p className="text-[10px] text-amber-700 leading-tight mt-0.5">
+                                    Los puntajes y comentarios actuales son sugerencias. Por favor, revíselos y valídelos antes de guardar.
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-8">
                         {isQuiz ? (
