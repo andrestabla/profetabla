@@ -115,12 +115,18 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
                 });
             }
 
-            return { email: submission.student.email, name: submission.student.name, taskTitle: submission.assignment.task?.title || submission.assignment.title };
+            return {
+                email: submission.student.email,
+                name: submission.student.name,
+                taskTitle: submission.assignment.task?.title || submission.assignment.title,
+                assignmentId: submission.assignmentId
+            };
         });
 
         // 4. Send Email Notification (Outside transaction)
         if (result?.email) {
             try {
+                const baseUrl = process.env.NEXTAUTH_URL || 'https://profetabla.com';
                 const html = `
                     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                         <h2 style="color: #2563EB;">¡Tu entrega ha sido calificada!</h2>
@@ -141,7 +147,7 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
                         <p>Puedes ver el detalle de la rúbrica y los comentarios específicos en la plataforma.</p>
                         
                         <div style="text-align: center; margin-top: 30px;">
-                            <a href="https://profetabla.com/dashboard/student" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Ver Calificación</a>
+                            <a href="${baseUrl}/dashboard/student/assignments/${result.assignmentId}" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Ver Calificación</a>
                         </div>
                     </div>
                 `;
