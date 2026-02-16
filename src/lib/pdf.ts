@@ -1,12 +1,17 @@
 import 'server-only';
 
+/**
+ * Extracts text from a PDF buffer using pdf-parse.
+ * This implementation includes a DOMMatrix polyfill to handle potential 
+ * browser-dependency issues in some versions of the underlying pdf.js.
+ */
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
     try {
-        // Polyfill DOMMatrix for Vercel/Node environment
+        // Polyfill DOMMatrix for Vercel/Node environment if needed by underlying pdf.js
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (typeof global !== 'undefined' && !(global as any).DOMMatrix) {
+        if (typeof globalThis !== 'undefined' && !(globalThis as any).DOMMatrix) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (global as any).DOMMatrix = class DOMMatrix {
+            (globalThis as any).DOMMatrix = class DOMMatrix {
                 a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
                 constructor(init?: number[]) {
                     if (init && Array.isArray(init) && init.length >= 6) {
@@ -18,17 +23,19 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
             };
         }
 
-        const { PdfDataParser } = await import('pdf-data-parser');
-
+        // Use dynamic import for pdf-parse to handle it as a server package correctly
+         
+        const pdfModule = await import('pdf-parse');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const parser = new PdfDataParser({ data: buffer as any });
-        const data = await parser.parse();
+        const pdf = (pdfModule as any).default || pdfModule;
 
-        if (!data || !Array.isArray(data)) return "";
+        const data = await pdf(buffer);
 
-        // data is an array of arrays (rows), we need to join them
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return data.map((row: any) => Array.isArray(row) ? row.join(' ') : String(row)).join('\n');
+        if (!data || typeof data.text !== 'string') {
+            throw new Error("PDF parsing returned no text content.");
+        }
+
+        return data.text;
     } catch (error: unknown) {
         console.error('Error parsing PDF:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
