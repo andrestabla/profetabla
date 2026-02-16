@@ -2,10 +2,11 @@ import 'server-only';
 
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
     try {
-         
+
         const { PdfDataParser } = await import('pdf-data-parser');
-        // Explicitly cast buffer to any if type definition is missing 'data' option but it exists in library
-        const parser = new PdfDataParser({ data: buffer });
+        // Explicitly cast buffer to any to avoid "missing properties" TS error with ArrayBuffer
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parser = new PdfDataParser({ data: buffer as any });
         const data = await parser.parse();
 
         if (!data || !Array.isArray(data)) return "";
