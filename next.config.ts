@@ -9,7 +9,6 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'plus.unsplash.com' }, // Unsplash Plus
     ],
   },
-  serverExternalPackages: ['pdf-parse'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
