@@ -159,12 +159,13 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                 }).then(async r => {
                     if (!r.ok) {
                         const status = r.status;
+                        const text = await r.text();
                         let details = "";
                         try {
-                            const json = await r.json();
+                            const json = JSON.parse(text);
                             details = json.error || JSON.stringify(json);
                         } catch {
-                            details = await r.text();
+                            details = text;
                             if (details.includes("<!DOCTYPE html>")) details = "Vercel Error Page (HTML)";
                         }
                         throw new Error(`Error API (${status}): ${details.slice(0, 100)}`);
