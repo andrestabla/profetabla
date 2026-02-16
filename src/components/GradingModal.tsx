@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { gradeSubmissionAction, resetSubmissionAction } from '@/app/actions/rubric-actions';
+import { generateGradeWithAI } from '@/app/actions/ai-grading';
 import { calculateTotalQuizScore, calculateMaxQuizScore } from '@/lib/quiz-utils';
-import { Loader2, Save, X, FileText, Download, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Loader2, Save, X, FileText, Download, AlertTriangle, RotateCcw, Sparkles } from 'lucide-react';
 import { useModals } from '@/components/ModalProvider';
 import { cn } from '@/lib/utils';
 
@@ -64,6 +65,7 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
 
     const [generalFeedback, setGeneralFeedback] = useState(submission.feedback || '');
     const [isSaving, setIsSaving] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const isQuiz = submission.type === 'QUIZ' || (!!submission.answers && !submission.fileUrl);
 
@@ -128,6 +130,48 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
             }
             setIsSaving(false);
         }
+    };
+
+    const handleAutoGrade = async () => {
+        if (!submission.fileUrl) {
+            await showAlert("Error", "No hay archivo para analizar.", "error");
+            return;
+        }
+
+        const confirm = await showConfirm(
+            "¿Auto-Calificar con IA?",
+            "La inteligencia artificial analizará el documento y sugerirá puntajes y feedback basados en la rúbrica. Esto reemplazará las notas actuales no guardadas.",
+            "info"
+        );
+
+        if (!confirm) return;
+
+        setIsAnalyzing(true);
+        const res = await generateGradeWithAI(submission.id, rubricItems);
+
+        if (res.success && res.grades) {
+            // Update scores
+            const newScores = { ...scores };
+            res.grades.forEach(g => {
+                if (newScores[g.rubricItemId]) {
+                    newScores[g.rubricItemId] = {
+                        score: g.score,
+                        feedback: g.feedback
+                    };
+                }
+            });
+            setScores(newScores);
+
+            // Update general feedback if provided
+            if (res.generalFeedback) {
+                setGeneralFeedback(res.generalFeedback);
+            }
+
+            await showAlert("Análisis Completado", "Se han generado puntajes y feedback sugeridos. Por favor revisa y ajusta según sea necesario antes de guardar.", "success");
+        } else {
+            await showAlert("Error en Análisis", res.error || "No se pudo completar el análisis con IA.", "error");
+        }
+        setIsAnalyzing(false);
     };
 
     const currentTotal = Object.values(scores).reduce((sum, item) => sum + item.score, 0);
@@ -213,7 +257,20 @@ export function GradingModal({ submission, rubricItems, quizData, onClose }: Gra
                 {/* Right: Grading Panel */}
                 <div className="w-1/2 flex flex-col bg-white">
                     <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                        <h3 className="text-xl font-bold text-slate-800">Evaluación</h3>
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-xl font-bold text-slate-800">Evaluación</h3>
+                            {!isQuiz && rubricItems.length > 0 && submission.fileUrl && (
+                                <button
+                                    onClick={handleAutoGrade}
+                                    disabled={isAnalyzing || isSaving}
+                                    className="ml-2 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                                    title="Analizar documento y sugerir notas"
+                                >
+                                    {isAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                    {isAnalyzing ? "Analizando..." : "Auto-Calificar IA"}
+                                </button>
+                            )}
+                        </div>
                         <div className="flex items-center gap-4">
                             <div className="text-right">
                                 <span className="block text-xs uppercase text-slate-400 font-bold tracking-wider">Nota Final</span>
