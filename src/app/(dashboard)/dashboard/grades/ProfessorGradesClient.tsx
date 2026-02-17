@@ -152,36 +152,27 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
     };
 
     const getLogoData = async (url: string): Promise<{ base64: string, uint8: Uint8Array } | null> => {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    resolve(null);
-                    return;
-                }
-                ctx.drawImage(img, 0, 0);
-                const base64 = canvas.toDataURL('image/png');
+        try {
+            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) return null;
 
-                const binStr = atob(base64.split(',')[1]);
-                const len = binStr.length;
-                const uint8 = new Uint8Array(len);
-                for (let i = 0; i < len; i++) {
-                    uint8[i] = binStr.charCodeAt(i);
-                }
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const uint8 = new Uint8Array(arrayBuffer);
 
-                resolve({ base64, uint8 });
-            };
-            img.onerror = () => {
-                console.error("Error loading image via HTMLImageElement");
-                resolve(null);
-            };
-            img.src = url;
-        });
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    resolve({ base64: reader.result as string, uint8 });
+                };
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            });
+        } catch (err) {
+            console.error("Error loading logo via proxy", err);
+            return null;
+        }
     };
 
     const handleExportCSV = () => {
