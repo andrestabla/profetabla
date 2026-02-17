@@ -220,3 +220,36 @@ export async function resetSubmissionAction(submissionId: string) {
         return { success: false, error: errorMessage };
     }
 }
+
+export async function createManualSubmissionAction(assignmentId: string, studentId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+        return { success: false, error: 'No autorizado' };
+    }
+
+    try {
+        // Check if exists
+        const existing = await prisma.submission.findFirst({
+            where: { assignmentId, studentId }
+        });
+
+        if (existing) {
+            return { success: true, submissionId: existing.id };
+        }
+
+        const submission = await prisma.submission.create({
+            data: {
+                assignmentId,
+                studentId,
+                fileUrl: null,
+                fileName: 'Evaluación Manual',
+                fileType: 'MANUAL',
+            }
+        });
+
+        return { success: true, submissionId: submission.id };
+    } catch (e: unknown) {
+        console.error("Error creating manual submission:", e);
+        return { success: false, error: 'Error al crear entrega manual' };
+    }
+}

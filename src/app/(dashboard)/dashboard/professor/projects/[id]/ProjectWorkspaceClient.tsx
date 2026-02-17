@@ -1019,6 +1019,7 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                         <SubmissionCard
                                             key={`${a.id}-${filterStudentId}`}
                                             assignment={filteredAssignment}
+                                            projectStudents={project.students}
                                         />
                                     );
                                 })}

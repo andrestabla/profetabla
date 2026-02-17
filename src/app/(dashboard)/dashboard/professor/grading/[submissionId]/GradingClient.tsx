@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { gradeSubmissionAction, resetSubmissionAction } from '@/app/actions/rubric-actions';
 import { type AIGradeResponse } from '@/types/grading';
 import { calculateTotalQuizScore, calculateMaxQuizScore } from '@/lib/quiz-utils';
-import { Loader2, Save, FileText, Download, AlertTriangle, RotateCcw, Sparkles, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, FileText, Download, AlertTriangle, RotateCcw, Sparkles, ArrowLeft, Edit2 } from 'lucide-react';
 import { useModals } from '@/components/ModalProvider';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -346,9 +346,16 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                                     </div>
                                 )
                             ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                                    <AlertTriangle className="w-16 h-16 mb-4 text-amber-300" />
-                                    <p className="font-medium text-slate-500">No hay archivo adjunto ni datos de cuestionario.</p>
+                                <div className="flex flex-col items-center justify-center h-full text-slate-400 bg-slate-50">
+                                    <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center max-w-sm text-center">
+                                        <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-4">
+                                            <Edit2 className="w-8 h-8" />
+                                        </div>
+                                        <h3 className="text-slate-800 font-bold mb-2">Evaluación Manual</h3>
+                                        <p className="text-sm text-slate-500 leading-relaxed">
+                                            Esta entrega no tiene un archivo adjunto. Puedes calificar directamente usando la rúbrica lateral.
+                                        </p>
+                                    </div>
                                 </div>
                             )
                         )}
