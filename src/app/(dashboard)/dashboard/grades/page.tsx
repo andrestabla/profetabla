@@ -14,6 +14,7 @@ export default async function GradesPage() {
     const role = session.user.role;
     const userId = session.user.id;
 
+    const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
     if (role === 'STUDENT') {
         const projects = await prisma.project.findMany({
             where: {
@@ -78,7 +79,7 @@ export default async function GradesPage() {
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return <ProfessorGradesClient projects={projects as any[]} />;
+        return <ProfessorGradesClient projects={projects as any[]} config={config} />;
     }
 
     return notFound();

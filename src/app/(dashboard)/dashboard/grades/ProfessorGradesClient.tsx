@@ -20,7 +20,12 @@ import NextImage from 'next/image';
 import { cn } from '@/lib/utils';
 import { updateAssignmentWeightsAction } from './actions';
 import StatusModal from '@/components/StatusModal';
-import { calculateTotalQuizScore } from '@/lib/quiz-utils';
+import { calculateTotalQuizScore, QuizData, QuizQuestion } from '@/lib/quiz-utils';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, ImageRun } from 'docx';
+import { saveAs } from 'file-saver';
 
 type Submission = {
     id: string;
@@ -61,7 +66,9 @@ type Project = {
     assignments: Assignment[];
 };
 
-export default function ProfessorGradesClient({ projects }: { projects: Project[] }) {
+export default function ProfessorGradesClient({ projects, config }: { projects: Project[], config?: { institutionName?: string, logoUrl?: string | null } | null }) {
+    const [isExporting, setIsExporting] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<string>(projects[0]?.id || '');
     const [searchQuery, setSearchQuery] = useState('');
     const [showWeightModal, setShowWeightModal] = useState(false);
@@ -127,10 +134,8 @@ export default function ProfessorGradesClient({ projects }: { projects: Project[
             let grade = sub?.grade;
 
             // Fallback for auto-graded quizzes
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as any)?.gradingMethod === 'AUTO' && sub) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                grade = calculateTotalQuizScore((a.task.quizData as any).questions || [], (sub.answers as Record<string, string>) || {});
+            if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as QuizData)?.gradingMethod === 'AUTO' && sub) {
+                grade = calculateTotalQuizScore((a.task.quizData as QuizData).questions || [], (sub.answers as Record<string, string>) || {});
             }
 
             if (grade !== null && grade !== undefined) {
@@ -148,54 +153,176 @@ export default function ProfessorGradesClient({ projects }: { projects: Project[
 
     const handleExportCSV = () => {
         if (!project) return;
-
-        // Header: Estudiante, Email, Assignment 1 (Weight%), Assignment 2 (Weight%), ..., Promedio Ponderado
+        setIsExporting(true);
         const totalW = project.assignments.reduce((sum, ass) => sum + (ass.weight || 1), 0) || 1;
-        const headers = [
-            'Estudiante',
-            'Email',
-            ...project.assignments.map(a => `${a.title} (${(((a.weight || 1) / totalW) * 100).toFixed(0)}%)`),
-            'Promedio Ponderado'
-        ];
+        const csvHeaders = ['Estudiante', 'Email', ...project.assignments.map(a => `${a.title} (${(((a.weight || 1) / totalW) * 100).toFixed(0)}%)`), 'Promedio Ponderado'];
+        const rows = project.students.map(student => {
+            const studentGrades = project.assignments.map(a => {
+                const sub = a.submissions.find(s => s.studentId === student.id);
+                let grade = sub?.grade;
+                if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as QuizData)?.gradingMethod === 'AUTO' && sub) {
+                    grade = calculateTotalQuizScore((a.task.quizData as QuizData).questions, (sub.answers as Record<string, string>) || {});
+                }
+                return grade ?? '--';
+            });
+            return [student.name || 'Sin nombre', student.email || 'Sin email', ...studentGrades, calculateWeightedAverage(student.id)];
+        });
+        const csvContent = [csvHeaders.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        saveAs(blob, `Calificaciones_${project.title.replace(/\s+/g, '_')}.csv`);
+        setIsExporting(false);
+    };
+
+    const handleExportExcel = () => {
+        if (!project) return;
+        setIsExporting(true);
+        const totalW = project.assignments.reduce((sum, ass) => sum + (ass.weight || 1), 0) || 1;
+        const data = project.students.map(student => {
+            const row: Record<string, string | number> = { 'Estudiante': student.name || 'Sin nombre', 'Email': student.email || 'Sin email' };
+            project.assignments.forEach(a => {
+                const sub = a.submissions.find(s => s.studentId === student.id);
+                let grade = sub?.grade;
+                if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as QuizData)?.gradingMethod === 'AUTO' && sub) {
+                    grade = calculateTotalQuizScore((a.task.quizData as QuizData).questions, (sub.answers as Record<string, string>) || {});
+                }
+                row[`${a.title} (${(((a.weight || 1) / totalW) * 100).toFixed(0)}%)`] = grade ?? '--';
+            });
+            row['Promedio Ponderado'] = calculateWeightedAverage(student.id);
+            return row;
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Calificaciones');
+        XLSX.writeFile(workbook, `Calificaciones_${project.title.replace(/\s+/g, '_')}.xlsx`);
+        setIsExporting(false);
+    };
+
+    const handleExportPDF = async () => {
+        if (!project) return;
+        setIsExporting(true);
+        const doc = new jsPDF();
+        const institutionName = config?.institutionName || 'Profe Tabla';
+        const logoUrl = config?.logoUrl;
+
+        // Header
+        if (logoUrl) {
+            try {
+                doc.addImage(logoUrl, 'PNG', 15, 10, 20, 20);
+            } catch (e) { console.error("Error loading logo for PDF", e); }
+        }
+        doc.setFontSize(20);
+        doc.setTextColor(37, 99, 235); // Blue
+        doc.text(institutionName, 40, 20);
+        doc.setFontSize(12);
+        doc.setTextColor(100);
+        doc.text(`Proyecto: ${project.title}`, 40, 28);
+        doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 150, 20);
+
+        doc.setLineWidth(0.5);
+        doc.line(15, 35, 195, 35);
+
+        const pdfHeaders = [['Estudiante', 'Promedio', ...project.assignments.map(a => `${a.title.slice(0, 15)}...`)]];
+        const body = project.students.map(student => {
+            const grades = project.assignments.map(a => {
+                const sub = a.submissions.find(s => s.studentId === student.id);
+                let grade = sub?.grade;
+                if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as QuizData)?.gradingMethod === 'AUTO' && sub) {
+                    grade = calculateTotalQuizScore((a.task.quizData as QuizData).questions, (sub.answers as Record<string, string>) || {});
+                }
+                return grade ?? '--';
+            });
+            return [student.name || 'Sin nombre', calculateWeightedAverage(student.id), ...grades];
+        });
+
+        autoTable(doc, {
+            head: pdfHeaders,
+            body: body,
+            startY: 45,
+            theme: 'striped',
+            headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 8 },
+            bodyStyles: { fontSize: 8 },
+            alternateRowStyles: { fillColor: [248, 250, 252] }
+        });
+
+        doc.save(`Calificaciones_${project.title.replace(/\s+/g, '_')}.pdf`);
+        setIsExporting(false);
+    };
+
+    const handleExportDocx = async () => {
+        if (!project) return;
+        setIsExporting(true);
+        const totalW = project.assignments.reduce((sum, ass) => sum + (ass.weight || 1), 0) || 1;
+        const docxHeaders = ['Estudiante', 'Email', ...project.assignments.map(a => `${a.title} (${(((a.weight || 1) / totalW) * 100).toFixed(0)}%)`), 'Promedio'];
 
         const rows = project.students.map(student => {
             const studentGrades = project.assignments.map(a => {
                 const sub = a.submissions.find(s => s.studentId === student.id);
                 let grade = sub?.grade;
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as any)?.gradingMethod === 'AUTO' && sub) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    grade = calculateTotalQuizScore((a.task.quizData as any).questions || [], (sub.answers as Record<string, string>) || {});
+                if (grade === null && a.task?.type === 'QUIZ' && (a.task?.quizData as QuizData)?.gradingMethod === 'AUTO' && sub) {
+                    grade = calculateTotalQuizScore((a.task.quizData as QuizData).questions, (sub.answers as Record<string, string>) || {});
                 }
-
-                return grade ?? '--';
+                return grade?.toString() || '--';
             });
-
-            const average = calculateWeightedAverage(student.id);
-
-            return [
-                student.name || 'Sin nombre',
-                student.email || 'Sin email',
-                ...studentGrades,
-                average
-            ];
+            return [student.name || 'Sin nombre', student.email || 'Sin email', ...studentGrades, calculateWeightedAverage(student.id).toString()];
         });
 
-        const csvContent = [
-            headers.join(','),
-            ...rows.map(r => r.join(','))
-        ].join('\n');
+        const logoUrl = config?.logoUrl;
+        let logoImage: ImageRun | null = null;
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `Calificaciones_${project.title.replace(/\s+/g, '_')}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (logoUrl) {
+            try {
+                const response = await fetch(logoUrl);
+                const arrayBuffer = await response.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                logoImage = new ImageRun({
+                    data: uint8Array,
+                    transformation: { width: 80, height: 40 },
+                });
+            } catch (e) {
+                console.error("Error loading logo for DOCX", e);
+            }
+        }
+
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: [
+                    ...(logoImage ? [new Paragraph({ children: [logoImage], alignment: AlignmentType.CENTER })] : []),
+                    new Paragraph({
+                        text: config?.institutionName || "Profe Tabla",
+                        heading: HeadingLevel.HEADING_1,
+                        alignment: AlignmentType.CENTER,
+                    }),
+                    new Paragraph({
+                        text: `Reporte de Calificaciones: ${project.title}`,
+                        heading: HeadingLevel.HEADING_2,
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 400 }
+                    }),
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        rows: [
+                            new TableRow({
+                                children: docxHeaders.map(h => new TableCell({
+                                    children: [new Paragraph({ text: h })],
+                                    shading: { fill: "F1F5F9" }
+                                }))
+                            }),
+                            ...rows.map(row => new TableRow({
+                                children: row.map(cell => new TableCell({
+                                    children: [new Paragraph(cell)]
+                                }))
+                            }))
+                        ]
+                    })
+                ]
+            }]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, `Calificaciones_${project.title.replace(/\s+/g, '_')}.docx`);
+        setIsExporting(false);
     };
 
     if (projects.length === 0) {
@@ -228,14 +355,51 @@ export default function ProfessorGradesClient({ projects }: { projects: Project[
                         <Settings2 className="w-5 h-5 text-blue-500" />
                         Configurar Pesos
                     </button>
-                    <button
-                        onClick={handleExportCSV}
-                        disabled={!project}
-                        className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 transition-all hover:-translate-y-0.5 disabled:opacity-50"
-                    >
-                        <Download className="w-5 h-5" />
-                        Exportar a CSV
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            disabled={!project || isExporting}
+                            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                        >
+                            {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                            Exportar Notas
+                            <ChevronDown className={cn("w-4 h-4 transition-transform", showExportMenu && "rotate-180")} />
+                        </button>
+
+                        {showExportMenu && (
+                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                <button
+                                    onClick={() => { handleExportExcel(); setShowExportMenu(false); }}
+                                    className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                                >
+                                    <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
+                                    Excel (.xlsx)
+                                </button>
+                                <button
+                                    onClick={() => { handleExportPDF(); setShowExportMenu(false); }}
+                                    className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                                >
+                                    <FileSpreadsheet className="w-5 h-5 text-rose-500" />
+                                    PDF (.pdf)
+                                </button>
+                                <button
+                                    onClick={() => { handleExportDocx(); setShowExportMenu(false); }}
+                                    className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                                >
+                                    <FileSpreadsheet className="w-5 h-5 text-blue-500" />
+                                    Word (.docx)
+                                </button>
+                                <div className="my-1 border-t border-slate-50" />
+                                <button
+                                    onClick={() => { handleExportCSV(); setShowExportMenu(false); }}
+                                    className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                                >
+                                    <Download className="w-5 h-5 text-slate-400" />
+                                    CSV (.csv)
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </header>
 
