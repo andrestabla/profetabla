@@ -151,14 +151,36 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
         return (totalWeightedScore / totalWeights).toFixed(1);
     };
 
-    const imageToBase64 = async (url: string): Promise<string> => {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
+    const getLogoData = async (url: string): Promise<{ base64: string, uint8: Uint8Array } | null> => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    resolve(null);
+                    return;
+                }
+                ctx.drawImage(img, 0, 0);
+                const base64 = canvas.toDataURL('image/png');
+
+                const binStr = atob(base64.split(',')[1]);
+                const len = binStr.length;
+                const uint8 = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    uint8[i] = binStr.charCodeAt(i);
+                }
+
+                resolve({ base64, uint8 });
+            };
+            img.onerror = () => {
+                console.error("Error loading image via HTMLImageElement");
+                resolve(null);
+            };
+            img.src = url;
         });
     };
 
@@ -219,8 +241,10 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
         // Header
         if (logoUrl) {
             try {
-                const base64Logo = await imageToBase64(logoUrl);
-                doc.addImage(base64Logo, 'PNG', 15, 10, 20, 20);
+                const logoData = await getLogoData(logoUrl);
+                if (logoData) {
+                    doc.addImage(logoData.base64, 'PNG', 15, 10, 20, 20);
+                }
             } catch (e) { console.error("Error loading logo for PDF", e); }
         }
         doc.setFontSize(20);
@@ -284,13 +308,13 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
 
         if (logoUrl) {
             try {
-                const response = await fetch(logoUrl);
-                const arrayBuffer = await response.arrayBuffer();
-                const uint8Array = new Uint8Array(arrayBuffer);
-                logoImage = new ImageRun({
-                    data: uint8Array,
-                    transformation: { width: 80, height: 40 },
-                } as IImageOptions);
+                const logoData = await getLogoData(logoUrl);
+                if (logoData) {
+                    logoImage = new ImageRun({
+                        data: logoData.uint8,
+                        transformation: { width: 80, height: 40 },
+                    } as IImageOptions);
+                }
             } catch (e) {
                 console.error("Error loading logo for DOCX", e);
             }
