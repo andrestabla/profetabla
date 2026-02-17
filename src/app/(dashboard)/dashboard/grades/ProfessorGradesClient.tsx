@@ -20,11 +20,11 @@ import NextImage from 'next/image';
 import { cn } from '@/lib/utils';
 import { updateAssignmentWeightsAction } from './actions';
 import StatusModal from '@/components/StatusModal';
-import { calculateTotalQuizScore, QuizData, QuizQuestion } from '@/lib/quiz-utils';
+import { calculateTotalQuizScore, QuizData } from '@/lib/quiz-utils';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, ImageRun } from 'docx';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, ImageRun, IImageOptions } from 'docx';
 import { saveAs } from 'file-saver';
 
 type Submission = {
@@ -278,7 +278,7 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
                 logoImage = new ImageRun({
                     data: uint8Array,
                     transformation: { width: 80, height: 40 },
-                });
+                } as IImageOptions);
             } catch (e) {
                 console.error("Error loading logo for DOCX", e);
             }
