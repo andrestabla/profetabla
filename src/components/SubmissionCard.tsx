@@ -121,30 +121,28 @@ export function SubmissionCard({ assignment, projectStudents = [] }: { assignmen
 
                                     {isTeacher && (
                                         <div className="flex items-center gap-2 shrink-0">
-                                            {isQuiz && (
-                                                <button
-                                                    onClick={async () => {
-                                                        const confirm = await showConfirm(
-                                                            "¿Reiniciar Cuestionario?",
-                                                            `¿Estás seguro de reiniciar el cuestionario de ${sub.student?.name}? Esta acción no se puede deshacer.`,
-                                                            "danger"
-                                                        );
-                                                        if (confirm) {
-                                                            const res = await resetSubmissionAction(sub.id);
-                                                            if (res.success) {
-                                                                await showAlert("Éxito", "Cuestionario reiniciado.", "success");
-                                                                window.location.reload();
-                                                            } else {
-                                                                await showAlert("Error", res.error || "Algo salió mal", "error");
-                                                            }
+                                            <button
+                                                onClick={async () => {
+                                                    const confirm = await showConfirm(
+                                                        "¿Reiniciar Entrega?",
+                                                        `¿Estás seguro de reiniciar la entrega de ${sub.student?.name}? Esta acción eliminará la entrega actual y permitirá un nuevo intento. No se puede deshacer.`,
+                                                        "danger"
+                                                    );
+                                                    if (confirm) {
+                                                        const res = await resetSubmissionAction(sub.id);
+                                                        if (res.success) {
+                                                            await showAlert("Éxito", "Entrega reiniciada.", "success");
+                                                            window.location.reload();
+                                                        } else {
+                                                            await showAlert("Error", res.error || "Algo salió mal", "error");
                                                         }
-                                                    }}
-                                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                                    title="Reiniciar Cuestionario"
-                                                >
-                                                    <RotateCcw className="w-4 h-4" />
-                                                </button>
-                                            )}
+                                                    }
+                                                }}
+                                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                title="Reiniciar Entrega"
+                                            >
+                                                <RotateCcw className="w-4 h-4" />
+                                            </button>
                                             <Link
                                                 href={`/dashboard/professor/grading/${sub.id}`}
                                                 className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm transition-colors"
