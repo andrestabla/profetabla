@@ -25,8 +25,10 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
 
         rawSubmissions.forEach((s: any) => {
             const sid = String(s.studentId || s.student?.id);
-            // Only include if student is in the current roster
-            if (projectStudents.some(ps => String(ps.id) === sid)) {
+            // Check if student is in roster AND has at least one answer (effective participation)
+            const hasAnswers = s.answers && Object.keys(s.answers).length > 0;
+
+            if (projectStudents.some(ps => String(ps.id) === sid) && hasAnswers) {
                 const existing = uniqueMap.get(sid);
                 // Keep the latest submission if multiple exist
                 if (!existing || new Date(s.createdAt) > new Date(existing.createdAt)) {
