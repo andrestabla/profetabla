@@ -36,11 +36,11 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
             : [
                 ...submissions,
                 ...projectStudents
-                    .filter(ps => !submissions.some((s: any) => s.studentId === ps.id))
+                    .filter(ps => !submissions.some((s: any) => String(s.studentId || s.student?.id) === String(ps.id)))
                     .map(ps => ({ grade: 0, student: ps }))
             ];
 
-        if (targetSubmissions.length === 0) return { avgGrade: 0, total: 0, maxScore: 0 };
+        if (targetSubmissions.length === 0) return { avgGrade: '0.0', total: 0, maxScore: 0, effectiveness: '0' };
 
         const maxScore = questions.reduce((acc: number, q: any) => acc + (q.points || 1), 0);
         const totalGrades = targetSubmissions.reduce((acc: number, s: any) => acc + (s.grade || 0), 0);
@@ -128,7 +128,7 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                 head: [['Métrica', 'Valor']],
                 body: [
                     ['Promedio de Notas', `${stats.avgGrade} / ${stats.maxScore}`],
-                    ['Total Estudiantes Computados', stats.total.toString()],
+                    ['Estudiantes/Entregas Computadas', stats.total.toString()],
                     ['Efectividad Global', `${stats.effectiveness}%`]
                 ],
                 theme: 'striped',
@@ -161,7 +161,7 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                 startY: (doc as any).lastAutoTable.finalY + 15,
                 head: [['Estudiante', 'Email', 'Calificación', 'Estado']],
                 body: projectStudents.map(student => {
-                    const sub = submissions.find((s: any) => s.studentId === student.id);
+                    const sub = submissions.find((s: any) => String(s.studentId || s.student?.id) === String(student.id));
                     return [
                         student.name || 'Sin nombre',
                         student.email || 'Sin email',
@@ -172,6 +172,54 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                 theme: 'striped',
                 headStyles: { fillColor: [16, 185, 129] }
             });
+
+            // Qualitative Answers Section (e.g. Question 11)
+            const qualQuestions = questionStats.filter((q: any) => q.isQualitative);
+            if (qualQuestions.length > 0) {
+                // Check if we need a new page for qualitative answers
+                const finalY = (doc as any).lastAutoTable.finalY;
+                if (finalY > 200) doc.addPage();
+
+                doc.setFontSize(16);
+                doc.setTextColor(79, 70, 229); // Indigo 600
+                doc.text("Detalle de Respuestas Abiertas", 14, (doc as any).lastAutoTable.finalY + 15);
+
+                let currentY = (doc as any).lastAutoTable.finalY + 25;
+
+                qualQuestions.forEach((q: any) => {
+                    const originalIndex = questions.findIndex((origQ: any) => origQ.id === q.id);
+
+                    // Question Header
+                    doc.setFontSize(12);
+                    doc.setTextColor(30, 41, 59); // Slate 800
+                    const questionText = doc.splitTextToSize(`Pregunta ${originalIndex + 1}: ${q.prompt}`, 180);
+                    doc.text(questionText, 14, currentY);
+                    currentY += (questionText.length * 6) + 4;
+
+                    // Answers
+                    doc.setFontSize(9);
+                    doc.setTextColor(100);
+                    q.qualitativeAnswers.forEach((ans: string) => {
+                        const splitText = doc.splitTextToSize(`• "${ans}"`, 170);
+
+                        // Page break check
+                        if (currentY + (splitText.length * 5) > 280) {
+                            doc.addPage();
+                            currentY = 20;
+                        }
+
+                        doc.text(splitText, 20, currentY);
+                        currentY += (splitText.length * 5) + 2;
+                    });
+
+                    currentY += 10;
+                    // Extra page break check between questions
+                    if (currentY > 270) {
+                        doc.addPage();
+                        currentY = 20;
+                    }
+                });
+            }
 
             doc.save(`Analitica_${assignment.id}.pdf`);
         } catch (error) {
@@ -279,7 +327,9 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                                         <TrendingUp className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Promedio Notas</p>
+                                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                                            {computeMode === 'PARTICIPANTS' ? 'Promedio Participantes' : 'Promedio Todos'}
+                                        </p>
                                         <p className="text-3xl font-black text-blue-700">{stats.avgGrade} <span className="text-sm opacity-60">/ {stats.maxScore}</span></p>
                                     </div>
                                 </div>
@@ -288,7 +338,9 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                                         <Users className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Entregas</p>
+                                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                                            {computeMode === 'PARTICIPANTS' ? 'Total Entregas' : 'Total Estudiantes'}
+                                        </p>
                                         <p className="text-3xl font-black text-emerald-700">{stats.total}</p>
                                     </div>
                                 </div>
