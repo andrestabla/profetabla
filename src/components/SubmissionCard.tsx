@@ -124,24 +124,25 @@ export function SubmissionCard({ assignment, projectStudents = [] }: { assignmen
                                             <button
                                                 onClick={async () => {
                                                     const confirm = await showConfirm(
-                                                        "¿Reiniciar Entrega?",
-                                                        `¿Estás seguro de reiniciar la entrega de ${sub.student?.name}? Esta acción eliminará la entrega actual y permitirá un nuevo intento. No se puede deshacer.`,
+                                                        "¿Eliminar Envío?",
+                                                        `¿Estás seguro de que deseas eliminar el envío de ${sub.student?.name}? El estudiante podrá realizar el cuestionario o tarea nuevamente. Esta acción es definitiva.`,
                                                         "danger"
                                                     );
                                                     if (confirm) {
                                                         const res = await resetSubmissionAction(sub.id);
                                                         if (res.success) {
-                                                            await showAlert("Éxito", "Entrega reiniciada.", "success");
+                                                            await showAlert("Éxito", "Envío eliminado correctamente.", "success");
                                                             window.location.reload();
                                                         } else {
-                                                            await showAlert("Error", res.error || "Algo salió mal", "error");
+                                                            await showAlert("Error", res.error || "No se pudo eliminar el envío", "error");
                                                         }
                                                     }
                                                 }}
-                                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                                title="Reiniciar Entrega"
+                                                className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-all shadow-sm border border-rose-100"
+                                                title="Eliminar Envío / Reiniciar Intento"
                                             >
-                                                <RotateCcw className="w-4 h-4" />
+                                                <RotateCcw className="w-3.5 h-3.5" />
+                                                Eliminar
                                             </button>
                                             <Link
                                                 href={`/dashboard/professor/grading/${sub.id}`}
@@ -248,6 +249,7 @@ export function SubmissionCard({ assignment, projectStudents = [] }: { assignmen
             {isAnalyticsOpen && (
                 <QuizAnalyticsModal
                     assignment={assignment}
+                    projectStudents={projectStudents}
                     onClose={() => setIsAnalyticsOpen(false)}
                 />
             )}

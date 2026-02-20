@@ -9,31 +9,40 @@ import Image from 'next/image';
 
 interface QuizAnalyticsModalProps {
     assignment: any;
+    projectStudents?: any[];
     onClose: () => void;
 }
 
-export function QuizAnalyticsModal({ assignment, onClose }: QuizAnalyticsModalProps) {
+export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }: QuizAnalyticsModalProps) {
     const [activeTab, setActiveTab] = useState<'GLOBAL' | 'STUDENTS'>('GLOBAL');
     const [searchQuery, setSearchQuery] = useState('');
+    const [computeMode, setComputeMode] = useState<'PARTICIPANTS' | 'ALL'>('PARTICIPANTS');
+    const [isExporting, setIsExporting] = useState(false);
 
     const submissions = assignment.submissions || [];
     const questions = assignment.task?.quizData?.questions || [];
 
     // Global Statistics
     const stats = useMemo(() => {
-        if (submissions.length === 0) return { avgGrade: 0, total: 0, maxScore: 0 };
+        const targetSubmissions = computeMode === 'PARTICIPANTS'
+            ? submissions
+            : [...submissions, ...projectStudents.filter(ps => !submissions.some((s: any) => s.studentId === ps.id)).map(ps => ({ grade: 0, student: ps }))];
+
+        if (targetSubmissions.length === 0) return { avgGrade: 0, total: 0, maxScore: 0 };
 
         const maxScore = questions.reduce((acc: number, q: any) => acc + (q.points || 1), 0);
-        const totalGrades = submissions.reduce((acc: number, s: any) => acc + (s.grade || 0), 0);
+        const totalGrades = targetSubmissions.reduce((acc: number, s: any) => acc + (s.grade || 0), 0);
 
         return {
-            avgGrade: (totalGrades / submissions.length).toFixed(1),
-            total: submissions.length,
+            avgGrade: (totalGrades / targetSubmissions.length).toFixed(1),
+            total: targetSubmissions.length,
             maxScore
         };
-    }, [submissions, questions]);
+    }, [submissions, questions, computeMode, projectStudents]);
 
-    // Question Performance
+    // Question Performance (Always based on participants who actually answered?)
+    // Actually the user said "ajustar analítica de los cuestionarios", usually that implies the global stats.
+    // But let's apply computeMode logic here too if needed.
     const questionStats = useMemo(() => {
         return questions.map((q: any) => {
             let correctCount = 0;
@@ -52,13 +61,16 @@ export function QuizAnalyticsModal({ assignment, onClose }: QuizAnalyticsModalPr
                 }
             });
 
+            // If computeMode is ALL, we consider non-respondents as failures (score 0)
+            const divisor = computeMode === 'PARTICIPANTS' ? respondedCount : projectStudents.length;
+
             let rate = 0;
             let avgValue = 0;
             if (q.type === 'RATING') {
-                avgValue = respondedCount > 0 ? totalRating / respondedCount : 0;
+                avgValue = divisor > 0 ? totalRating / divisor : 0;
                 rate = (avgValue / 5) * 100; // Assuming 1-5 scale
             } else {
-                rate = respondedCount > 0 ? (correctCount / respondedCount) * 100 : 0;
+                rate = divisor > 0 ? (correctCount / divisor) * 100 : 0;
             }
 
             return {
@@ -69,7 +81,78 @@ export function QuizAnalyticsModal({ assignment, onClose }: QuizAnalyticsModalPr
                 respondedCount
             };
         });
-    }, [questions, submissions]);
+    }, [questions, submissions, computeMode, projectStudents]);
+
+    const handleExportPDF = async () => {
+        setIsExporting(true);
+        try {
+            const { jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
+
+            const doc = new jsPDF();
+            const title = `Reporte de Analítica: ${assignment.title}`;
+
+            // Header
+            doc.setFontSize(18);
+            doc.setTextColor(37, 99, 235);
+            doc.text(title, 14, 22);
+
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Fecha del reporte: ${new Date().toLocaleString()}`, 14, 30);
+            doc.text(`Modo de cómputo: ${computeMode === 'PARTICIPANTS' ? 'Solo participantes' : 'Todos los inscritos'}`, 14, 35);
+
+            // Global Stats Table
+            autoTable(doc, {
+                startY: 45,
+                head: [['Métrica', 'Valor']],
+                body: [
+                    ['Promedio de Notas', `${stats.avgGrade} / ${stats.maxScore}`],
+                    ['Total Estudiantes Computados', stats.total.toString()],
+                    ['Efectividad Global', `${submissions.length > 0 ? (parseFloat(stats.avgGrade as string) / stats.maxScore * 100).toFixed(0) : 0}%`]
+                ],
+                theme: 'striped',
+                headStyles: { fillColor: [37, 99, 235] }
+            });
+
+            // Questions Table
+            autoTable(doc, {
+                startY: (doc as any).lastAutoTable.finalY + 15,
+                head: [['#', 'Pregunta', 'Puntaje Promedio / Éxito', 'Respondido por']],
+                body: questionStats.map((q: any, i: number) => [
+                    i + 1,
+                    q.prompt,
+                    q.type === 'RATING' ? `${q.avgValue} (1-5)` : `${q.successRate}%`,
+                    computeMode === 'PARTICIPANTS' ? q.respondedCount : `${q.respondedCount} / ${projectStudents.length}`
+                ]),
+                theme: 'grid',
+                headStyles: { fillColor: [139, 92, 246] }
+            });
+
+            // Individual Breakdown
+            autoTable(doc, {
+                startY: (doc as any).lastAutoTable.finalY + 15,
+                head: [['Estudiante', 'Email', 'Calificación', 'Estado']],
+                body: projectStudents.map(student => {
+                    const sub = submissions.find((s: any) => s.studentId === student.id);
+                    return [
+                        student.name || 'Sin nombre',
+                        student.email || 'Sin email',
+                        sub ? (sub.grade || 0).toString() : '0',
+                        sub ? 'Entregado' : 'Pendiente'
+                    ];
+                }),
+                theme: 'striped',
+                headStyles: { fillColor: [16, 185, 129] }
+            });
+
+            doc.save(`Analitica_${assignment.id}.pdf`);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const filteredSubmissions = useMemo(() => {
         return submissions.filter((s: any) =>
@@ -92,37 +175,70 @@ export function QuizAnalyticsModal({ assignment, onClose }: QuizAnalyticsModalPr
                             </div>
                             <h2 className="text-2xl font-black text-slate-800 tracking-tight">{assignment.title}</h2>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="p-3 hover:bg-white hover:shadow-md text-slate-400 hover:text-slate-600 rounded-2xl transition-all"
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleExportPDF}
+                                disabled={isExporting}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-emerald-100 transition-all disabled:opacity-50"
+                            >
+                                {isExporting ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Clock className="w-4 h-4 rotate-180" />}
+                                Descargar PDF
+                            </button>
+                            <button
+                                onClick={onClose}
+                                className="p-3 hover:bg-white hover:shadow-md text-slate-400 hover:text-slate-600 rounded-2xl transition-all"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex gap-4 mt-8">
-                        <button
-                            onClick={() => setActiveTab('GLOBAL')}
-                            className={cn(
-                                "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all text-sm",
-                                activeTab === 'GLOBAL'
-                                    ? "bg-blue-600 text-white shadow-xl shadow-blue-100 scale-105"
-                                    : "bg-white border border-slate-100 text-slate-500 hover:bg-slate-50"
-                            )}
-                        >
-                            <BarChart3 className="w-4 h-4" /> Rendimiento Global
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('STUDENTS')}
-                            className={cn(
-                                "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all text-sm",
-                                activeTab === 'STUDENTS'
-                                    ? "bg-blue-600 text-white shadow-xl shadow-blue-100 scale-105"
-                                    : "bg-white border border-slate-100 text-slate-500 hover:bg-slate-50"
-                            )}
-                        >
-                            <Users className="w-4 h-4" /> Desglose por Estudiante
-                        </button>
+                    <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 mt-8">
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setActiveTab('GLOBAL')}
+                                className={cn(
+                                    "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all text-sm",
+                                    activeTab === 'GLOBAL'
+                                        ? "bg-blue-600 text-white shadow-xl shadow-blue-100 scale-105"
+                                        : "bg-white border border-slate-100 text-slate-500 hover:bg-slate-50"
+                                )}
+                            >
+                                <BarChart3 className="w-4 h-4" /> Rendimiento Global
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('STUDENTS')}
+                                className={cn(
+                                    "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all text-sm",
+                                    activeTab === 'STUDENTS'
+                                        ? "bg-blue-600 text-white shadow-xl shadow-blue-100 scale-105"
+                                        : "bg-white border border-slate-100 text-slate-500 hover:bg-slate-50"
+                                )}
+                            >
+                                <Users className="w-4 h-4" /> Desglose por Estudiante
+                            </button>
+                        </div>
+
+                        <div className="bg-slate-100 p-1 rounded-xl flex items-center">
+                            <button
+                                onClick={() => setComputeMode('PARTICIPANTS')}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all",
+                                    computeMode === 'PARTICIPANTS' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"
+                                )}
+                            >
+                                Solo Participantes
+                            </button>
+                            <button
+                                onClick={() => setComputeMode('ALL')}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all",
+                                    computeMode === 'ALL' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"
+                                )}
+                            >
+                                Todos los Inscritos
+                            </button>
+                        </div>
                     </div>
                 </header>
 
