@@ -21,9 +21,8 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
 
     const submissions = useMemo(() => {
         const rawSubmissions = assignment.submissions || [];
-        // Only include submissions from students currently in the project
         return rawSubmissions.filter((s: any) =>
-            projectStudents.some(ps => ps.id === s.studentId)
+            projectStudents.some(ps => String(ps.id) === String(s.studentId || s.student?.id))
         );
     }, [assignment.submissions, projectStudents]);
 
@@ -33,22 +32,22 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
     const stats = useMemo(() => {
         const targetSubmissions = computeMode === 'PARTICIPANTS'
             ? submissions
-            : [
-                ...submissions,
-                ...projectStudents
-                    .filter(ps => !submissions.some((s: any) => String(s.studentId || s.student?.id) === String(ps.id)))
-                    .map(ps => ({ grade: 0, student: ps }))
-            ];
+            : projectStudents.map(ps => {
+                const sub = submissions.find((s: any) => String(s.studentId || s.student?.id) === String(ps.id));
+                // If student has no submission, we count them as 0 for "ALL" mode
+                return sub || { grade: 0, student: ps };
+            });
 
-        if (targetSubmissions.length === 0) return { avgGrade: '0.0', total: 0, maxScore: 0, effectiveness: '0' };
+        const totalCount = targetSubmissions.length;
+        if (totalCount === 0) return { avgGrade: '0.0', total: 0, maxScore: 0, effectiveness: '0' };
 
         const maxScore = questions.reduce((acc: number, q: any) => acc + (q.points || 1), 0);
-        const totalGrades = targetSubmissions.reduce((acc: number, s: any) => acc + (s.grade || 0), 0);
-        const avgNum = totalGrades / targetSubmissions.length;
+        const totalGrades = targetSubmissions.reduce((acc: number, s: any) => acc + (Number(s.grade) || 0), 0);
+        const avgNum = totalGrades / totalCount;
 
         return {
             avgGrade: avgNum.toFixed(1),
-            total: targetSubmissions.length,
+            total: totalCount,
             maxScore,
             effectiveness: maxScore > 0 ? ((avgNum / maxScore) * 100).toFixed(0) : '0'
         };
@@ -79,7 +78,7 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                 }
             });
 
-            // If computeMode is ALL, we consider non-respondents as failures (score 0)
+            // If computeMode is ALL, the divisor is the total project population
             const divisor = computeMode === 'PARTICIPANTS' ? respondedCount : projectStudents.length;
 
             let rate = 0;
