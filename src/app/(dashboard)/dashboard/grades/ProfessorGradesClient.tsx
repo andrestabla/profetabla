@@ -14,12 +14,17 @@ import {
     Save,
     X,
     Loader2,
-    Percent
+    Percent,
+    RotateCcw,
+    Edit3,
+    Trash2
 } from 'lucide-react';
 import NextImage from 'next/image';
 import { cn } from '@/lib/utils';
 import { updateAssignmentWeightsAction } from './actions';
+import { updateManualGradeAction, deleteSubmissionAction } from '@/app/actions/submission-actions';
 import StatusModal from '@/components/StatusModal';
+import { useModals } from '@/components/ModalProvider';
 import { calculateTotalQuizScore, QuizData } from '@/lib/quiz-utils';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -74,6 +79,8 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
     const [showWeightModal, setShowWeightModal] = useState(false);
     const [isSavingWeights, setIsSavingWeights] = useState(false);
     const [statusModal, setStatusModal] = useState<{ type: 'success' | 'error', title: string, message: string } | null>(null);
+    const [isProcessing, setIsProcessing] = useState<string | null>(null); // To track which submission is being updated/deleted
+    const { showAlert, showConfirm, showPrompt } = useModals();
 
     const project = useMemo(() => projects.find(p => p.id === selectedProjectId), [projects, selectedProjectId]);
 
@@ -121,6 +128,52 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
             s.email?.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [project, searchQuery]);
+
+    const handleResetSubmission = async (submissionId: string, studentName: string) => {
+        const confirmed = await showConfirm(
+            'Confirmar Reinicio',
+            `¿Estás seguro de que deseas eliminar la entrega de ${studentName}? El estudiante podrá realizar la actividad nuevamente.`,
+            'danger'
+        );
+
+        if (!confirmed) return;
+
+        setIsProcessing(submissionId);
+        const res = await deleteSubmissionAction(submissionId);
+        setIsProcessing(null);
+
+        if (res.success) {
+            showAlert('Éxito', 'La entrega ha sido eliminada y el intento ha sido reiniciado.');
+        } else {
+            showAlert('Error', res.error || 'No se pudo eliminar la entrega', 'error');
+        }
+    };
+
+    const handleEditGrade = async (submissionId: string, currentGrade: number | null, studentName: string) => {
+        const newGradeStr = await showPrompt(
+            `Modificar Calificación - ${studentName}`,
+            'Ingresa la nueva calificación numérica:',
+            currentGrade?.toString() || '0'
+        );
+
+        if (newGradeStr === null) return;
+
+        const newGrade = parseFloat(newGradeStr);
+        if (isNaN(newGrade)) {
+            showAlert('Error', 'Por favor ingresa un número válido.', 'error');
+            return;
+        }
+
+        setIsProcessing(submissionId);
+        const res = await updateManualGradeAction(submissionId, newGrade);
+        setIsProcessing(null);
+
+        if (res.success) {
+            showAlert('Éxito', 'Calificación actualizada correctamente.');
+        } else {
+            showAlert('Error', res.error || 'No se pudo actualizar la calificación', 'error');
+        }
+    };
 
     const calculateWeightedAverage = (studentId: string) => {
         if (!project) return '0.0';
@@ -534,13 +587,40 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
 
                                                     return (
                                                         <td key={a.id} className="px-6 py-4 text-center">
-                                                            {grade !== undefined && grade !== null ? (
-                                                                <span className="inline-block min-w-[40px] px-2 py-1 bg-blue-50 text-blue-700 text-sm font-black rounded-lg">
-                                                                    {grade}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-slate-300 font-bold">--</span>
-                                                            )}
+                                                            <div className="flex items-center justify-center gap-2 group/cell relative min-h-[40px]">
+                                                                {grade !== undefined && grade !== null ? (
+                                                                    <>
+                                                                        <span className="inline-block min-w-[40px] px-2 py-1 bg-blue-50 text-blue-700 text-sm font-black rounded-lg transition-all group-hover/cell:opacity-20">
+                                                                            {grade}
+                                                                        </span>
+
+                                                                        <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                                                                            {isProcessing === sub?.id ? (
+                                                                                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                                                            ) : (
+                                                                                <>
+                                                                                    <button
+                                                                                        onClick={() => handleEditGrade(sub!.id, grade, student.name || 'Estudiante')}
+                                                                                        title="Modificar Nota"
+                                                                                        className="p-1.5 bg-white border border-slate-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors shadow-sm"
+                                                                                    >
+                                                                                        <Edit3 className="w-3.5 h-3.5" />
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={() => handleResetSubmission(sub!.id, student.name || 'Estudiante')}
+                                                                                        title="Eliminar Intento (Reiniciar)"
+                                                                                        className="p-1.5 bg-white border border-slate-200 text-red-500 rounded-lg hover:bg-red-50 transition-colors shadow-sm"
+                                                                                    >
+                                                                                        <RotateCcw className="w-3.5 h-3.5" />
+                                                                                    </button>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="text-slate-300 font-bold">--</span>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     );
                                                 })}
