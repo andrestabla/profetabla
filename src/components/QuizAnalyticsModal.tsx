@@ -21,9 +21,21 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
 
     const submissions = useMemo(() => {
         const rawSubmissions = assignment.submissions || [];
-        return rawSubmissions.filter((s: any) =>
-            projectStudents.some(ps => String(ps.id) === String(s.studentId || s.student?.id))
-        );
+        const uniqueMap = new Map();
+
+        rawSubmissions.forEach((s: any) => {
+            const sid = String(s.studentId || s.student?.id);
+            // Only include if student is in the current roster
+            if (projectStudents.some(ps => String(ps.id) === sid)) {
+                const existing = uniqueMap.get(sid);
+                // Keep the latest submission if multiple exist
+                if (!existing || new Date(s.createdAt) > new Date(existing.createdAt)) {
+                    uniqueMap.set(sid, s);
+                }
+            }
+        });
+
+        return Array.from(uniqueMap.values());
     }, [assignment.submissions, projectStudents]);
 
     const questions = assignment.task?.quizData?.questions || [];
