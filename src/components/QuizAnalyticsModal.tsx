@@ -19,35 +19,48 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
     const [computeMode, setComputeMode] = useState<'PARTICIPANTS' | 'ALL'>('PARTICIPANTS');
     const [isExporting, setIsExporting] = useState(false);
 
-    const submissions = assignment.submissions || [];
+    const submissions = useMemo(() => {
+        const rawSubmissions = assignment.submissions || [];
+        // Only include submissions from students currently in the project
+        return rawSubmissions.filter((s: any) =>
+            projectStudents.some(ps => ps.id === s.studentId)
+        );
+    }, [assignment.submissions, projectStudents]);
+
     const questions = assignment.task?.quizData?.questions || [];
 
     // Global Statistics
     const stats = useMemo(() => {
         const targetSubmissions = computeMode === 'PARTICIPANTS'
             ? submissions
-            : [...submissions, ...projectStudents.filter(ps => !submissions.some((s: any) => s.studentId === ps.id)).map(ps => ({ grade: 0, student: ps }))];
+            : [
+                ...submissions,
+                ...projectStudents
+                    .filter(ps => !submissions.some((s: any) => s.studentId === ps.id))
+                    .map(ps => ({ grade: 0, student: ps }))
+            ];
 
         if (targetSubmissions.length === 0) return { avgGrade: 0, total: 0, maxScore: 0 };
 
         const maxScore = questions.reduce((acc: number, q: any) => acc + (q.points || 1), 0);
         const totalGrades = targetSubmissions.reduce((acc: number, s: any) => acc + (s.grade || 0), 0);
+        const avgNum = totalGrades / targetSubmissions.length;
 
         return {
-            avgGrade: (totalGrades / targetSubmissions.length).toFixed(1),
+            avgGrade: avgNum.toFixed(1),
             total: targetSubmissions.length,
-            maxScore
+            maxScore,
+            effectiveness: maxScore > 0 ? ((avgNum / maxScore) * 100).toFixed(0) : '0'
         };
     }, [submissions, questions, computeMode, projectStudents]);
 
-    // Question Performance (Always based on participants who actually answered?)
-    // Actually the user said "ajustar analítica de los cuestionarios", usually that implies the global stats.
-    // But let's apply computeMode logic here too if needed.
+    // Question Performance
     const questionStats = useMemo(() => {
         return questions.map((q: any) => {
             let correctCount = 0;
             let totalRating = 0;
             let respondedCount = 0;
+            const qualitativeAnswers: string[] = [];
 
             submissions.forEach((s: any) => {
                 const answer = s.answers?.[q.id];
@@ -57,6 +70,11 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                         totalRating += parseInt(answer);
                     } else if (answer === q.correctAnswer) {
                         correctCount++;
+                    }
+
+                    // Collect qualitative answers for text/open questions or unscored questions
+                    if (q.type === 'TEXT' || (q.points === 0 && q.type !== 'RATING')) {
+                        qualitativeAnswers.push(answer);
                     }
                 }
             });
@@ -78,7 +96,9 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                 correctCount,
                 avgValue: avgValue.toFixed(1),
                 successRate: rate.toFixed(0),
-                respondedCount
+                respondedCount,
+                qualitativeAnswers,
+                isQualitative: q.type === 'TEXT' || (q.points === 0 && q.type !== 'RATING')
             };
         });
     }, [questions, submissions, computeMode, projectStudents]);
@@ -109,7 +129,7 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                 body: [
                     ['Promedio de Notas', `${stats.avgGrade} / ${stats.maxScore}`],
                     ['Total Estudiantes Computados', stats.total.toString()],
-                    ['Efectividad Global', `${submissions.length > 0 ? (parseFloat(stats.avgGrade as string) / stats.maxScore * 100).toFixed(0) : 0}%`]
+                    ['Efectividad Global', `${stats.effectiveness}%`]
                 ],
                 theme: 'striped',
                 headStyles: { fillColor: [37, 99, 235] }
@@ -119,12 +139,19 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
             autoTable(doc, {
                 startY: (doc as any).lastAutoTable.finalY + 15,
                 head: [['#', 'Pregunta', 'Puntaje Promedio / Éxito', 'Respondido por']],
-                body: questionStats.map((q: any, i: number) => [
-                    i + 1,
-                    q.prompt,
-                    q.type === 'RATING' ? `${q.avgValue} (1-5)` : `${q.successRate}%`,
-                    computeMode === 'PARTICIPANTS' ? q.respondedCount : `${q.respondedCount} / ${projectStudents.length}`
-                ]),
+                body: questionStats.map((q: any, i: number) => {
+                    let metric = "";
+                    if (q.isQualitative) metric = "Cualitativa (Ver listado)";
+                    else if (q.type === 'RATING') metric = `${q.avgValue} (1-5)`;
+                    else metric = `${q.successRate}%`;
+
+                    return [
+                        i + 1,
+                        q.prompt,
+                        metric,
+                        computeMode === 'PARTICIPANTS' ? q.respondedCount : `${q.respondedCount} / ${projectStudents.length}`
+                    ];
+                }),
                 theme: 'grid',
                 headStyles: { fillColor: [139, 92, 246] }
             });
@@ -272,7 +299,7 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                                     <div>
                                         <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Efectividad</p>
                                         <p className="text-3xl font-black text-purple-700">
-                                            {submissions.length > 0 ? (parseFloat(stats.avgGrade as string) / stats.maxScore * 100).toFixed(0) : 0}%
+                                            {stats.effectiveness}%
                                         </p>
                                     </div>
                                 </div>
@@ -300,24 +327,39 @@ export function QuizAnalyticsModal({ assignment, projectStudents = [], onClose }
                                                     <div className="text-right">
                                                         <span className={cn(
                                                             "text-lg font-black",
-                                                            successRate >= 80 ? "text-emerald-500" : successRate >= 50 ? "text-blue-500" : "text-amber-500"
+                                                            q.isQualitative ? "text-indigo-500" : (successRate >= 80 ? "text-emerald-500" : successRate >= 50 ? "text-blue-500" : "text-amber-500")
                                                         )}>
-                                                            {q.type === 'RATING' ? q.avgValue : `${q.successRate}%`}
+                                                            {q.isQualitative ? 'Abierta' : (q.type === 'RATING' ? q.avgValue : `${q.successRate}%`)}
                                                         </span>
                                                         <p className="text-[9px] text-slate-400 font-bold uppercase">
-                                                            {q.type === 'RATING' ? 'Promedio' : 'Éxito'}
+                                                            {q.isQualitative ? 'Respuestas' : (q.type === 'RATING' ? 'Promedio' : 'Éxito')}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={cn(
-                                                            "h-full transition-all duration-1000",
-                                                            successRate >= 80 ? "bg-emerald-500" : successRate >= 50 ? "bg-blue-500" : "bg-amber-500"
+
+                                                {q.isQualitative ? (
+                                                    <div className="mt-2 space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                                                        {q.qualitativeAnswers.length > 0 ? (
+                                                            q.qualitativeAnswers.map((ans: string, idx: number) => (
+                                                                <div key={idx} className="p-2 bg-slate-50 rounded-lg border border-slate-100 text-[10px] text-slate-600 italic leading-relaxed">
+                                                                    &quot;{ans}&quot;
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <p className="text-[10px] text-slate-400 italic">Sin respuestas registradas.</p>
                                                         )}
-                                                        style={{ width: `${q.successRate}%` }}
-                                                    />
-                                                </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={cn(
+                                                                "h-full transition-all duration-1000",
+                                                                successRate >= 80 ? "bg-emerald-500" : successRate >= 50 ? "bg-blue-500" : "bg-amber-500"
+                                                            )}
+                                                            style={{ width: `${q.successRate}%` }}
+                                                        />
+                                                    </div>
+                                                )}
                                                 <div className="flex justify-between items-center mt-3">
                                                     <p className="text-[10px] text-slate-400 font-medium">
                                                         {q.type === 'RATING' ? 'Respondido por: ' : 'Correctas: '}
