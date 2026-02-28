@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { evaluateAndGrantRecognitionsForStudent } from '@/lib/recognitions';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,6 +69,14 @@ export async function POST(request: Request) {
 
         const activityMsg = type === 'QUIZ' ? 'Completó el cuestionario' : `Subió la entrega: "${fileName}"`;
         await logActivity(session.user.id, 'UPLOAD_SUBMISSION', activityMsg);
+
+        try {
+            await evaluateAndGrantRecognitionsForStudent(assignment.projectId, session.user.id, {
+                triggerSubmissionId: submission.id
+            });
+        } catch (recognitionError) {
+            console.error('Recognition awarding failed:', recognitionError);
+        }
 
         return NextResponse.json(submission);
     } catch (error) {

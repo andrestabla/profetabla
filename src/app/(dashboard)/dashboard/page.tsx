@@ -80,6 +80,31 @@ export default async function DashboardPage() {
             orderBy: { slot: { startTime: 'asc' } }
         });
 
+        const recognitionAwards = await prisma.recognitionAward.findMany({
+            where: {
+                studentId: user.id
+            },
+            include: {
+                recognitionConfig: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        type: true
+                    }
+                },
+                project: {
+                    select: {
+                        id: true,
+                        title: true,
+                        type: true
+                    }
+                }
+            },
+            orderBy: { awardedAt: 'desc' },
+            take: 24
+        });
+
         let citation = null;
         if (citations.length > 0) {
             const cit = citations[0] as any;
@@ -98,6 +123,7 @@ export default async function DashboardPage() {
                 projects={projectsWithAssignments}
                 citation={citation}
                 nextMentorship={nextMentorship}
+                recognitionAwards={recognitionAwards}
             />
         );
     }
@@ -209,4 +235,3 @@ export default async function DashboardPage() {
 
     return null;
 }
-

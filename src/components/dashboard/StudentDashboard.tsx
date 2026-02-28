@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ProgressBar } from '@/components/ProgressBar';
 import { TeamList } from '@/components/TeamList';
 import { UrgentCitationCard } from '@/components/UrgentCitationCard';
-import { Briefcase, Search, Kanban, ChevronRight, Clock, Target, ChevronDown, MessageSquare } from 'lucide-react';
+import { Briefcase, Search, Kanban, ChevronRight, Clock, Target, ChevronDown, MessageSquare, Award, Download, ShieldCheck } from 'lucide-react';
 import ProjectCommunications from '../ProjectCommunications';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -14,18 +14,50 @@ interface StudentDashboardProps {
     projects: any[]; // Changed from single project
     citation: any;
     nextMentorship: any;
+    recognitionAwards: any[];
 }
 
-export function StudentDashboard({ user, projects, citation, nextMentorship }: StudentDashboardProps) {
+export function StudentDashboard({ user, projects, citation, nextMentorship, recognitionAwards }: StudentDashboardProps) {
     const [selectedProjectId, setSelectedProjectId] = useState<string>(projects?.[0]?.id || '');
     const [showComms, setShowComms] = useState(false);
     const [initialRecipientId, setInitialRecipientId] = useState<string | undefined>(undefined);
+    const activeRecognitionAwards = (recognitionAwards || []).filter((award: any) => !award.isRevoked);
+    const revokedRecognitionAwards = (recognitionAwards || []).filter((award: any) => award.isRevoked);
 
     // Handle no projects case
     if (!projects || projects.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-[80vh] text-center p-6">
                 {citation && <div className="w-full max-w-2xl mb-8"><UrgentCitationCard citation={citation} /></div>}
+                {recognitionAwards?.length > 0 && (
+                    <div className="w-full max-w-2xl mb-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-left">
+                        <h3 className="font-black text-slate-900 flex items-center gap-2">
+                            <Award className="w-5 h-5 text-amber-500" /> Reconocimientos obtenidos
+                        </h3>
+                        <p className="text-sm text-slate-500 mt-1 mb-4">Aunque no tengas proyecto activo, tus insignias y certificados siguen disponibles.</p>
+                        <div className="space-y-3">
+                            {recognitionAwards.slice(0, 4).map((award: any) => (
+                                <div key={award.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                                    <div>
+                                        <p className="font-bold text-slate-800 text-sm">{award.recognitionConfig.name}</p>
+                                        <p className="text-xs text-slate-500">{award.project.title}</p>
+                                        {award.isRevoked && <p className="text-[11px] text-red-600 font-semibold mt-1">Revocado</p>}
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Link href={`/verify/recognition/${award.verificationCode}`} target="_blank" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                                            <ShieldCheck className="w-3.5 h-3.5" /> Verificar
+                                        </Link>
+                                        {!award.isRevoked && (
+                                            <a href={`/api/recognitions/${award.id}/certificate`} className="text-xs font-bold text-slate-700 hover:underline flex items-center gap-1">
+                                                <Download className="w-3.5 h-3.5" /> PDF
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
                 <div className="bg-slate-100 p-6 rounded-full mb-6">
                     <Briefcase className="w-12 h-12 text-slate-400" />
                 </div>
@@ -241,6 +273,47 @@ export function StudentDashboard({ user, projects, citation, nextMentorship }: S
                         >
                             Gestionar Equipos
                         </Link>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <Award className="w-5 h-5 text-amber-500" /> Mis reconocimientos
+                        </h3>
+                        {recognitionAwards?.length > 0 ? (
+                            <div className="space-y-3">
+                                {recognitionAwards.slice(0, 6).map((award: any) => (
+                                    <div key={award.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                        <p className="font-bold text-slate-800 text-sm line-clamp-1">{award.recognitionConfig.name}</p>
+                                        <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{award.project.title}</p>
+                                        <p className="text-[10px] text-slate-400 mt-1">
+                                            {new Date(award.awardedAt).toLocaleDateString()}
+                                        </p>
+                                        {award.isRevoked && (
+                                            <p className="text-[11px] text-red-600 font-semibold mt-1">
+                                                Revocado{award.revokedReason ? `: ${award.revokedReason}` : ''}
+                                            </p>
+                                        )}
+                                        <div className="mt-2 flex items-center gap-3">
+                                            <Link href={`/verify/recognition/${award.verificationCode}`} target="_blank" className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1">
+                                                <ShieldCheck className="w-3.5 h-3.5" /> Verificar
+                                            </Link>
+                                            {!award.isRevoked && (
+                                                <a href={`/api/recognitions/${award.id}/certificate`} className="text-[11px] font-bold text-slate-700 hover:underline flex items-center gap-1">
+                                                    <Download className="w-3.5 h-3.5" /> Descargar PDF
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                                {revokedRecognitionAwards.length > 0 && (
+                                    <p className="text-[11px] text-slate-500 pt-1">
+                                        Activos: {activeRecognitionAwards.length} · Revocados: {revokedRecognitionAwards.length}
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-slate-500">Aún no tienes insignias o certificados otorgados.</p>
+                        )}
                     </div>
                 </div>
             </div>

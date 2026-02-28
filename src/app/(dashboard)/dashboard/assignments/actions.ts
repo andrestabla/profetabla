@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { uploadFileToR2, getPresignedPutUrl } from '@/lib/r2';
+import { evaluateAndGrantRecognitionsForStudent } from '@/lib/recognitions';
 
 export async function getUploadUrlAction(fileName: string, fileType: string) {
     const session = await getServerSession(authOptions);
@@ -105,8 +106,8 @@ export async function submitAssignmentAction(formData: FormData) {
 
         // Save to DB
         console.log('Saving submission to DB...');
-        await prisma.$transaction([
-            prisma.submission.create({
+        const createdSubmission = await prisma.$transaction(async (tx) => {
+            const submission = await tx.submission.create({
                 data: {
                     assignmentId,
                     studentId: session.user.id,
@@ -115,21 +116,28 @@ export async function submitAssignmentAction(formData: FormData) {
                     fileType,
                     fileSize
                 }
-            }),
-            // Auto-move task to SUBMITTED
-            ...(assignment.task ? [
-                prisma.task.update({
+            });
+
+            if (assignment.task) {
+                await tx.task.update({
                     where: { id: assignment.task.id },
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     data: { status: 'SUBMITTED' as any }
-                })
-            ] : [])
-        ]);
+                });
+            }
+
+            return submission;
+        });
+
+        await evaluateAndGrantRecognitionsForStudent(assignment.projectId, session.user.id, {
+            triggerSubmissionId: createdSubmission.id
+        });
         console.log('DB Transaction complete');
 
         revalidatePath('/dashboard/assignments');
         revalidatePath('/dashboard/kanban');
         revalidatePath('/dashboard/grades');
+        revalidatePath(`/dashboard/professor/projects/${assignment.projectId}`);
         return { success: true };
 
     } catch (e: unknown) {

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { evaluateAndGrantRecognitionsForStudent } from '@/lib/recognitions';
 
 export async function saveRubricAction(assignmentId: string, items: { criterion: string; maxPoints: number; order: number; id?: string }[]) {
     const session = await getServerSession(authOptions);
@@ -116,6 +117,8 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
             }
 
             return {
+                studentId: submission.studentId,
+                projectId: submission.assignment.projectId,
                 email: submission.student.email,
                 name: submission.student.name,
                 taskTitle: submission.assignment.task?.title || submission.assignment.title,
@@ -163,9 +166,14 @@ export async function gradeSubmissionAction(submissionId: string, scores: { rubr
             }
         }
 
+        await evaluateAndGrantRecognitionsForStudent(result.projectId, result.studentId, {
+            triggerSubmissionId: submissionId
+        });
+
         revalidatePath('/dashboard/assignments');
         revalidatePath('/dashboard/kanban');
         revalidatePath('/dashboard/grades');
+        revalidatePath(`/dashboard/professor/projects/${result.projectId}`);
         return { success: true };
     } catch (e: unknown) {
         console.error("Error grading submission:", e);

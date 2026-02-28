@@ -3,9 +3,21 @@
 
 import { useState } from 'react';
 import { KanbanBoard } from '@/components/KanbanBoard';
-import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search, AlertTriangle, MessageSquare } from 'lucide-react';
+import { BookOpen, Video, FileText, Plus, Link as LinkIcon, Calendar, Kanban, Sparkles, FileCheck, Edit3, Cloud, Upload, X, Play, Maximize2, Wand2, Users, Search, AlertTriangle, MessageSquare, Award, BadgeCheck, Ban, Download, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
-import { addResourceToProjectAction, getProjectDriveFilesAction, uploadProjectFileToDriveAction, uploadProjectFileToR2Action, extractResourceMetadataAction, updateProjectResourceAction, initializeProjectDriveFolderAction } from './actions';
+import {
+    addResourceToProjectAction,
+    getProjectDriveFilesAction,
+    uploadProjectFileToDriveAction,
+    uploadProjectFileToR2Action,
+    extractResourceMetadataAction,
+    updateProjectResourceAction,
+    initializeProjectDriveFolderAction,
+    upsertRecognitionConfigAction,
+    deleteRecognitionConfigAction,
+    recomputeRecognitionsAction,
+    revokeRecognitionAwardAction
+} from './actions';
 import { searchStudentsAction, addStudentToProjectAction, removeStudentFromProjectAction, searchTeachersAction, addTeacherToProjectAction, removeTeacherFromProjectAction } from '@/app/actions/project-enrollment';
 import { BookingList } from '@/components/BookingList';
 import { CreateAssignmentForm } from '@/components/CreateAssignmentForm';
@@ -52,12 +64,60 @@ type Project = {
     accessCode?: string;
 };
 
+type RecognitionConfig = {
+    id: string;
+    type: 'CERTIFICATE' | 'BADGE';
+    name: string;
+    description?: string | null;
+    templateBody?: string | null;
+    imageUrl?: string | null;
+    logoUrl?: string | null;
+    backgroundUrl?: string | null;
+    signatureImageUrl?: string | null;
+    signatureName?: string | null;
+    signatureRole?: string | null;
+    autoAward: boolean;
+    requireAllAssignments: boolean;
+    requireAllGradedAssignments: boolean;
+    minCompletedAssignments?: number | null;
+    minGradedAssignments?: number | null;
+    minAverageGrade?: number | null;
+    isActive: boolean;
+    createdAt: Date | string;
+    _count?: { awards: number };
+    awards: {
+        id: string;
+        verificationCode: string;
+        awardedAt: Date | string;
+        isRevoked: boolean;
+        revokedAt?: Date | string | null;
+        revokedReason?: string | null;
+        student: {
+            id: string;
+            name: string | null;
+            email: string | null;
+        };
+    }[];
+};
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export default function ProjectWorkspaceClient({ project, resources, learningObjects, assignments }: { project: Project, resources: Resource[], learningObjects: any[], assignments: any[] }) {
+export default function ProjectWorkspaceClient({
+    project,
+    resources,
+    learningObjects,
+    assignments,
+    recognitionConfigs
+}: {
+    project: Project,
+    resources: Resource[],
+    learningObjects: any[],
+    assignments: any[],
+    recognitionConfigs: RecognitionConfig[]
+}) {
     // ... (existing state) ...
     const { showAlert, showConfirm } = useModals();
     const { data: session } = useSession();
-    const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP' | 'ASSIGNMENTS' | 'TEAM' | 'COMMS'>('RESOURCES');
+    const [activeTab, setActiveTab] = useState<'KANBAN' | 'RESOURCES' | 'MENTORSHIP' | 'ASSIGNMENTS' | 'TEAM' | 'COMMS' | 'RECOGNITIONS'>('RESOURCES');
     const [isUploading, setIsUploading] = useState(false);
     // const [showContext, setShowContext] = useState(false);
     const [resourceType, setResourceType] = useState('ARTICLE');
@@ -169,6 +229,180 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
 
     // Filter State
     const [filterStudentId, setFilterStudentId] = useState('ALL');
+
+    // Recognition form state
+    const [editingRecognitionId, setEditingRecognitionId] = useState<string | null>(null);
+    const [recognitionType, setRecognitionType] = useState<'CERTIFICATE' | 'BADGE'>('BADGE');
+    const [recognitionName, setRecognitionName] = useState('');
+    const [recognitionDescription, setRecognitionDescription] = useState('');
+    const [recognitionTemplateBody, setRecognitionTemplateBody] = useState('');
+    const [recognitionImageUrl, setRecognitionImageUrl] = useState('');
+    const [recognitionLogoUrl, setRecognitionLogoUrl] = useState('');
+    const [recognitionBackgroundUrl, setRecognitionBackgroundUrl] = useState('');
+    const [recognitionSignatureImageUrl, setRecognitionSignatureImageUrl] = useState('');
+    const [recognitionSignatureName, setRecognitionSignatureName] = useState('');
+    const [recognitionSignatureRole, setRecognitionSignatureRole] = useState('');
+    const [recognitionRequireAllAssignments, setRecognitionRequireAllAssignments] = useState(true);
+    const [recognitionRequireAllGraded, setRecognitionRequireAllGraded] = useState(false);
+    const [recognitionMinCompleted, setRecognitionMinCompleted] = useState('');
+    const [recognitionMinGraded, setRecognitionMinGraded] = useState('');
+    const [recognitionMinAverageGrade, setRecognitionMinAverageGrade] = useState('');
+    const [recognitionAutoAward, setRecognitionAutoAward] = useState(true);
+    const [recognitionIsActive, setRecognitionIsActive] = useState(true);
+    const [isSavingRecognition, setIsSavingRecognition] = useState(false);
+    const [isRecomputingRecognitions, setIsRecomputingRecognitions] = useState(false);
+    const [revokingAwardId, setRevokingAwardId] = useState<string | null>(null);
+
+    const resetRecognitionForm = () => {
+        setEditingRecognitionId(null);
+        setRecognitionType('BADGE');
+        setRecognitionName('');
+        setRecognitionDescription('');
+        setRecognitionTemplateBody('');
+        setRecognitionImageUrl('');
+        setRecognitionLogoUrl('');
+        setRecognitionBackgroundUrl('');
+        setRecognitionSignatureImageUrl('');
+        setRecognitionSignatureName('');
+        setRecognitionSignatureRole('');
+        setRecognitionRequireAllAssignments(true);
+        setRecognitionRequireAllGraded(false);
+        setRecognitionMinCompleted('');
+        setRecognitionMinGraded('');
+        setRecognitionMinAverageGrade('');
+        setRecognitionAutoAward(true);
+        setRecognitionIsActive(true);
+    };
+
+    const handleEditRecognitionConfig = (config: RecognitionConfig) => {
+        setEditingRecognitionId(config.id);
+        setRecognitionType(config.type);
+        setRecognitionName(config.name || '');
+        setRecognitionDescription(config.description || '');
+        setRecognitionTemplateBody(config.templateBody || '');
+        setRecognitionImageUrl(config.imageUrl || '');
+        setRecognitionLogoUrl(config.logoUrl || '');
+        setRecognitionBackgroundUrl(config.backgroundUrl || '');
+        setRecognitionSignatureImageUrl(config.signatureImageUrl || '');
+        setRecognitionSignatureName(config.signatureName || '');
+        setRecognitionSignatureRole(config.signatureRole || '');
+        setRecognitionRequireAllAssignments(Boolean(config.requireAllAssignments));
+        setRecognitionRequireAllGraded(Boolean(config.requireAllGradedAssignments));
+        setRecognitionMinCompleted(config.minCompletedAssignments != null ? String(config.minCompletedAssignments) : '');
+        setRecognitionMinGraded(config.minGradedAssignments != null ? String(config.minGradedAssignments) : '');
+        setRecognitionMinAverageGrade(config.minAverageGrade != null ? String(config.minAverageGrade) : '');
+        setRecognitionAutoAward(Boolean(config.autoAward));
+        setRecognitionIsActive(Boolean(config.isActive));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleSaveRecognitionConfig = async () => {
+        if (!recognitionName.trim()) {
+            await showAlert('Dato faltante', 'Debes indicar un nombre para la insignia o certificado.', 'error');
+            return;
+        }
+
+        setIsSavingRecognition(true);
+        try {
+            const payload = new FormData();
+            payload.append('projectId', project.id);
+            if (editingRecognitionId) payload.append('configId', editingRecognitionId);
+            payload.append('type', recognitionType);
+            payload.append('name', recognitionName.trim());
+            payload.append('description', recognitionDescription.trim());
+            payload.append('templateBody', recognitionTemplateBody.trim());
+            payload.append('imageUrl', recognitionImageUrl.trim());
+            payload.append('logoUrl', recognitionLogoUrl.trim());
+            payload.append('backgroundUrl', recognitionBackgroundUrl.trim());
+            payload.append('signatureImageUrl', recognitionSignatureImageUrl.trim());
+            payload.append('signatureName', recognitionSignatureName.trim());
+            payload.append('signatureRole', recognitionSignatureRole.trim());
+            payload.append('requireAllAssignments', recognitionRequireAllAssignments ? 'true' : 'false');
+            payload.append('requireAllGradedAssignments', recognitionRequireAllGraded ? 'true' : 'false');
+            payload.append('minCompletedAssignments', recognitionMinCompleted.trim());
+            payload.append('minGradedAssignments', recognitionMinGraded.trim());
+            payload.append('minAverageGrade', recognitionMinAverageGrade.trim());
+            payload.append('autoAward', recognitionAutoAward ? 'true' : 'false');
+            payload.append('isActive', recognitionIsActive ? 'true' : 'false');
+
+            const result = await upsertRecognitionConfigAction(payload);
+            if (!result.success) {
+                await showAlert('No se pudo guardar', result.error || 'Error guardando configuración.', 'error');
+                return;
+            }
+
+            await showAlert('Guardado', 'Configuración de reconocimiento actualizada.', 'success');
+            window.location.reload();
+        } finally {
+            setIsSavingRecognition(false);
+        }
+    };
+
+    const handleDeleteRecognitionConfig = async (configId: string) => {
+        const confirmed = await showConfirm(
+            'Eliminar reconocimiento',
+            'Esta acción eliminará la configuración y sus otorgamientos asociados.',
+            'danger'
+        );
+        if (!confirmed) return;
+
+        const result = await deleteRecognitionConfigAction(project.id, configId);
+        if (!result.success) {
+            await showAlert('No se pudo eliminar', result.error || 'Error eliminando configuración.', 'error');
+            return;
+        }
+
+        await showAlert('Eliminado', 'Configuración eliminada correctamente.', 'success');
+        window.location.reload();
+    };
+
+    const handleRevokeAward = async (award: RecognitionConfig['awards'][number]) => {
+        const studentLabel = award.student.name || award.student.email || 'este estudiante';
+        const confirmed = await showConfirm(
+            'Revocar reconocimiento',
+            `Se invalidará el certificado/insignia de ${studentLabel}. ¿Deseas continuar?`,
+            'danger'
+        );
+        if (!confirmed) return;
+
+        const reason = window.prompt('Motivo de revocación (opcional):', '') || '';
+
+        setRevokingAwardId(award.id);
+        try {
+            const result = await revokeRecognitionAwardAction(project.id, award.id, reason);
+            if (!result.success) {
+                await showAlert('No se pudo revocar', result.error || 'Error revocando reconocimiento.', 'error');
+                return;
+            }
+
+            await showAlert('Revocado', 'El reconocimiento fue invalidado correctamente.', 'success');
+            window.location.reload();
+        } finally {
+            setRevokingAwardId(null);
+        }
+    };
+
+    const handleRecomputeRecognitions = async () => {
+        setIsRecomputingRecognitions(true);
+        try {
+            const result = await recomputeRecognitionsAction(project.id);
+            if (!result.success) {
+                await showAlert('No se pudo recalcular', result.error || 'Error recalculando.', 'error');
+                return;
+            }
+
+            const studentCount = 'studentCount' in result ? result.studentCount : 0;
+            const createdAwards = 'createdAwards' in result ? result.createdAwards : 0;
+            await showAlert(
+                'Recalculado',
+                `Se evaluaron ${studentCount} estudiantes y se generaron ${createdAwards} reconocimientos.`,
+                'success'
+            );
+            window.location.reload();
+        } finally {
+            setIsRecomputingRecognitions(false);
+        }
+    };
 
     // Fetch drive files if configured
     const handleFetchDriveFiles = async () => {
@@ -321,6 +555,9 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                         </button>
                         <button onClick={() => setActiveTab('ASSIGNMENTS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm shrink-0 ${activeTab === 'ASSIGNMENTS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <FileCheck className="w-4 h-4" /> Entregables
+                        </button>
+                        <button onClick={() => setActiveTab('RECOGNITIONS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm shrink-0 ${activeTab === 'RECOGNITIONS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <Award className="w-4 h-4" /> Certificados & Insignias
                         </button>
                         <button onClick={() => setActiveTab('COMMS')} className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm shrink-0 ${activeTab === 'COMMS' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                             <MessageSquare className="w-4 h-4" /> Comunicaciones
@@ -1024,6 +1261,348 @@ export default function ProjectWorkspaceClient({ project, resources, learningObj
                                     );
                                 })}
                             </div>
+                        </div>
+                    </div>
+                )
+            }
+            {
+                activeTab === 'RECOGNITIONS' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">
+                        <div className="lg:col-span-1 space-y-6">
+                            <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+                                <div>
+                                    <h3 className="text-lg font-black text-slate-900">
+                                        {editingRecognitionId ? 'Editar reconocimiento' : 'Nuevo reconocimiento'}
+                                    </h3>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                        Configura certificados o insignias con reglas automáticas según entregas y notas.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Tipo</label>
+                                    <select
+                                        value={recognitionType}
+                                        onChange={(e) => setRecognitionType(e.target.value as 'CERTIFICATE' | 'BADGE')}
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    >
+                                        <option value="BADGE">Insignia</option>
+                                        <option value="CERTIFICATE">Certificado</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Nombre</label>
+                                    <input
+                                        value={recognitionName}
+                                        onChange={(e) => setRecognitionName(e.target.value)}
+                                        placeholder="Ej: Insignia de excelencia"
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    />
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Descripción</label>
+                                    <textarea
+                                        value={recognitionDescription}
+                                        onChange={(e) => setRecognitionDescription(e.target.value)}
+                                        rows={3}
+                                        placeholder="Texto visible para el estudiante"
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    />
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Imagen (opcional)</label>
+                                    <input
+                                        value={recognitionImageUrl}
+                                        onChange={(e) => setRecognitionImageUrl(e.target.value)}
+                                        placeholder="https://..."
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    />
+                                </div>
+
+                                <div className="space-y-3 pt-2 border-t border-slate-100">
+                                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Plantilla visual avanzada</h4>
+                                    <input
+                                        value={recognitionLogoUrl}
+                                        onChange={(e) => setRecognitionLogoUrl(e.target.value)}
+                                        placeholder="URL logo (opcional)"
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    />
+                                    <input
+                                        value={recognitionBackgroundUrl}
+                                        onChange={(e) => setRecognitionBackgroundUrl(e.target.value)}
+                                        placeholder="URL fondo del certificado (opcional)"
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    />
+                                    <input
+                                        value={recognitionSignatureImageUrl}
+                                        onChange={(e) => setRecognitionSignatureImageUrl(e.target.value)}
+                                        placeholder="URL imagen firma (opcional)"
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input
+                                            value={recognitionSignatureName}
+                                            onChange={(e) => setRecognitionSignatureName(e.target.value)}
+                                            placeholder="Nombre firma"
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                        />
+                                        <input
+                                            value={recognitionSignatureRole}
+                                            onChange={(e) => setRecognitionSignatureRole(e.target.value)}
+                                            placeholder="Cargo firma"
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Plantilla / texto base</label>
+                                    <textarea
+                                        value={recognitionTemplateBody}
+                                        onChange={(e) => setRecognitionTemplateBody(e.target.value)}
+                                        rows={4}
+                                        placeholder="Contenido personalizado del certificado o de la insignia"
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    />
+                                </div>
+
+                                <div className="space-y-3 pt-2 border-t border-slate-100">
+                                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Condiciones de obtención</h4>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <label className="flex items-center gap-2 text-sm text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={recognitionRequireAllAssignments}
+                                                onChange={(e) => setRecognitionRequireAllAssignments(e.target.checked)}
+                                                className="rounded border-slate-300"
+                                            />
+                                            Requiere todas las entregas
+                                        </label>
+                                        <label className="flex items-center gap-2 text-sm text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={recognitionRequireAllGraded}
+                                                onChange={(e) => setRecognitionRequireAllGraded(e.target.checked)}
+                                                className="rounded border-slate-300"
+                                            />
+                                            Requiere todas las entregas calificadas
+                                        </label>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <input
+                                            value={recognitionMinCompleted}
+                                            onChange={(e) => setRecognitionMinCompleted(e.target.value)}
+                                            type="number"
+                                            min={0}
+                                            placeholder="Mín. entregas"
+                                            className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                        />
+                                        <input
+                                            value={recognitionMinGraded}
+                                            onChange={(e) => setRecognitionMinGraded(e.target.value)}
+                                            type="number"
+                                            min={0}
+                                            placeholder="Mín. calificadas"
+                                            className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                        />
+                                        <input
+                                            value={recognitionMinAverageGrade}
+                                            onChange={(e) => setRecognitionMinAverageGrade(e.target.value)}
+                                            type="number"
+                                            min={0}
+                                            step="0.1"
+                                            placeholder="Nota mínima"
+                                            className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={recognitionAutoAward}
+                                            onChange={(e) => setRecognitionAutoAward(e.target.checked)}
+                                            className="rounded border-slate-300"
+                                        />
+                                        Otorgar automáticamente
+                                    </label>
+                                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={recognitionIsActive}
+                                            onChange={(e) => setRecognitionIsActive(e.target.checked)}
+                                            className="rounded border-slate-300"
+                                        />
+                                        Configuración activa
+                                    </label>
+                                </div>
+
+                                <div className="flex items-center gap-3 pt-2">
+                                    <button
+                                        onClick={handleSaveRecognitionConfig}
+                                        disabled={isSavingRecognition}
+                                        className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 text-sm transition disabled:opacity-60"
+                                    >
+                                        {isSavingRecognition ? 'Guardando...' : (editingRecognitionId ? 'Actualizar' : 'Crear reconocimiento')}
+                                    </button>
+                                    <button
+                                        onClick={resetRecognitionForm}
+                                        className="rounded-xl border border-slate-200 text-slate-700 font-bold px-4 py-2.5 text-sm hover:bg-slate-50 transition"
+                                    >
+                                        Limpiar
+                                    </button>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div className="lg:col-span-2 space-y-6">
+                            <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                    <div>
+                                        <h3 className="text-lg font-black text-slate-900">Reconocimientos configurados</h3>
+                                        <p className="text-sm text-slate-500">
+                                            Estos reconocimientos se vinculan automáticamente a las entregas y calificaciones del proyecto.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleRecomputeRecognitions}
+                                        disabled={isRecomputingRecognitions}
+                                        className="rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-4 py-2 text-sm hover:bg-emerald-100 transition disabled:opacity-60"
+                                    >
+                                        {isRecomputingRecognitions ? 'Recalculando...' : 'Recalcular otorgamientos'}
+                                    </button>
+                                </div>
+                            </section>
+
+                            {recognitionConfigs.length === 0 ? (
+                                <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                                    <p className="text-slate-500 font-medium">Aún no hay certificados o insignias configurados.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {recognitionConfigs.map((config) => (
+                                        <article key={config.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className={`text-[10px] uppercase tracking-wider font-black px-2 py-1 rounded-lg ${config.type === 'CERTIFICATE' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                            {config.type === 'CERTIFICATE' ? 'Certificado' : 'Insignia'}
+                                                        </span>
+                                                        {!config.isActive && (
+                                                            <span className="text-[10px] uppercase tracking-wider font-black px-2 py-1 rounded-lg bg-slate-200 text-slate-600">
+                                                                Inactivo
+                                                            </span>
+                                                        )}
+                                                        {config.autoAward && (
+                                                            <span className="text-[10px] uppercase tracking-wider font-black px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700">
+                                                                Auto
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <h4 className="text-lg font-black text-slate-900">{config.name}</h4>
+                                                    {config.description && (
+                                                        <p className="text-sm text-slate-600">{config.description}</p>
+                                                    )}
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {config.requireAllAssignments && (
+                                                            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">Todas las entregas</span>
+                                                        )}
+                                                        {config.requireAllGradedAssignments && (
+                                                            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">Todas calificadas</span>
+                                                        )}
+                                                        {config.minCompletedAssignments != null && (
+                                                            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">Min entregas: {config.minCompletedAssignments}</span>
+                                                        )}
+                                                        {config.minGradedAssignments != null && (
+                                                            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">Min calificadas: {config.minGradedAssignments}</span>
+                                                        )}
+                                                        {config.minAverageGrade != null && (
+                                                            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">Nota mínima: {Number(config.minAverageGrade).toFixed(1)}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleEditRecognitionConfig(config)}
+                                                        className="px-3 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-bold"
+                                                    >
+                                                        Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteRecognitionConfig(config.id)}
+                                                        className="px-3 py-2 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 text-sm font-bold"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-4 pt-4 border-t border-slate-100">
+                                                <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                                    <BadgeCheck className="w-4 h-4 text-emerald-600" />
+                                                    Otorgados: {config._count?.awards || 0}
+                                                </p>
+                                                {config.awards.length > 0 ? (
+                                                    <div className="mt-3 space-y-2">
+                                                        {config.awards.slice(0, 5).map((award) => (
+                                                            <div key={award.id} className={`text-xs rounded-lg px-3 py-2 border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 ${award.isRevoked ? 'bg-red-50 border-red-200 text-red-800' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                                                                <div className="min-w-0">
+                                                                    <span className="truncate font-semibold">{award.student.name || award.student.email || 'Estudiante'}</span>
+                                                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                                        <span className="text-slate-400 whitespace-nowrap">{new Date(award.awardedAt).toLocaleDateString()}</span>
+                                                                        {award.isRevoked && (
+                                                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                                                                                <Ban className="w-3 h-3" /> Revocado
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    {award.isRevoked && award.revokedReason && (
+                                                                        <p className="text-[11px] mt-1 text-red-700 break-words">Motivo: {award.revokedReason}</p>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-2 shrink-0">
+                                                                    <Link
+                                                                        href={`/verify/recognition/${award.verificationCode}`}
+                                                                        target="_blank"
+                                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50 font-bold"
+                                                                    >
+                                                                        <ShieldCheck className="w-3 h-3" /> Verificar
+                                                                    </Link>
+                                                                    {!award.isRevoked && (
+                                                                        <>
+                                                                            <a
+                                                                                href={`/api/recognitions/${award.id}/certificate`}
+                                                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold"
+                                                                            >
+                                                                                <Download className="w-3 h-3" /> PDF
+                                                                            </a>
+                                                                            <button
+                                                                                onClick={() => handleRevokeAward(award)}
+                                                                                disabled={revokingAwardId === award.id}
+                                                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-red-200 text-red-700 hover:bg-red-50 font-bold disabled:opacity-60"
+                                                                            >
+                                                                                <Ban className="w-3 h-3" /> {revokingAwardId === award.id ? 'Revocando...' : 'Revocar'}
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="mt-2 text-xs text-slate-500">Aún no hay estudiantes con este reconocimiento.</p>
+                                                )}
+                                            </div>
+                                        </article>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )

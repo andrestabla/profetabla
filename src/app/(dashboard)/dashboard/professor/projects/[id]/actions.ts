@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { listProjectFiles, uploadFileToDrive } from '@/lib/google-drive';
 import { Readable } from 'stream';
+import { recomputeRecognitionsForProject } from '@/lib/recognitions';
 
 export async function addResourceToProjectAction(formData: FormData) {
     try {
@@ -420,5 +421,243 @@ export async function initializeProjectDriveFolderAction(projectId: string) {
     } catch (error) {
         console.error('Error in initializeProjectDriveFolderAction:', error);
         return { success: false, error: 'Error desconocido al inicializar carpeta' };
+    }
+}
+
+function parseOptionalInt(value: FormDataEntryValue | null): number | null {
+    if (!value) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const parsed = parseInt(raw, 10);
+    if (Number.isNaN(parsed)) return null;
+    return parsed;
+}
+
+function parseOptionalFloat(value: FormDataEntryValue | null): number | null {
+    if (!value) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const parsed = parseFloat(raw);
+    if (Number.isNaN(parsed)) return null;
+    return parsed;
+}
+
+async function canManageProject(sessionUserId: string, role: string, projectId: string): Promise<boolean> {
+    if (role === 'ADMIN') return true;
+
+    const ownedProject = await prisma.project.findFirst({
+        where: {
+            id: projectId,
+            teachers: {
+                some: { id: sessionUserId }
+            }
+        },
+        select: { id: true }
+    });
+
+    return Boolean(ownedProject);
+}
+
+export async function upsertRecognitionConfigAction(formData: FormData) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) {
+            return { success: false, error: 'No autorizado' };
+        }
+
+        const projectId = String(formData.get('projectId') || '');
+        const configId = String(formData.get('configId') || '');
+        const type = String(formData.get('type') || 'BADGE') as 'BADGE' | 'CERTIFICATE';
+        const name = String(formData.get('name') || '').trim();
+        const description = String(formData.get('description') || '').trim() || null;
+        const templateBody = String(formData.get('templateBody') || '').trim() || null;
+        const imageUrl = String(formData.get('imageUrl') || '').trim() || null;
+        const logoUrl = String(formData.get('logoUrl') || '').trim() || null;
+        const backgroundUrl = String(formData.get('backgroundUrl') || '').trim() || null;
+        const signatureImageUrl = String(formData.get('signatureImageUrl') || '').trim() || null;
+        const signatureName = String(formData.get('signatureName') || '').trim() || null;
+        const signatureRole = String(formData.get('signatureRole') || '').trim() || null;
+
+        const autoAward = String(formData.get('autoAward') || 'true') === 'true';
+        const isActive = String(formData.get('isActive') || 'true') === 'true';
+        const requireAllAssignments = String(formData.get('requireAllAssignments') || 'false') === 'true';
+        const requireAllGradedAssignments = String(formData.get('requireAllGradedAssignments') || 'false') === 'true';
+        const minCompletedAssignments = parseOptionalInt(formData.get('minCompletedAssignments'));
+        const minGradedAssignments = parseOptionalInt(formData.get('minGradedAssignments'));
+        const minAverageGrade = parseOptionalFloat(formData.get('minAverageGrade'));
+
+        if (!projectId || !name) {
+            return { success: false, error: 'Faltan datos requeridos' };
+        }
+
+        if (!(await canManageProject(session.user.id, session.user.role, projectId))) {
+            return { success: false, error: 'No tienes permisos sobre este proyecto' };
+        }
+
+        const hasAnyCondition = Boolean(
+            requireAllAssignments ||
+            requireAllGradedAssignments ||
+            minCompletedAssignments !== null ||
+            minGradedAssignments !== null ||
+            minAverageGrade !== null
+        );
+
+        if (!hasAnyCondition) {
+            return { success: false, error: 'Define al menos una condición para otorgar el reconocimiento' };
+        }
+
+        if (minAverageGrade !== null && minAverageGrade < 0) {
+            return { success: false, error: 'La nota mínima no puede ser negativa' };
+        }
+
+        const payload = {
+            type,
+            name,
+            description,
+            templateBody,
+            imageUrl,
+            logoUrl,
+            backgroundUrl,
+            signatureImageUrl,
+            signatureName,
+            signatureRole,
+            autoAward,
+            isActive,
+            requireAllAssignments,
+            requireAllGradedAssignments,
+            minCompletedAssignments,
+            minGradedAssignments,
+            minAverageGrade
+        };
+
+        if (configId) {
+            const config = await prisma.recognitionConfig.findFirst({
+                where: { id: configId, projectId },
+                select: { id: true }
+            });
+            if (!config) {
+                return { success: false, error: 'Configuración no encontrada' };
+            }
+
+            await prisma.recognitionConfig.update({
+                where: { id: configId },
+                data: payload
+            });
+        } else {
+            await prisma.recognitionConfig.create({
+                data: {
+                    projectId,
+                    ...payload
+                }
+            });
+        }
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        revalidatePath('/dashboard/grades');
+        return { success: true };
+    } catch (error) {
+        console.error('Error in upsertRecognitionConfigAction:', error);
+        return { success: false, error: 'Error al guardar la configuración del reconocimiento' };
+    }
+}
+
+export async function deleteRecognitionConfigAction(projectId: string, configId: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) {
+            return { success: false, error: 'No autorizado' };
+        }
+
+        if (!(await canManageProject(session.user.id, session.user.role, projectId))) {
+            return { success: false, error: 'No tienes permisos sobre este proyecto' };
+        }
+
+        await prisma.recognitionConfig.deleteMany({
+            where: {
+                id: configId,
+                projectId
+            }
+        });
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        revalidatePath('/dashboard/grades');
+        return { success: true };
+    } catch (error) {
+        console.error('Error in deleteRecognitionConfigAction:', error);
+        return { success: false, error: 'Error al eliminar configuración' };
+    }
+}
+
+export async function recomputeRecognitionsAction(projectId: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) {
+            return { success: false, error: 'No autorizado' };
+        }
+
+        if (!(await canManageProject(session.user.id, session.user.role, projectId))) {
+            return { success: false, error: 'No tienes permisos sobre este proyecto' };
+        }
+
+        const result = await recomputeRecognitionsForProject(projectId);
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        revalidatePath('/dashboard/grades');
+        return { success: true, ...result };
+    } catch (error) {
+        console.error('Error in recomputeRecognitionsAction:', error);
+        return { success: false, error: 'Error al recalcular insignias y certificados' };
+    }
+}
+
+export async function revokeRecognitionAwardAction(projectId: string, awardId: string, reason?: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) {
+            return { success: false, error: 'No autorizado' };
+        }
+
+        if (!(await canManageProject(session.user.id, session.user.role, projectId))) {
+            return { success: false, error: 'No tienes permisos sobre este proyecto' };
+        }
+
+        const award = await prisma.recognitionAward.findFirst({
+            where: {
+                id: awardId,
+                projectId
+            },
+            select: {
+                id: true,
+                verificationCode: true,
+                isRevoked: true
+            }
+        });
+
+        if (!award) {
+            return { success: false, error: 'Otorgamiento no encontrado' };
+        }
+
+        if (award.isRevoked) {
+            return { success: true, alreadyRevoked: true };
+        }
+
+        await prisma.recognitionAward.update({
+            where: { id: awardId },
+            data: {
+                isRevoked: true,
+                revokedAt: new Date(),
+                revokedReason: reason?.trim() || null,
+                revokedByEmail: session.user.email || null
+            }
+        });
+
+        revalidatePath(`/dashboard/professor/projects/${projectId}`);
+        revalidatePath('/dashboard');
+        revalidatePath('/dashboard/grades');
+        revalidatePath(`/verify/recognition/${award.verificationCode}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error in revokeRecognitionAwardAction:', error);
+        return { success: false, error: 'Error al revocar el reconocimiento' };
     }
 }

@@ -84,11 +84,35 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         orderBy: { dueDate: 'asc' }
     });
 
+    const recognitionConfigs = await prisma.recognitionConfig.findMany({
+        where: { projectId: id },
+        include: {
+            _count: {
+                select: { awards: true }
+            },
+            awards: {
+                take: 12,
+                orderBy: { awardedAt: 'desc' },
+                include: {
+                    student: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    }
+                }
+            }
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+
     return <ProjectWorkspaceClient
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         project={{ ...project, accessCode: project.accessCode } as any}
         resources={resources}
         learningObjects={project.learningObjects}
         assignments={assignments}
+        recognitionConfigs={recognitionConfigs}
     />;
 }

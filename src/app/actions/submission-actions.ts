@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { evaluateAndGrantRecognitionsForStudent } from '@/lib/recognitions';
 
 /**
  * Updates the grade and feedback for a specific submission.
@@ -15,15 +16,29 @@ export async function updateManualGradeAction(submissionId: string, grade: numbe
     }
 
     try {
-        await prisma.submission.update({
+        const submission = await prisma.submission.update({
             where: { id: submissionId },
             data: {
                 grade,
                 feedback: feedback || undefined,
+            },
+            select: {
+                id: true,
+                studentId: true,
+                assignment: {
+                    select: {
+                        projectId: true
+                    }
+                }
             }
         });
 
+        await evaluateAndGrantRecognitionsForStudent(submission.assignment.projectId, submission.studentId, {
+            triggerSubmissionId: submission.id
+        });
+
         revalidatePath('/dashboard/grades');
+        revalidatePath(`/dashboard/professor/projects/${submission.assignment.projectId}`);
         revalidatePath('/dashboard/professor/projects/[id]', 'layout');
         return { success: true };
     } catch (e: unknown) {

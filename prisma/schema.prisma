@@ -36,29 +36,30 @@ model User {
   projectApplications    ProjectApplication[]  @relation("StudentApplications")
   resourceInteractions   ResourceInteraction[]
   submissions            Submission[]
+  recognitionAwards      RecognitionAward[]
   workExperiences        WorkExperience[]
   assignedTasks          Task[]                @relation("TaskAssignees")
   teams                  Team[]                @relation("TeamMembers")
-  sentMessages          Message[]             @relation("SentMessages")
-  receivedMessages      Message[]             @relation("ReceivedMessages")
+  sentMessages           Message[]             @relation("SentMessages")
+  receivedMessages       Message[]             @relation("ReceivedMessages")
   policiesAccepted       Boolean               @default(false)
   policiesAcceptedAt     DateTime?
 }
 
 model Message {
-  id          String   @id @default(uuid())
-  content     String   // HTML from Tiptap
-  authorId    String
-  projectId   String
-  parentId    String?  // For threading
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  author      User     @relation("SentMessages", fields: [authorId], references: [id], onDelete: Cascade)
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parent      Message? @relation("Thread", fields: [parentId], references: [id], onDelete: SetNull)
-  replies     Message[] @relation("Thread")
-  recipients  User[]   @relation("ReceivedMessages")
+  id        String   @id @default(uuid())
+  content   String // HTML from Tiptap
+  authorId  String
+  projectId String
+  parentId  String? // For threading
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author     User      @relation("SentMessages", fields: [authorId], references: [id], onDelete: Cascade)
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent     Message?  @relation("Thread", fields: [parentId], references: [id], onDelete: SetNull)
+  replies    Message[] @relation("Thread")
+  recipients User[]    @relation("ReceivedMessages")
 
   @@index([projectId])
   @@index([authorId])
@@ -114,10 +115,12 @@ model Project {
   tags                 Tag[]                @relation("ProjectToTag")
   teams                Team[]
   messages             Message[]
-  
+  recognitionConfigs   RecognitionConfig[]
+  recognitionAwards    RecognitionAward[]
+
   // M-N Relations
-  teachers             User[]               @relation("ProjectTeachers")
-  students             User[]               @relation("ProjectStudents")
+  teachers User[] @relation("ProjectTeachers")
+  students User[] @relation("ProjectStudents")
 
   @@index([status])
 }
@@ -145,39 +148,39 @@ model Team {
   updatedAt DateTime @updatedAt
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   members   User[]   @relation("TeamMembers")
-  
+
   // Group Work
   tasks       Task[]
   submissions Submission[]
-  
+
   @@unique([projectId, name])
   @@index([projectId])
 }
 
 model Resource {
-  id           String                @id @default(uuid())
+  id           String  @id @default(uuid())
   title        String
   description  String?
   presentation String?
   utility      String?
   url          String
-  type         String                @default("ARTICLE")
+  type         String  @default("ARTICLE")
   subject      String?
 
-  competency   String?
+  competency     String?
   citationAuthor String?
   apaReference   String?
   shouldEmbed    Boolean               @default(true)
-  keywords     String[]
-  projectId    String?
-  categoryId   String
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
-  category     ResourceCategory      @relation(fields: [categoryId], references: [id])
-  project      Project?              @relation("ProjectResources", fields: [projectId], references: [id], onDelete: Cascade)
-  interactions ResourceInteraction[]
-  tasks        Task[]                @relation("TaskResources")
-  comments     Comment[]             @relation("ResourceComments")
+  keywords       String[]
+  projectId      String?
+  categoryId     String
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  category       ResourceCategory      @relation(fields: [categoryId], references: [id])
+  project        Project?              @relation("ProjectResources", fields: [projectId], references: [id], onDelete: Cascade)
+  interactions   ResourceInteraction[]
+  tasks          Task[]                @relation("TaskResources")
+  comments       Comment[]             @relation("ResourceComments")
 
   @@index([projectId])
   @@index([categoryId])
@@ -211,7 +214,7 @@ model MentorshipSlot {
   endTime       DateTime
   isBooked      Boolean            @default(false)
   meetingUrl    String?
-  googleEventId String?            // Added for sync management
+  googleEventId String? // Added for sync management
   version       Int                @default(0)
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -240,33 +243,33 @@ model MentorshipBooking {
 }
 
 model Task {
-  id                 String     @id @default(uuid())
+  id                 String      @id @default(uuid())
   title              String
   description        String?
-  status             TaskStatus @default(TODO)
-  priority           Priority   @default(MEDIUM)
-  type               TaskType   @default(TASK)
+  status             TaskStatus  @default(TODO)
+  priority           Priority    @default(MEDIUM)
+  type               TaskType    @default(TASK)
   projectId          String
   dueDate            DateTime?
-  isApproved         Boolean    @default(false)
+  isApproved         Boolean     @default(false)
   approvalNotes      String?
-  isMandatory        Boolean    @default(false)
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  isMandatory        Boolean     @default(false)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
   deliverable        String?
-  allowedFileTypes   String[]   @default([])
+  allowedFileTypes   String[]    @default([])
   maxDate            DateTime?
   evaluationCriteria String?
   rubric             Json?
   quizData           Json?
   comments           Comment[]
-  project            Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignees          User[]     @relation("TaskAssignees")
-  resources          Resource[] @relation("TaskResources")
-  tags               Tag[]      @relation("TaskTags")
+  project            Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignees          User[]      @relation("TaskAssignees")
+  resources          Resource[]  @relation("TaskResources")
+  tags               Tag[]       @relation("TaskTags")
   assignment         Assignment?
   teamId             String?
-  team               Team?      @relation(fields: [teamId], references: [id])
+  team               Team?       @relation(fields: [teamId], references: [id])
 
   @@index([projectId])
   @@index([status])
@@ -310,30 +313,83 @@ model Assignment {
   weight             Int          @default(1)
   submissions        Submission[]
 
-  rubricItems        RubricItem[]
+  rubricItems RubricItem[]
 }
 
 model Submission {
-  id           String     @id @default(uuid())
-  assignmentId String
-  studentId    String
-  fileUrl      String?
-  fileName     String?
-  fileType     String?
-  fileSize     Int?
-  answers      Json?
-  grade        Int?
-  feedback     String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  rubricScores RubricScore[]
-  teamId       String?
-  team         Team?      @relation(fields: [teamId], references: [id])
+  id                         String             @id @default(uuid())
+  assignmentId               String
+  studentId                  String
+  fileUrl                    String?
+  fileName                   String?
+  fileType                   String?
+  fileSize                   Int?
+  answers                    Json?
+  grade                      Int?
+  feedback                   String?
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+  assignment                 Assignment         @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student                    User               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  rubricScores               RubricScore[]
+  teamId                     String?
+  team                       Team?              @relation(fields: [teamId], references: [id])
+  triggeredRecognitionAwards RecognitionAward[] @relation("RecognitionTriggerSubmission")
 
   @@index([studentId])
   @@index([assignmentId])
+}
+
+model RecognitionConfig {
+  id                          String             @id @default(uuid())
+  projectId                   String
+  type                        RecognitionType
+  name                        String
+  description                 String?
+  templateBody                String?
+  imageUrl                    String?
+  logoUrl                     String?
+  backgroundUrl               String?
+  signatureImageUrl           String?
+  signatureName               String?
+  signatureRole               String?
+  autoAward                   Boolean            @default(true)
+  requireAllAssignments       Boolean            @default(false)
+  requireAllGradedAssignments Boolean            @default(false)
+  minCompletedAssignments     Int?
+  minGradedAssignments        Int?
+  minAverageGrade             Float?
+  isActive                    Boolean            @default(true)
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+  project                     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  awards                      RecognitionAward[]
+
+  @@index([projectId, type])
+  @@index([projectId, isActive])
+}
+
+model RecognitionAward {
+  id                  String            @id @default(uuid())
+  recognitionConfigId String
+  projectId           String
+  studentId           String
+  verificationCode    String            @unique @default(cuid())
+  isRevoked           Boolean           @default(false)
+  revokedAt           DateTime?
+  revokedReason       String?
+  revokedByEmail      String?
+  awardedAt           DateTime          @default(now())
+  triggerSubmissionId String?
+  snapshot            Json?
+  recognitionConfig   RecognitionConfig @relation(fields: [recognitionConfigId], references: [id], onDelete: Cascade)
+  project             Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  student             User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  triggerSubmission   Submission?       @relation("RecognitionTriggerSubmission", fields: [triggerSubmissionId], references: [id], onDelete: SetNull)
+
+  @@unique([recognitionConfigId, studentId])
+  @@index([projectId, studentId])
+  @@index([studentId, awardedAt])
 }
 
 model RubricItem {
@@ -379,7 +435,7 @@ model ActivityLog {
 }
 
 model LearningObject {
-  id          String         @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
   description String?
   subject     String
@@ -387,16 +443,16 @@ model LearningObject {
 
   citationAuthor String?
   apaReference   String?
-  keywords    String[]
-  presentation String?
-  utility      String?
-  authorId    String
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  comments    Comment[]
-  author      User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  items       ResourceItem[]
-  projects    Project[]      @relation("ProjectLearningObjects")
+  keywords       String[]
+  presentation   String?
+  utility        String?
+  authorId       String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  comments       Comment[]
+  author         User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  items          ResourceItem[]
+  projects       Project[]      @relation("ProjectLearningObjects")
 
   @@index([authorId])
 }
@@ -468,21 +524,21 @@ model PlatformConfig {
   aiTone                        String   @default("ACADEMIC")
   googleDriveServiceAccountJson String?
   googleDriveAdminEmail         String?
-  
+
   // Cloudflare R2 Integration
-  r2AccountId                   String?
-  r2AccessKeyId                 String?
-  r2SecretAccessKey             String?
-  r2BucketName                  String?
-  
+  r2AccountId       String?
+  r2AccessKeyId     String?
+  r2SecretAccessKey String?
+  r2BucketName      String?
+
   // Google Calendar / Meet Integration
-  googleCalendarClientId        String?
-  googleCalendarClientSecret    String?
+  googleCalendarClientId           String?
+  googleCalendarClientSecret       String?
   googleCalendarServiceAccountJson String?
-  googleCalendarEnabled         Boolean  @default(false)
-  
-  loadingUrl                    String?  @default("https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif")
-  timezone                      String   @default("UTC")
+  googleCalendarEnabled            Boolean @default(false)
+
+  loadingUrl String? @default("https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif")
+  timezone   String  @default("UTC")
 }
 
 model WorkExperience {
@@ -571,6 +627,11 @@ enum Priority {
 enum TaskType {
   TASK
   QUIZ
+}
+
+enum RecognitionType {
+  CERTIFICATE
+  BADGE
 }
 
 enum ItemType {
