@@ -13,6 +13,7 @@ import {
     extractResourceMetadataAction,
     updateProjectResourceAction,
     initializeProjectDriveFolderAction,
+    uploadRecognitionAssetToR2Action,
     upsertRecognitionConfigAction,
     deleteRecognitionConfigAction,
     recomputeRecognitionsAction,
@@ -252,6 +253,7 @@ export default function ProjectWorkspaceClient({
     const [isSavingRecognition, setIsSavingRecognition] = useState(false);
     const [isRecomputingRecognitions, setIsRecomputingRecognitions] = useState(false);
     const [revokingAwardId, setRevokingAwardId] = useState<string | null>(null);
+    const [uploadingRecognitionField, setUploadingRecognitionField] = useState<string | null>(null);
 
     const resetRecognitionForm = () => {
         setEditingRecognitionId(null);
@@ -379,6 +381,59 @@ export default function ProjectWorkspaceClient({
             window.location.reload();
         } finally {
             setRevokingAwardId(null);
+        }
+    };
+
+    const resolveRecognitionAssetPreviewUrl = (value?: string | null) => {
+        const raw = (value || '').trim();
+        if (!raw) return '';
+        if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) return raw;
+
+        if (raw.startsWith('/api/file?key=')) return raw;
+
+        if (raw.includes('key=')) {
+            try {
+                const asUrl = new URL(raw);
+                const key = asUrl.searchParams.get('key');
+                if (key) return `/api/file?key=${encodeURIComponent(key)}`;
+            } catch {
+                // fallthrough to key mode
+            }
+        }
+
+        return `/api/file?key=${encodeURIComponent(raw)}`;
+    };
+
+    const handleRecognitionAssetUpload = async (
+        file: File,
+        field: 'imageUrl' | 'logoUrl' | 'backgroundUrl' | 'signatureImageUrl'
+    ) => {
+        if (!file.type.startsWith('image/')) {
+            await showAlert('Formato no válido', 'Solo se permiten imágenes para esta carga.', 'error');
+            return;
+        }
+
+        setUploadingRecognitionField(field);
+        try {
+            const payload = new FormData();
+            payload.append('projectId', project.id);
+            payload.append('file', file);
+
+            const result = await uploadRecognitionAssetToR2Action(payload);
+            if (!result.success || !('key' in result) || typeof result.key !== 'string') {
+                await showAlert('Error de carga', result.error || 'No se pudo subir el archivo.', 'error');
+                return;
+            }
+
+            const uploadedKey = result.key;
+            if (field === 'imageUrl') setRecognitionImageUrl(uploadedKey);
+            if (field === 'logoUrl') setRecognitionLogoUrl(uploadedKey);
+            if (field === 'backgroundUrl') setRecognitionBackgroundUrl(uploadedKey);
+            if (field === 'signatureImageUrl') setRecognitionSignatureImageUrl(uploadedKey);
+
+            await showAlert('Archivo cargado', 'Imagen subida correctamente a R2.', 'success');
+        } finally {
+            setUploadingRecognitionField(null);
         }
     };
 
@@ -1314,34 +1369,142 @@ export default function ProjectWorkspaceClient({
 
                                 <div className="space-y-3">
                                     <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Imagen (opcional)</label>
-                                    <input
-                                        value={recognitionImageUrl}
-                                        onChange={(e) => setRecognitionImageUrl(e.target.value)}
-                                        placeholder="https://..."
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={recognitionImageUrl}
+                                            onChange={(e) => setRecognitionImageUrl(e.target.value)}
+                                            placeholder="URL o clave R2"
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                        />
+                                        <label className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) await handleRecognitionAssetUpload(file, 'imageUrl');
+                                                    e.target.value = '';
+                                                }}
+                                            />
+                                            {uploadingRecognitionField === 'imageUrl' ? 'Subiendo...' : 'Subir'}
+                                        </label>
+                                    </div>
+                                    {recognitionImageUrl && (
+                                        <a
+                                            href={resolveRecognitionAssetPreviewUrl(recognitionImageUrl)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[11px] font-bold text-blue-600 hover:underline"
+                                        >
+                                            Ver imagen configurada
+                                        </a>
+                                    )}
                                 </div>
 
                                 <div className="space-y-3 pt-2 border-t border-slate-100">
                                     <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Plantilla visual avanzada</h4>
-                                    <input
-                                        value={recognitionLogoUrl}
-                                        onChange={(e) => setRecognitionLogoUrl(e.target.value)}
-                                        placeholder="URL logo (opcional)"
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                    />
-                                    <input
-                                        value={recognitionBackgroundUrl}
-                                        onChange={(e) => setRecognitionBackgroundUrl(e.target.value)}
-                                        placeholder="URL fondo del certificado (opcional)"
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                    />
-                                    <input
-                                        value={recognitionSignatureImageUrl}
-                                        onChange={(e) => setRecognitionSignatureImageUrl(e.target.value)}
-                                        placeholder="URL imagen firma (opcional)"
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                    />
+                                    <div className="space-y-1.5">
+                                        <div className="flex gap-2">
+                                            <input
+                                                value={recognitionLogoUrl}
+                                                onChange={(e) => setRecognitionLogoUrl(e.target.value)}
+                                                placeholder="URL/logo key (opcional)"
+                                                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                            />
+                                            <label className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) await handleRecognitionAssetUpload(file, 'logoUrl');
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                                {uploadingRecognitionField === 'logoUrl' ? 'Subiendo...' : 'Subir'}
+                                            </label>
+                                        </div>
+                                        {recognitionLogoUrl && (
+                                            <a
+                                                href={resolveRecognitionAssetPreviewUrl(recognitionLogoUrl)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[11px] font-bold text-blue-600 hover:underline"
+                                            >
+                                                Ver logo
+                                            </a>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <div className="flex gap-2">
+                                            <input
+                                                value={recognitionBackgroundUrl}
+                                                onChange={(e) => setRecognitionBackgroundUrl(e.target.value)}
+                                                placeholder="URL/fondo key (opcional)"
+                                                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                            />
+                                            <label className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) await handleRecognitionAssetUpload(file, 'backgroundUrl');
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                                {uploadingRecognitionField === 'backgroundUrl' ? 'Subiendo...' : 'Subir'}
+                                            </label>
+                                        </div>
+                                        {recognitionBackgroundUrl && (
+                                            <a
+                                                href={resolveRecognitionAssetPreviewUrl(recognitionBackgroundUrl)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[11px] font-bold text-blue-600 hover:underline"
+                                            >
+                                                Ver fondo
+                                            </a>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <div className="flex gap-2">
+                                            <input
+                                                value={recognitionSignatureImageUrl}
+                                                onChange={(e) => setRecognitionSignatureImageUrl(e.target.value)}
+                                                placeholder="URL/firma key (opcional)"
+                                                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                            />
+                                            <label className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) await handleRecognitionAssetUpload(file, 'signatureImageUrl');
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                                {uploadingRecognitionField === 'signatureImageUrl' ? 'Subiendo...' : 'Subir'}
+                                            </label>
+                                        </div>
+                                        {recognitionSignatureImageUrl && (
+                                            <a
+                                                href={resolveRecognitionAssetPreviewUrl(recognitionSignatureImageUrl)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[11px] font-bold text-blue-600 hover:underline"
+                                            >
+                                                Ver firma
+                                            </a>
+                                        )}
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <input
                                             value={recognitionSignatureName}
@@ -1505,6 +1668,7 @@ export default function ProjectWorkspaceClient({
                                                         )}
                                                     </div>
                                                     <h4 className="text-lg font-black text-slate-900">{config.name}</h4>
+                                                    <p className="text-[11px] font-mono text-slate-500 break-all">ID único: {config.id}</p>
                                                     {config.description && (
                                                         <p className="text-sm text-slate-600">{config.description}</p>
                                                     )}

@@ -36,6 +36,7 @@ export default async function RecognitionVerificationPage({
             },
             recognitionConfig: {
                 select: {
+                    id: true,
                     name: true,
                     description: true,
                     type: true
@@ -139,6 +140,14 @@ export default async function RecognitionVerificationPage({
                         <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                             <p className="text-xs uppercase tracking-wider text-slate-500 font-bold">Código de verificación</p>
                             <p className="mt-1 font-mono text-xs text-slate-900 break-all">{award.verificationCode}</p>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <p className="text-xs uppercase tracking-wider text-slate-500 font-bold">ID del reconocimiento</p>
+                            <p className="mt-1 font-mono text-xs text-slate-900 break-all">{award.recognitionConfig.id}</p>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <p className="text-xs uppercase tracking-wider text-slate-500 font-bold">ID del otorgamiento</p>
+                            <p className="mt-1 font-mono text-xs text-slate-900 break-all">{award.id}</p>
                         </div>
                     </div>
 

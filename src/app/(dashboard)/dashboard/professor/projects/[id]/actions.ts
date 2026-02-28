@@ -610,6 +610,50 @@ export async function recomputeRecognitionsAction(projectId: string) {
     }
 }
 
+export async function uploadRecognitionAssetToR2Action(formData: FormData) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['TEACHER', 'ADMIN'].includes(session.user.role)) {
+            return { success: false, error: 'No autorizado' };
+        }
+
+        const projectId = String(formData.get('projectId') || '');
+        const file = formData.get('file') as File | null;
+
+        if (!projectId || !file) {
+            return { success: false, error: 'Faltan datos requeridos' };
+        }
+
+        if (!(await canManageProject(session.user.id, session.user.role, projectId))) {
+            return { success: false, error: 'No tienes permisos sobre este proyecto' };
+        }
+
+        if (!file.type.startsWith('image/')) {
+            return { success: false, error: 'Solo se permiten archivos de imagen' };
+        }
+
+        const maxSize = 8 * 1024 * 1024;
+        if (file.size > maxSize) {
+            return { success: false, error: 'El archivo supera el límite de 8MB' };
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const { uploadFileToR2 } = await import('@/lib/r2');
+        const { key } = await uploadFileToR2(buffer, file.name, file.type, `recognitions_${projectId}`);
+
+        return {
+            success: true,
+            key,
+            previewUrl: `/api/file?key=${encodeURIComponent(key)}`
+        };
+    } catch (error) {
+        console.error('Error in uploadRecognitionAssetToR2Action:', error);
+        return { success: false, error: 'Error al subir archivo a R2' };
+    }
+}
+
 export async function revokeRecognitionAwardAction(projectId: string, awardId: string, reason?: string) {
     try {
         const session = await getServerSession(authOptions);

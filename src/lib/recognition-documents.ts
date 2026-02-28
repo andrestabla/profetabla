@@ -3,6 +3,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
+import { getR2FileUrl } from '@/lib/r2';
 
 export type RecognitionAwardDocumentData = Prisma.RecognitionAwardGetPayload<{
     include: {
@@ -109,7 +110,7 @@ function resolveImageFormatFromMime(mime: string): PdfImageFormat {
 
 async function toPdfImage(url: string | null | undefined): Promise<{ dataUrl: string; format: PdfImageFormat } | null> {
     if (!url) return null;
-    const trimmed = url.trim();
+    let trimmed = url.trim();
     if (!trimmed) return null;
 
     if (trimmed.startsWith('data:image/')) {
@@ -119,6 +120,30 @@ async function toPdfImage(url: string | null | undefined): Promise<{ dataUrl: st
             dataUrl: trimmed,
             format: resolveImageFormatFromMime(mime)
         };
+    }
+
+    if (trimmed.startsWith('/api/file?key=')) {
+        const key = decodeURIComponent(trimmed.split('key=')[1] || '');
+        if (key) {
+            const signed = await getR2FileUrl(key);
+            if (signed && signed !== '#') trimmed = signed;
+        }
+    } else if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        const signed = await getR2FileUrl(trimmed);
+        if (signed && signed !== '#') trimmed = signed;
+    }
+
+    if (trimmed.includes('/api/file?key=')) {
+        try {
+            const parsed = new URL(trimmed);
+            const key = parsed.searchParams.get('key');
+            if (key) {
+                const signed = await getR2FileUrl(key);
+                if (signed && signed !== '#') trimmed = signed;
+            }
+        } catch {
+            return null;
+        }
     }
 
     try {
