@@ -36,6 +36,11 @@ export default async function DashboardPage() {
             },
         });
 
+        const projectIds = projects.map(project => project.id);
+        const studentTeamIds = projects
+            .map(project => project.teams[0]?.id)
+            .filter((teamId): teamId is string => !!teamId);
+
         // Then, fetch assignments with submissions for each project
         const projectsWithAssignments = await Promise.all(
             projects.map(async (project) => {
@@ -70,15 +75,182 @@ export default async function DashboardPage() {
             take: 1
         });
 
-        const nextMentorship = await (prisma.mentorshipBooking as any).findFirst({
+        const upcomingMentorships = await (prisma.mentorshipBooking as any).findMany({
             where: {
                 students: { some: { id: user.id } },
                 status: 'CONFIRMED',
                 slot: { startTime: { gte: new Date() } }
             },
-            include: { slot: { include: { teacher: true } } },
-            orderBy: { slot: { startTime: 'asc' } }
+            include: {
+                slot: { include: { teacher: true } },
+                project: {
+                    select: {
+                        id: true,
+                        title: true,
+                        type: true
+                    }
+                }
+            },
+            orderBy: { slot: { startTime: 'asc' } },
+            take: 16
         });
+
+        const nextMentorship = upcomingMentorships[0] || null;
+
+        const upcomingTasks = projectIds.length > 0
+            ? await prisma.task.findMany({
+                where: {
+                    projectId: { in: projectIds },
+                    dueDate: { not: null, gte: new Date() },
+                    status: { not: 'DONE' },
+                    OR: [
+                        { isMandatory: true },
+                        { assignees: { some: { id: user.id } } },
+                        ...(studentTeamIds.length > 0 ? [{ teamId: { in: studentTeamIds } }] : [])
+                    ]
+                },
+                include: {
+                    project: {
+                        select: {
+                            id: true,
+                            title: true,
+                            type: true
+                        }
+                    },
+                    assignment: {
+                        select: {
+                            id: true
+                        }
+                    }
+                },
+                orderBy: { dueDate: 'asc' },
+                take: 24
+            })
+            : [];
+
+        const latestCommunications = projectIds.length > 0
+            ? await prisma.message.findMany({
+                where: {
+                    projectId: { in: projectIds },
+                    OR: [
+                        { authorId: user.id },
+                        { recipients: { some: { id: user.id } } }
+                    ]
+                },
+                include: {
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            avatarUrl: true,
+                            role: true
+                        }
+                    },
+                    project: {
+                        select: {
+                            id: true,
+                            title: true,
+                            type: true
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 8
+            })
+            : [];
+
+        const [resourceSuggestions, learningObjectSuggestions] = await Promise.all([
+            prisma.resource.findMany({
+                where: {
+                    OR: [
+                        ...(projectIds.length > 0 ? [{ projectId: { in: projectIds } }] : []),
+                        { projectId: null }
+                    ]
+                },
+                include: {
+                    category: { select: { name: true } },
+                    project: { select: { id: true, title: true } },
+                    interactions: {
+                        where: { userId: user.id },
+                        select: {
+                            isCompleted: true,
+                            isFavorite: true,
+                            updatedAt: true
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 20
+            }),
+            projectIds.length > 0
+                ? prisma.learningObject.findMany({
+                    where: {
+                        projects: { some: { id: { in: projectIds } } }
+                    },
+                    include: {
+                        projects: { select: { id: true, title: true } },
+                        items: {
+                            select: {
+                                id: true,
+                                interactions: {
+                                    where: { userId: user.id },
+                                    select: { isCompleted: true }
+                                }
+                            }
+                        }
+                    },
+                    orderBy: { updatedAt: 'desc' },
+                    take: 12
+                })
+                : []
+        ]);
+
+        const suggestedLearningResources = [
+            ...resourceSuggestions.map(resource => {
+                const interaction = resource.interactions[0];
+                const isProjectScoped = Boolean(resource.projectId);
+                let score = 0;
+                if (isProjectScoped) score += 30;
+                if (!interaction?.isCompleted) score += 20;
+                if (interaction?.isFavorite) score += 6;
+
+                return {
+                    id: resource.id,
+                    kind: 'RESOURCE',
+                    title: resource.title,
+                    description: resource.description,
+                    href: `/dashboard/learning/resource/${resource.id}`,
+                    projectTitle: resource.project?.title || null,
+                    tag: resource.category.name,
+                    isCompleted: interaction?.isCompleted || false,
+                    progress: null,
+                    score
+                };
+            }),
+            ...learningObjectSuggestions.map(learningObject => {
+                const totalItems = learningObject.items.length;
+                const completedItems = learningObject.items.filter(item => item.interactions.some(interaction => interaction.isCompleted)).length;
+                const progress = totalItems > 0 ? completedItems / totalItems : 0;
+                let score = 34;
+                if (progress < 1) score += 18;
+                if (progress === 0) score += 6;
+
+                return {
+                    id: learningObject.id,
+                    kind: 'LEARNING_OBJECT',
+                    title: learningObject.title,
+                    description: learningObject.description,
+                    href: `/dashboard/learning/object/${learningObject.id}`,
+                    projectTitle: learningObject.projects[0]?.title || null,
+                    tag: 'Objeto de aprendizaje',
+                    isCompleted: progress >= 1,
+                    progress,
+                    score
+                };
+            })
+        ]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 8);
 
         const recognitionAwards = await prisma.recognitionAward.findMany({
             where: {
@@ -105,6 +277,33 @@ export default async function DashboardPage() {
             take: 24
         });
 
+        const calendarEvents = [
+            ...upcomingTasks
+                .filter(task => task.dueDate)
+                .map(task => ({
+                    id: `task-${task.id}`,
+                    type: 'TASK',
+                    title: task.title,
+                    startsAt: (task.dueDate as Date).toISOString(),
+                    projectTitle: task.project.title,
+                    href: task.assignment
+                        ? `/dashboard/student/assignments/${task.assignment.id}`
+                        : `/dashboard/student/projects/${task.projectId}/kanban`,
+                    priority: task.priority
+                })),
+            ...upcomingMentorships.map((booking: any) => ({
+                id: `mentorship-${booking.id}`,
+                type: 'MENTORSHIP',
+                title: `Mentoría con ${booking.slot.teacher?.name || 'Tutor'}`,
+                startsAt: booking.slot.startTime.toISOString(),
+                projectTitle: booking.project?.title || null,
+                href: '/dashboard/mentorship',
+                priority: 'MEDIUM'
+            }))
+        ]
+            .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+            .slice(0, 40);
+
         let citation = null;
         if (citations.length > 0) {
             const cit = citations[0] as any;
@@ -124,6 +323,10 @@ export default async function DashboardPage() {
                 citation={citation}
                 nextMentorship={nextMentorship}
                 recognitionAwards={recognitionAwards}
+                upcomingTasks={upcomingTasks}
+                calendarEvents={calendarEvents}
+                latestCommunications={latestCommunications}
+                suggestedLearningResources={suggestedLearningResources}
             />
         );
     }
