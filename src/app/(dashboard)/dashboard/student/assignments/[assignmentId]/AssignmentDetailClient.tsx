@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { submitAssignmentAction, getUploadUrlAction } from '@/app/(dashboard)/dashboard/assignments/actions';
 import { Upload, FileText, CheckCircle, Clock, Loader2, ExternalLink, Calendar, AlertCircle, HelpCircle, ArrowLeft } from 'lucide-react';
 import StatusModal from '@/components/StatusModal';
@@ -9,6 +9,7 @@ import { QuizRunner } from '@/components/QuizRunner';
 import { QuizResultView } from '@/components/QuizResultView';
 import { calculateTotalQuizScore } from '@/lib/quiz-utils';
 import { useRouter } from 'next/navigation';
+import { trackClientActivity } from '@/lib/client-activity';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Assignment = {
@@ -65,6 +66,25 @@ export default function AssignmentDetailClient({ assignment }: { assignment: Ass
 
     const isUrlAllowed = assignment.task?.allowedFileTypes?.includes('URL');
     const isFileAllowed = assignment.task?.allowedFileTypes?.some(t => t !== 'URL') || (!assignment.task?.allowedFileTypes?.length);
+
+    useEffect(() => {
+        trackClientActivity(
+            {
+                action: 'VIEW_ASSIGNMENT',
+                description: `Visualizó la asignación "${assignment.title}"`,
+                metadata: {
+                    assignmentId: assignment.id,
+                    projectId: assignment.project.id,
+                    projectTitle: assignment.project.title,
+                    taskType: assignment.task?.type || 'TASK'
+                }
+            },
+            {
+                debounceKey: `view-assignment:${assignment.id}`,
+                minIntervalMs: 60000
+            }
+        );
+    }, [assignment.id, assignment.project.id, assignment.project.title, assignment.task?.type, assignment.title]);
 
 
     const handleSubmit = async (e: React.FormEvent) => {

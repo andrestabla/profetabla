@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getR2FileUrl } from '@/lib/r2';
+import { logActivity } from '@/lib/activity';
 
 export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -18,6 +19,14 @@ export async function GET(request: NextRequest) {
     }
 
     try {
+        await logActivity(
+            session.user.id,
+            'FILE_ACCESS',
+            `Accedió a un archivo protegido`,
+            'INFO',
+            { key }
+        );
+
         const signedUrl = await getR2FileUrl(key);
         if (!signedUrl || signedUrl === '#') {
             return NextResponse.json({ error: 'File not found or config error' }, { status: 404 });

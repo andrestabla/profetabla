@@ -1,16 +1,17 @@
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { toggleUserStatusAction, deleteUserAction, updateUserRoleAction, sendMessageAction, resetPasswordAction } from '../../actions';
-import { ArrowLeft, Shield, Clock, Ban, CheckCircle, FolderKanban } from 'lucide-react';
+import { ArrowLeft, Shield, Ban, CheckCircle, FolderKanban } from 'lucide-react';
 import Link from 'next/link';
 import UserActionsClient from './UserActionsClient'; // Client logic for modals/interactions
+import UserActivityTimeline from './UserActivityTimeline';
 
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const user = await prisma.user.findUnique({
         where: { id },
         include: {
-            activityLogs: { orderBy: { createdAt: 'desc' }, take: 50 },
+            activityLogs: { orderBy: { createdAt: 'desc' }, take: 300 },
             _count: {
                 select: {
                     createdLearningObjects: true,
@@ -76,6 +77,15 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
     // Fetch student's assignments for progress calculation
     const userProjectIds = user.projectsAsStudent.map(p => p.id);
     const studentTeamIds = user.projectsAsStudent.flatMap(p => p.teams.map(t => t.id));
+
+    const initialActivityLogs = user.activityLogs.map((log) => ({
+        id: log.id,
+        action: log.action,
+        description: log.description,
+        level: log.level,
+        createdAt: log.createdAt.toISOString(),
+        metadata: log.metadata
+    }));
 
     // Fetch all assignments for user's projects
     const projectAssignments = await prisma.assignment.findMany({
@@ -274,40 +284,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
 
                 {/* COLUMNA DERECHA: Logs */}
                 <div className="lg:col-span-2">
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-indigo-600" /> Historial de Actividad
-                        </h3>
-
-                        <div className="space-y-8 relative before:absolute before:left-3.5 before:top-2 before:bottom-0 before:w-0.5 before:bg-slate-100">
-                            {user.activityLogs.length === 0 ? (
-                                <p className="text-center text-slate-400 py-4">Sin actividad registrada.</p>
-                            ) : (
-                                user.activityLogs.map((log) => (
-                                    <div key={log.id} className="relative pl-10">
-                                        <div className={`absolute left-0 top-0 w-7 h-7 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-[10px] font-bold z-10
-                                            ${log.level === 'CRITICAL' ? 'bg-red-500 text-white' :
-                                                log.level === 'WARNING' ? 'bg-amber-400 text-white' : 'bg-blue-500 text-white'}
-                                        `}>
-                                            {log.level[0]}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-700">{log.action}</p>
-                                            <p className="text-xs text-slate-500 mb-1">{log.description}</p>
-                                            <p className="text-[10px] text-slate-400 font-mono">
-                                                {new Date(log.createdAt).toLocaleString()}
-                                            </p>
-                                            {log.metadata && (
-                                                <div className="mt-2 p-2 bg-slate-50 rounded text-xs text-slate-600 font-mono break-all">
-                                                    {typeof log.metadata === 'string' ? log.metadata : JSON.stringify(log.metadata)}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
+                    <UserActivityTimeline userId={user.id} initialLogs={initialActivityLogs} />
                 </div>
             </div>
         </div>

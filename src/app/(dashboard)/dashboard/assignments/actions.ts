@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { uploadFileToR2, getPresignedPutUrl } from '@/lib/r2';
 import { evaluateAndGrantRecognitionsForStudent } from '@/lib/recognitions';
+import { logActivity } from '@/lib/activity';
 
 export async function getUploadUrlAction(fileName: string, fileType: string) {
     const session = await getServerSession(authOptions);
@@ -13,6 +14,10 @@ export async function getUploadUrlAction(fileName: string, fileType: string) {
 
     try {
         const { url, key } = await getPresignedPutUrl(fileName, fileType, 'submissions');
+        await logActivity(session.user.id, 'REQUEST_UPLOAD_URL', `Solicitó URL de carga para "${fileName}"`, 'INFO', {
+            fileName,
+            fileType
+        });
         return { success: true, url, key };
     } catch (error) {
         console.error('Error fetching presigned URL:', error);
@@ -133,6 +138,23 @@ export async function submitAssignmentAction(formData: FormData) {
             triggerSubmissionId: createdSubmission.id
         });
         console.log('DB Transaction complete');
+
+        await logActivity(
+            session.user.id,
+            'UPLOAD_SUBMISSION',
+            submissionType === 'URL'
+                ? `Entregó la tarea "${assignment.title}" mediante URL`
+                : `Subió la entrega "${fileName}" para la tarea "${assignment.title}"`,
+            'INFO',
+            {
+                assignmentId,
+                projectId: assignment.projectId,
+                submissionType,
+                fileName: fileName || null,
+                fileType: fileType || null,
+                fileSize,
+            }
+        );
 
         revalidatePath('/dashboard/assignments');
         revalidatePath('/dashboard/kanban');

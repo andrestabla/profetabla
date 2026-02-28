@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { listProjectFiles, uploadFileToDrive } from '@/lib/google-drive';
 import { Readable } from 'stream';
 import { recomputeRecognitionsForProject } from '@/lib/recognitions';
+import { logActivity } from '@/lib/activity';
 
 export async function addResourceToProjectAction(formData: FormData) {
     try {
@@ -193,6 +194,14 @@ export async function uploadProjectFileToDriveAction(formData: FormData) {
             }
         });
 
+        await logActivity(
+            session.user.id,
+            'UPLOAD_PROJECT_FILE',
+            `Subió un recurso a Drive: "${file.name}"`,
+            'INFO',
+            { projectId, source: 'DRIVE', fileName: file.name, fileType: file.type, fileSize: file.size }
+        );
+
         revalidatePath(`/dashboard/professor/projects/${projectId}`);
         return { success: true, file: uploadedFile };
     } catch (e: unknown) {
@@ -248,6 +257,14 @@ export async function uploadProjectFileToR2Action(formData: FormData) {
                 categoryId: categoryId
             }
         });
+
+        await logActivity(
+            session.user.id,
+            'UPLOAD_PROJECT_FILE',
+            `Subió un archivo al proyecto: "${file.name}"`,
+            'INFO',
+            { projectId, source: 'R2', fileName: file.name, fileType: file.type, fileSize: file.size, key }
+        );
 
         revalidatePath(`/dashboard/professor/projects/${projectId}`);
         return { success: true };
@@ -642,6 +659,14 @@ export async function uploadRecognitionAssetToR2Action(formData: FormData) {
 
         const { uploadFileToR2 } = await import('@/lib/r2');
         const { key } = await uploadFileToR2(buffer, file.name, file.type, `recognitions_${projectId}`);
+
+        await logActivity(
+            session.user.id,
+            'UPLOAD_RECOGNITION_ASSET',
+            `Subió un asset de reconocimientos: "${file.name}"`,
+            'INFO',
+            { projectId, key, fileName: file.name, fileType: file.type, fileSize: file.size }
+        );
 
         return {
             success: true,

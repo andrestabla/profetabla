@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BookOpen, Video, FileText, Globe, CheckCircle2, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Menu, AlertTriangle, Trash2, MessageSquare, Sparkles } from 'lucide-react';
+import { trackClientActivity } from '@/lib/client-activity';
 
 import { CommentsSection } from '../../components/CommentsSection';
 
@@ -46,6 +47,45 @@ export default function StudentViewerClient({ learningObject, comments, currentU
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+
+    useEffect(() => {
+        trackClientActivity(
+            {
+                action: 'VIEW_LEARNING_OBJECT',
+                description: `Visualizó OA "${learningObject.title}"`,
+                metadata: {
+                    learningObjectId: learningObject.id,
+                    subject: learningObject.subject,
+                    totalItems: learningObject.items.length,
+                }
+            },
+            {
+                debounceKey: `view-oa:${learningObject.id}`,
+                minIntervalMs: 60000
+            }
+        );
+    }, [learningObject.id, learningObject.items.length, learningObject.subject, learningObject.title]);
+
+    useEffect(() => {
+        if (!activeItem) return;
+
+        trackClientActivity(
+            {
+                action: 'VIEW_LEARNING_ITEM',
+                description: `Visualizó recurso del OA "${activeItem.title}"`,
+                metadata: {
+                    learningObjectId: learningObject.id,
+                    resourceItemId: activeItem.id,
+                    itemType: activeItem.type,
+                    index: currentIndex,
+                }
+            },
+            {
+                debounceKey: `view-oa-item:${activeItem.id}`,
+                minIntervalMs: 45000
+            }
+        );
+    }, [activeItem, currentIndex, learningObject.id]);
 
     const handleDelete = async () => {
         const confirm = await showConfirm(

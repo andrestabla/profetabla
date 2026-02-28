@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Info, BookOpen, Video, FileText, Globe, Sparkles, Cloud, MessageSquare, Trash2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResourceComments } from './ResourceComments';
+import { trackClientActivity } from '@/lib/client-activity';
 
 // Types
 type Resource = {
@@ -111,6 +112,24 @@ export default function ResourceViewerClient({ resource, currentUserId, currentU
 
 
     const isAdminOrTeacher = currentUserRole === 'ADMIN' || currentUserRole === 'TEACHER';
+
+    useEffect(() => {
+        trackClientActivity(
+            {
+                action: 'VIEW_RESOURCE',
+                description: `Visualizó recurso "${resource.title}"`,
+                metadata: {
+                    resourceId: resource.id,
+                    resourceType: resource.type,
+                    projectTitle: resource.project?.title || null,
+                }
+            },
+            {
+                debounceKey: `view-resource:${resource.id}`,
+                minIntervalMs: 60000
+            }
+        );
+    }, [resource.id, resource.title, resource.type, resource.project?.title]);
 
     const handleAIImprovement = async () => {
         setIsExtracting(true);
