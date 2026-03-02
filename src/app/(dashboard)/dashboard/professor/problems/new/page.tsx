@@ -15,11 +15,31 @@ export default async function NewProblemPage() {
         select: { id: true, title: true, subject: true }
     });
 
+    const skills21 = await prisma.twentyFirstSkill.findMany({
+        where: { isActive: true },
+        select: {
+            id: true,
+            name: true,
+            industry: true,
+            category: true,
+            trendSummary: true
+        },
+        orderBy: [{ industry: 'asc' }, { name: 'asc' }]
+    });
+
     const formattedOAs = oas.map(oa => ({
         id: oa.id,
         title: oa.title,
         category: { name: oa.subject, color: 'bg-slate-100' }
     }));
 
-    return <CreateProjectForm availableOAs={formattedOAs} defaultType="PROBLEM" enforceType={true} />;
+    const formattedSkills = skills21.map((skill) => ({
+        id: skill.id,
+        name: skill.name,
+        industry: skill.industry,
+        category: skill.category,
+        trendSummary: skill.trendSummary
+    }));
+
+    return <CreateProjectForm availableOAs={formattedOAs} availableSkills={formattedSkills} defaultType="PROBLEM" enforceType={true} />;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Save, Loader2, BookOpen,
@@ -17,7 +17,25 @@ type SimpleOA = {
     category: { name: string; color: string };
 };
 
-export default function CreateProjectForm({ availableOAs, defaultType, enforceType = false }: { availableOAs: SimpleOA[], defaultType?: 'PROJECT' | 'CHALLENGE' | 'PROBLEM', enforceType?: boolean }) {
+type SimpleSkill = {
+    id: string;
+    name: string;
+    industry: string;
+    category: string | null;
+    trendSummary: string | null;
+};
+
+export default function CreateProjectForm({
+    availableOAs,
+    availableSkills,
+    defaultType,
+    enforceType = false
+}: {
+    availableOAs: SimpleOA[];
+    availableSkills: SimpleSkill[];
+    defaultType?: 'PROJECT' | 'CHALLENGE' | 'PROBLEM';
+    enforceType?: boolean;
+}) {
     const router = useRouter();
     const { showAlert } = useModals();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,6 +99,31 @@ export default function CreateProjectForm({ availableOAs, defaultType, enforceTy
     const [aiSearch, setAiSearch] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiError, setAiError] = useState('');
+    const [skillSearch, setSkillSearch] = useState('');
+    const [skillIndustryFilter, setSkillIndustryFilter] = useState('ALL');
+
+    const skillIndustries = useMemo(() => {
+        const set = new Set(availableSkills.map((skill) => skill.industry).filter(Boolean));
+        return Array.from(set).sort((a, b) => a.localeCompare(b));
+    }, [availableSkills]);
+
+    const filteredSkills = useMemo(() => {
+        const term = skillSearch.trim().toLowerCase();
+        return availableSkills.filter((skill) => {
+            if (skillIndustryFilter !== 'ALL' && skill.industry !== skillIndustryFilter) return false;
+            if (!term) return true;
+
+            return [
+                skill.name,
+                skill.industry,
+                skill.category || '',
+                skill.trendSummary || ''
+            ]
+                .join(' ')
+                .toLowerCase()
+                .includes(term);
+        });
+    }, [availableSkills, skillIndustryFilter, skillSearch]);
 
     async function handleAIGenerate() {
         if (!aiPrompt.trim()) return;
@@ -581,6 +624,70 @@ export default function CreateProjectForm({ availableOAs, defaultType, enforceTy
                             </label>
                         ))}
                     </div>
+                </section>
+
+                {/* SECCIÓN 7: HABILIDADES DEL SIGLO XXI */}
+                <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <Search className="w-5 h-5 text-fuchsia-600" /> 7. Habilidades del Siglo XXI
+                    </h2>
+                    <p className="text-sm text-slate-500 mb-5">
+                        Selecciona las habilidades en tendencia que este {currentConfig.label.toLowerCase()} desarrollará.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+                        <input
+                            value={skillSearch}
+                            onChange={(event) => setSkillSearch(event.target.value)}
+                            placeholder="Buscar habilidad..."
+                            className="md:col-span-2 w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-fuchsia-100 outline-none transition-all"
+                        />
+                        <select
+                            value={skillIndustryFilter}
+                            onChange={(event) => setSkillIndustryFilter(event.target.value)}
+                            className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-fuchsia-100 outline-none transition-all bg-white"
+                        >
+                            <option value="ALL">Todas las industrias</option>
+                            {skillIndustries.map((industry) => (
+                                <option key={industry} value={industry}>{industry}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {filteredSkills.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2">
+                            {filteredSkills.map((skill) => (
+                                <label key={skill.id} className="flex items-start gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        name="selectedSkills21"
+                                        value={skill.id}
+                                        className="mt-1 w-4 h-4 text-fuchsia-600 rounded focus:ring-fuchsia-500"
+                                    />
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap gap-2 mb-1.5">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                                                {skill.industry}
+                                            </span>
+                                            {skill.category && (
+                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-fuchsia-100 text-fuchsia-700 px-2 py-0.5 rounded-full">
+                                                    {skill.category}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <h4 className="font-bold text-slate-700 text-sm">{skill.name}</h4>
+                                        {skill.trendSummary && (
+                                            <p className="text-xs text-slate-500 mt-1 line-clamp-2">{skill.trendSummary}</p>
+                                        )}
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500">
+                            No hay habilidades cargadas para este filtro. Puedes crearlas en el módulo <strong>Habilidades Siglo XXI</strong>.
+                        </div>
+                    )}
                 </section>
 
                 <div className="pt-6 flex justify-end gap-4">

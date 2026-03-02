@@ -29,8 +29,9 @@ export async function createProjectAction(formData: FormData) {
     const evaluation = formData.get('evaluation') as string;
     const kpis = formData.get('kpis') as string;
 
-    // Get selected OAs
+    // Get selected OAs and 21st-century skills
     const selectedOAs = formData.getAll('selectedOAs') as string[];
+    const selectedSkills21 = Array.from(new Set(formData.getAll('selectedSkills21') as string[])).filter(Boolean);
 
     const maxStudents = formData.get('maxStudents') ? parseInt(formData.get('maxStudents') as string) : null;
     const startDate = formData.get('startDate') ? new Date(formData.get('startDate') as string) : null;
@@ -73,6 +74,9 @@ export async function createProjectAction(formData: FormData) {
             googleDriveFolderId: driveFolderId,
             learningObjects: {
                 connect: selectedOAs.map(id => ({ id }))
+            },
+            twentyFirstSkills: {
+                connect: selectedSkills21.map(id => ({ id }))
             }
         }
     });

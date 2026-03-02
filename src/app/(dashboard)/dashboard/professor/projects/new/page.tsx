@@ -20,11 +20,31 @@ export default async function NewProjectPage({ searchParams }: Props) {
         select: { id: true, title: true, subject: true }
     });
 
+    const skills21 = await prisma.twentyFirstSkill.findMany({
+        where: { isActive: true },
+        select: {
+            id: true,
+            name: true,
+            industry: true,
+            category: true,
+            trendSummary: true
+        },
+        orderBy: [{ industry: 'asc' }, { name: 'asc' }]
+    });
+
     // Adapt to component interface
     const formattedOAs = oas.map(oa => ({
         id: oa.id,
         title: oa.title,
         category: { name: oa.subject, color: 'bg-slate-100' }
+    }));
+
+    const formattedSkills = skills21.map((skill) => ({
+        id: skill.id,
+        name: skill.name,
+        industry: skill.industry,
+        category: skill.category,
+        trendSummary: skill.trendSummary
     }));
 
     // Extract type from params (safe cast) or default to PROJECT
@@ -37,5 +57,5 @@ export default async function NewProjectPage({ searchParams }: Props) {
     // Given the user request "Solo debe existir la opción para crear el tipo correspondiente", let's enforce based on URL context.
     // But since this is the "Projects" root, let's default to PROJECT.
 
-    return <CreateProjectForm availableOAs={formattedOAs} defaultType={defaultType} enforceType={true} />;
+    return <CreateProjectForm availableOAs={formattedOAs} availableSkills={formattedSkills} defaultType={defaultType} enforceType={true} />;
 }

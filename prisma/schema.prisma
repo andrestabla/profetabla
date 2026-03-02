@@ -113,6 +113,7 @@ model Project {
   tasks                Task[]
   learningObjects      LearningObject[]     @relation("ProjectLearningObjects")
   tags                 Tag[]                @relation("ProjectToTag")
+  twentyFirstSkills    TwentyFirstSkill[]   @relation("ProjectToTwentyFirstSkill")
   teams                Team[]
   messages             Message[]
   recognitionConfigs   RecognitionConfig[]
@@ -296,6 +297,26 @@ model Tag {
   color    String    @default("blue")
   projects Project[] @relation("ProjectToTag")
   tasks    Task[]    @relation("TaskTags")
+}
+
+model TwentyFirstSkill {
+  id               String    @id @default(uuid())
+  name             String
+  industry         String
+  category         String?
+  description      String
+  trendSummary     String?
+  examples         String[]  @default([])
+  sources          Json?
+  tags             String[]  @default([])
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  projects         Project[] @relation("ProjectToTwentyFirstSkill")
+
+  @@unique([name, industry])
+  @@index([industry])
+  @@index([isActive])
 }
 
 model Assignment {
