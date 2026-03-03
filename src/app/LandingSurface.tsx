@@ -29,28 +29,28 @@ const bentoCards = [
   {
     title: "Planeación ABP",
     description: "Diseño de proyectos basado en problemas con estándares internacionales y rúbricas dinámicas.",
-    icon: <LayoutDashboard />,
+    icon: LayoutDashboard,
     tone: 'Teal',
     size: 'wide'
   },
   {
     title: "Métricas en Vivo",
     description: "Analítica pedagógica avanzada para toma de decisiones en tiempo real.",
-    icon: <BarChart3 />,
+    icon: BarChart3,
     tone: 'Coral',
     size: 'tall'
   },
   {
     title: "Soberanía de Datos",
     description: "Control total y privado de la información académica de tu institución.",
-    icon: <FileCheck />,
+    icon: FileCheck,
     tone: 'Amber',
     size: 'normal'
   },
   {
     title: "Metodología Activa",
     description: "Fomento de la autonomía del estudiante mediante procesos ejecutables y trazables.",
-    icon: <GraduationCap />,
+    icon: GraduationCap,
     tone: 'Indigo',
     size: 'normal'
   }
