@@ -16,32 +16,32 @@ const audienceMap: Record<AudienceKey, {
     subtitle: 'Ruta clara de avance y evidencia de logros',
     value: 'Aprendes haciendo, con trazabilidad total de tu progreso.',
     bullets: [
-      'Vista de proyectos activos, entregas proximas y mentorias en calendario.',
+      'Vista de proyectos activos, entregas próximas y mentorías en calendario.',
       'Kanban individual o grupal para organizar tareas y evidencias.',
       'Reconocimientos visibles: insignias y certificados verificables.',
-      'Recursos sugeridos segun contexto de tu proyecto.'
+      'Recursos sugeridos según el contexto de tu proyecto.'
     ]
   },
   TEACHER: {
     title: 'Docente / Mentor',
-    subtitle: 'Diseno pedagogico con seguimiento operativo en tiempo real',
-    value: 'Planeas, acompanas y evalua con enfoque ABP/ABR en una sola plataforma.',
+    subtitle: 'Diseño pedagógico con seguimiento operativo en tiempo real',
+    value: 'Planeas, acompañas y evalúas con enfoque ABP/ABR en una sola plataforma.',
     bullets: [
-      'Creacion guiada de proyectos, retos y problemas con IA.',
-      'Asignacion de Objetos de Aprendizaje y Habilidades del Siglo XXI.',
-      'Evaluacion con rubricas, retroalimentacion y control de entregas.',
-      'Mentorias planificadas y gestion de solicitudes de estudiantes.'
+      'Creación guiada de proyectos, retos y problemas con IA.',
+      'Asignación de Objetos de Aprendizaje y Habilidades del Siglo XXI.',
+      'Evaluación con rúbricas, retroalimentación y control de entregas.',
+      'Mentorías planificadas y gestión de solicitudes de estudiantes.'
     ]
   },
   ADMIN: {
     title: 'Administrador',
-    subtitle: 'Gobierno academico, analitica y control institucional',
+    subtitle: 'Gobierno académico, analítica y control institucional',
     value: 'Visibilidad completa para tomar decisiones basadas en datos.',
     bullets: [
-      'Analitica de uso, avance y desempeno por usuarios y proyectos.',
+      'Analítica de uso, avance y desempeño por usuarios y proyectos.',
       'Historial de actividad detallado en tiempo real por cada usuario.',
-      'Gestion de roles, permisos, configuracion visual e integraciones.',
-      'Trazabilidad de acciones criticas para auditoria y mejora continua.'
+      'Gestión de roles, permisos, configuración visual e integraciones.',
+      'Trazabilidad de acciones críticas para auditoría y mejora continua.'
     ]
   }
 };
@@ -60,10 +60,12 @@ export function LandingAudience() {
     <section id="perfiles" className="rounded-[2rem] border border-slate-200 bg-white/85 backdrop-blur-sm p-6 md:p-10 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.42)]">
       <div className="flex items-center justify-between gap-4 mb-8">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-teal-700 mb-2">Experiencia por perfil</p>
+          <p className="text-xs font-black uppercase tracking-[0.28em] mb-2" style={{ color: 'rgb(var(--primary))' }}>
+            Experiencia por perfil
+          </p>
           <h2 className="text-3xl md:text-4xl font-black text-slate-900">Mismo ecosistema, vistas y decisiones distintas</h2>
         </div>
-        <UserSquare2 className="hidden md:block w-11 h-11 text-teal-700" />
+        <UserSquare2 className="hidden md:block w-11 h-11" style={{ color: 'rgb(var(--primary))' }} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
@@ -75,8 +77,9 @@ export function LandingAudience() {
               <button
                 key={tab.key}
                 onClick={() => setActive(tab.key)}
-                className={`w-full text-left px-4 py-3 rounded-xl mb-2 last:mb-0 transition-all inline-flex items-center gap-2 ${activeTab ? 'bg-teal-700 text-white shadow-lg shadow-teal-700/20' : 'text-slate-600 hover:bg-slate-200/70'
+                className={`w-full text-left px-4 py-3 rounded-xl mb-2 last:mb-0 transition-all inline-flex items-center gap-2 ${activeTab ? 'text-white shadow-lg' : 'text-slate-600 hover:bg-slate-200/70'
                   }`}
+                style={activeTab ? { backgroundColor: 'rgb(var(--primary))', boxShadow: '0 16px 34px -24px rgba(var(--primary), 0.85)' } : undefined}
               >
                 <Icon className="w-4 h-4" />
                 <span className="font-semibold text-sm">{tab.label}</span>
@@ -85,15 +88,15 @@ export function LandingAudience() {
           })}
         </div>
 
-        <article className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 via-white to-cyan-50 p-6 md:p-8 transition-all">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-teal-700">{data.title}</p>
+        <article className="rounded-2xl border p-6 md:p-8 transition-all" style={{ borderColor: 'rgba(var(--primary), 0.18)', background: 'linear-gradient(145deg, rgba(var(--primary), 0.08) 0%, #ffffff 48%, rgba(15, 23, 42, 0.03) 100%)' }}>
+          <p className="text-xs font-black uppercase tracking-[0.24em]" style={{ color: 'rgb(var(--primary))' }}>{data.title}</p>
           <h3 className="text-2xl font-black text-slate-900 mt-2">{data.subtitle}</h3>
           <p className="text-slate-700 mt-3">{data.value}</p>
 
           <ul className="mt-6 space-y-2.5">
             {data.bullets.map((bullet) => (
               <li key={bullet} className="text-sm text-slate-700 inline-flex items-start gap-2">
-                <ArrowRight className="w-4 h-4 mt-0.5 text-teal-700 shrink-0" />
+                <ArrowRight className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'rgb(var(--primary))' }} />
                 <span>{bullet}</span>
               </li>
             ))}
