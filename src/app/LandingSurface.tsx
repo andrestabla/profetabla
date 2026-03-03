@@ -140,18 +140,21 @@ export default function LandingSurface({
           </div>
 
           <div className={styles.bentoGrid}>
-            {bentoCards.map((card, idx) => (
-              <div
-                key={idx}
-                className={`${styles.bentoCard} ${card.size === 'wide' ? styles.cardWide : card.size === 'tall' ? styles.cardTall : ''} ${styles[`tone${card.tone}`]}`}
-              >
-                <div className={styles.bentoIcon}>
-                  {React.cloneElement(card.icon as React.ReactElement, { size: 32 })}
+            {bentoCards.map((card, idx) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={idx}
+                  className={`${styles.bentoCard} ${card.size === 'wide' ? styles.cardWide : card.size === 'tall' ? styles.cardTall : ''} ${styles[`tone${card.tone}`]}`}
+                >
+                  <div className={styles.bentoIcon}>
+                    <Icon size={32} />
+                  </div>
+                  <h3>{card.title}</h3>
+                  <p>{card.description}</p>
                 </div>
-                <h3>{card.title}</h3>
-                <p>{card.description}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
