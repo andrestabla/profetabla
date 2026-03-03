@@ -1,7 +1,7 @@
 export function LandingSkeleton() {
   return (
     <main className="min-h-screen bg-[#f3f6fb] px-5 md:px-10 py-6 md:py-8 animate-pulse">
-      <div className="max-w-7xl mx-auto">
+      <div className="mx-auto w-full" style={{ maxWidth: 'var(--page-max-width, 1260px)' }}>
         <div className="h-16 rounded-2xl bg-white border border-slate-200" />
         <div className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 md:p-10">
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-7">

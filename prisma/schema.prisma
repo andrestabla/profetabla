@@ -518,9 +518,19 @@ model PlatformConfig {
   accentColor                   String   @default("#F59E0B")
   fontFamily                    String   @default("Inter")
   borderRadius                  String   @default("0.5rem")
+  pageMaxWidth                  String   @default("1260px")
   loginLayout                   String   @default("SPLIT")
   loginBgUrl                    String?
   loginMessage                  String?
+  landingHeroEyebrow            String?
+  landingHeroTitleStart         String?
+  landingHeroTitleHighlight     String?
+  landingHeroTitleEnd           String?
+  landingHeroDescription        String?
+  landingPrimaryCtaLabel        String?
+  landingSecondaryCtaLabel      String?
+  landingHeroImageMainUrl       String?
+  landingHeroImageSecondaryUrl  String?
   customCss                     String?
   geminiApiKey                  String?
   geminiModel                   String   @default("gemini-pro")

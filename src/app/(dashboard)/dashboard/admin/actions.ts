@@ -198,6 +198,15 @@ export async function updateSystemConfigAction(formData: FormData) {
         return defaultVal;
     };
 
+    const sanitizePageMaxWidth = (value: unknown) => {
+        const fallback = '1260px';
+        if (typeof value !== 'string') return fallback;
+        const normalized = value.trim().toLowerCase();
+        if (!normalized) return fallback;
+        if (!/^(?:\d+|\d*\.\d+)(px|rem|vw|%)$/.test(normalized)) return fallback;
+        return normalized;
+    };
+
     // Construct Data Object with Defaults for Required Fields
     const data = {
 
@@ -215,6 +224,7 @@ export async function updateSystemConfigAction(formData: FormData) {
         accentColor: getVal('accentColor', '#F59E0B'),
         fontFamily: getVal('fontFamily', 'Inter'),
         borderRadius: getVal('borderRadius', '0.5rem'),
+        pageMaxWidth: sanitizePageMaxWidth(getVal('pageMaxWidth', '1260px')),
 
         // Login
         loginLayout: getVal('loginLayout', 'SPLIT'),

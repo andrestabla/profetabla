@@ -1,17 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
@@ -38,6 +27,15 @@ export const dynamic = 'force-dynamic'; // Ensure config is fetched fresh
 import { prisma } from "@/lib/prisma";
 import { hexToRgb } from "@/lib/design-utils";
 
+function sanitizePageMaxWidth(value?: string | null) {
+  const fallback = '1260px';
+  if (!value) return fallback;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (!/^(?:\d+|\d*\.\d+)(px|rem|vw|%)$/.test(normalized)) return fallback;
+  return normalized;
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -50,6 +48,7 @@ export default async function RootLayout({
   const primaryRgb = hexToRgb(config?.primaryColor || "#2563EB");
   const font = config?.fontFamily || 'Inter';
   const radius = config?.borderRadius || '0.5rem';
+  const pageMaxWidth = sanitizePageMaxWidth(config?.pageMaxWidth);
   const fallbackFavicon = 'https://img.icons8.com/fluency/48/education.png';
   const favicon = config?.faviconUrl || fallbackFavicon;
 
@@ -58,6 +57,7 @@ export default async function RootLayout({
     :root {
       --primary: ${primaryRgb};
       --radius: ${radius};
+      --page-max-width: ${pageMaxWidth};
       --font-main: '${font}', sans-serif;
       --loading-url: url('${config?.loadingUrl || 'https://profetabla.s3.us-east-1.amazonaws.com/coaching.gif'}');
     }
@@ -73,7 +73,7 @@ export default async function RootLayout({
         <style dangerouslySetInnerHTML={{ __html: dynamicStyles }} />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased"
       >
         <Providers>{children}</Providers>
       </body>

@@ -19,11 +19,12 @@ export function DesignEditor({ config }: { config: any }) {
     const [primaryColor, setPrimaryColor] = useState(config?.primaryColor || '#2563EB');
     const [radius, setRadius] = useState(config?.borderRadius || '0.5rem');
     const [font, setFont] = useState(config?.fontFamily || 'Inter');
+    const [pageMaxWidth, setPageMaxWidth] = useState(config?.pageMaxWidth || '1260px');
 
     const presets = [
-        { name: 'Corporativo', primary: '#1e293b', radius: '0.2rem', font: 'Inter' },
-        { name: 'Energético', primary: '#f97316', radius: '1rem', font: 'Poppins' },
-        { name: 'Tech', primary: '#0ea5e9', radius: '0px', font: 'Roboto' },
+        { name: 'Corporativo', primary: '#1e293b', radius: '0.2rem', font: 'Inter', width: '1260px' },
+        { name: 'Energético', primary: '#f97316', radius: '1rem', font: 'Poppins', width: '1360px' },
+        { name: 'Tech', primary: '#0ea5e9', radius: '0px', font: 'Roboto', width: '1440px' },
     ];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,6 +32,7 @@ export function DesignEditor({ config }: { config: any }) {
         setPrimaryColor(p.primary);
         setRadius(p.radius);
         setFont(p.font);
+        setPageMaxWidth(p.width || '1260px');
     };
 
     return (
@@ -183,6 +185,31 @@ export function DesignEditor({ config }: { config: any }) {
                             />
                             <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">{radius}</span>
                             <input type="hidden" name="borderRadius" value={radius} />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Ancho máximo de página (Landing/Home)</label>
+                        <input
+                            type="text"
+                            name="pageMaxWidth"
+                            value={pageMaxWidth}
+                            onChange={(e) => setPageMaxWidth(e.target.value)}
+                            className="w-full px-4 py-2 border rounded-lg font-mono text-sm"
+                            placeholder="1260px"
+                        />
+                        <p className="text-xs text-slate-400 mt-1">Formato permitido: <span className="font-mono">1120px</span>, <span className="font-mono">80rem</span>, <span className="font-mono">92vw</span>, <span className="font-mono">100%</span>.</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {['1100px', '1260px', '1440px', '1600px'].map((size) => (
+                                <button
+                                    key={size}
+                                    type="button"
+                                    onClick={() => setPageMaxWidth(size)}
+                                    className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${pageMaxWidth === size ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}`}
+                                >
+                                    {size}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
