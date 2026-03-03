@@ -1536,3 +1536,308 @@
     transition: none !important;
   }
 }
+
+/* Flat Bands Override */
+.landingMain {
+  position: relative;
+  z-index: 1;
+}
+
+.sectionInner {
+  width: var(--landing-container-width);
+  margin: 0 auto;
+}
+
+.bandDark {
+  background: #0a1b3a;
+  color: #dbe7ff;
+}
+
+.bandNavy {
+  background: #10274d;
+  color: #dbe7ff;
+}
+
+.bandLight {
+  background: #eef2f8;
+}
+
+.bandWhite {
+  background: #ffffff;
+}
+
+.bandSlate {
+  background: #e5ebf4;
+}
+
+.finalBand {
+  background: #07142f;
+}
+
+.stickyNav {
+  background: #f7f9fc;
+  border-bottom: 1px solid rgba(15, 35, 71, 0.14);
+}
+
+.navInner {
+  margin: 0 auto;
+  padding: 0.86rem 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.navCompact .navInner {
+  padding-top: 0.68rem;
+  padding-bottom: 0.68rem;
+}
+
+.brandLogo {
+  border-radius: 0;
+}
+
+.commandTrigger,
+.commandTrigger kbd,
+.navTextCta,
+.navPrimaryCta,
+.heroPrimary,
+.heroSecondary,
+.heroSearch,
+.heroSearch kbd,
+.heroMetricCard,
+.heroImageMain,
+.heroImageSecondary,
+.heroBadge,
+.heroBadgeIcon,
+.benefitItem,
+.benefitIconWrap,
+.categoryCard,
+.filterChip,
+.courseCard,
+.courseTag,
+.coursePrice,
+.premiumSplit,
+.referenceCard,
+.referenceMark,
+.finalPrimary,
+.finalSecondary {
+  border-radius: 0;
+}
+
+.navPrimaryCta {
+  box-shadow: none;
+}
+
+.heroSection {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.heroGrid {
+  width: var(--landing-container-width);
+  margin: 0 auto;
+  padding: clamp(3rem, 6vw, 5.5rem) 0 clamp(2.6rem, 4vw, 4rem);
+}
+
+.heroCopy h1 {
+  max-width: 12.5ch;
+}
+
+.heroPrimary,
+.finalPrimary {
+  box-shadow: none;
+}
+
+.heroSecondary,
+.finalSecondary {
+  background: transparent;
+}
+
+.heroMetricCard {
+  background: rgba(2, 10, 25, 0.32);
+}
+
+.heroImageMain,
+.heroImageSecondary {
+  box-shadow: none;
+}
+
+.heroBadge {
+  box-shadow: none;
+}
+
+.benefitsBar {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.benefitsGrid {
+  width: var(--landing-container-width);
+  margin: 0 auto;
+  padding: 1.35rem 0 1.6rem;
+}
+
+.benefitItem {
+  border-color: rgba(147, 197, 253, 0.32);
+  background: rgba(4, 18, 42, 0.3);
+}
+
+.benefitItem h3 {
+  color: #e2ecff;
+}
+
+.benefitItem p {
+  color: #b9cae8;
+}
+
+.benefitIconWrap {
+  background: rgba(59, 130, 246, 0.2);
+  color: #bfdbfe;
+}
+
+.sectionBlock {
+  width: 100%;
+  margin: 0;
+  padding: clamp(3rem, 6vw, 5rem) 0;
+}
+
+.sectionHeader h2 {
+  max-width: 20ch;
+}
+
+.categoryCard,
+.courseCard,
+.referenceCard {
+  box-shadow: none;
+}
+
+.filterChip:hover,
+.categoryCard:hover,
+.referenceCard:hover {
+  transform: none;
+}
+
+.premiumSplit {
+  box-shadow: none;
+}
+
+.bandDark .sectionHeader p,
+.bandDark .premiumCopy p {
+  color: #8db5ff;
+}
+
+.bandDark .sectionHeader h2,
+.bandDark .premiumCopy h2 {
+  color: #f4f7ff;
+}
+
+.bandDark .premiumSplit {
+  border-color: rgba(147, 197, 253, 0.3);
+  background: rgba(6, 20, 45, 0.44);
+}
+
+.bandDark .premiumCopy li {
+  color: #c4d5f3;
+}
+
+.bandDark .premiumCopy li svg {
+  color: #8db5ff;
+}
+
+.finalCta {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.finalBand .sectionInner {
+  padding: clamp(2.8rem, 5vw, 4.2rem) 0;
+}
+
+.finalCta p {
+  color: #9fc0ff;
+}
+
+.finalCta h2 {
+  color: #f3f7ff;
+}
+
+.finalCta span {
+  color: #c6d7f6;
+}
+
+.finalPrimary,
+.finalSecondary {
+  padding: 0.78rem 1.1rem;
+}
+
+@media (max-width: 1200px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+    gap: 1.4rem;
+    padding: 2.2rem 0 2.4rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .stickyNav {
+    position: static;
+  }
+
+  .navInner,
+  .sectionInner {
+    width: min(var(--page-max-width, 1260px), calc(100% - 1rem));
+  }
+
+  .heroGrid {
+    padding: 1.2rem 0 1.4rem;
+  }
+
+  .sectionBlock {
+    padding: 2.3rem 0;
+  }
+
+  .benefitsGrid {
+    grid-template-columns: 1fr;
+    padding: 1rem 0 1.2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .navInner,
+  .sectionInner {
+    width: calc(100% - 0.7rem);
+  }
+
+  .navInner {
+    padding: 0.62rem 0;
+  }
+
+  .heroGrid {
+    padding: 0.86rem 0 1.1rem;
+  }
+
+  .heroImageMain {
+    height: 208px;
+  }
+
+  .sectionBlock {
+    padding: 2rem 0;
+  }
+}

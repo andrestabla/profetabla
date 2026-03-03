@@ -527,9 +527,10 @@ export function LandingSurface({
         </div>
       </header>
 
-      <main>
-        <section className={styles.heroSection}>
-          <div className={styles.heroGrid}>
+      <main className={styles.landingMain}>
+        <section className={`${styles.heroSection} ${styles.bandDark}`}>
+          <div className={styles.sectionInner}>
+            <div className={styles.heroGrid}>
             <article className={styles.heroCopy} data-reveal>
               <p className={styles.heroEyebrow}>{content.heroEyebrow}</p>
               <h1>
@@ -583,175 +584,192 @@ export function LandingSurface({
                 </div>
               </article>
             </aside>
+            </div>
           </div>
         </section>
 
-        <section className={styles.benefitsBar} data-reveal>
-          <div className={styles.benefitsGrid}>
-            {benefits.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article key={item.title} className={styles.benefitItem}>
-                  <span className={styles.benefitIconWrap}>
-                    <Icon size={17} />
-                  </span>
-                  <div>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                  </div>
-                </article>
-              );
-            })}
+        <section className={`${styles.benefitsBar} ${styles.bandNavy}`} data-reveal>
+          <div className={styles.sectionInner}>
+            <div className={styles.benefitsGrid}>
+              {benefits.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article key={item.title} className={styles.benefitItem}>
+                    <span className={styles.benefitIconWrap}>
+                      <Icon size={17} />
+                    </span>
+                    <div>
+                      <h3>{item.title}</h3>
+                      <p>{item.description}</p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </section>
 
-        <section id="categorias" className={styles.sectionBlock}>
-          <header className={styles.sectionHeader} data-reveal>
-            <p>Categorías destacadas</p>
-            <h2>Rutas de formación por enfoque y necesidad institucional</h2>
-          </header>
+        <section id="categorias" className={`${styles.sectionBlock} ${styles.bandLight}`}>
+          <div className={styles.sectionInner}>
+            <header className={styles.sectionHeader} data-reveal>
+              <p>Categorías destacadas</p>
+              <h2>Rutas de formación por enfoque y necesidad institucional</h2>
+            </header>
 
-          <div className={styles.categoryGrid}>
-            {categories.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article key={item.id} className={styles.categoryCard} data-reveal>
-                  <Icon className={styles.categoryIcon} />
-                  <div className={styles.categoryMeta}>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                    <span>{item.routes} rutas sugeridas</span>
-                  </div>
-                </article>
-              );
-            })}
+            <div className={styles.categoryGrid}>
+              {categories.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article key={item.id} className={styles.categoryCard} data-reveal>
+                    <Icon className={styles.categoryIcon} />
+                    <div className={styles.categoryMeta}>
+                      <h3>{item.title}</h3>
+                      <p>{item.description}</p>
+                      <span>{item.routes} rutas sugeridas</span>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </section>
 
-        <section id="programas" className={styles.sectionBlock}>
-          <header className={styles.sectionHeader} data-reveal>
-            <p>Programas recomendados</p>
-            <h2>Catálogo demostrativo con estética editorial y lectura rápida</h2>
-          </header>
+        <section id="programas" className={`${styles.sectionBlock} ${styles.bandWhite}`}>
+          <div className={styles.sectionInner}>
+            <header className={styles.sectionHeader} data-reveal>
+              <p>Programas recomendados</p>
+              <h2>Catálogo demostrativo con estética editorial y lectura rápida</h2>
+            </header>
 
-          <div className={styles.filterBar} data-reveal>
-            <button
-              className={`${styles.filterChip} ${activeCategory === 'all' ? styles.filterChipActive : ''}`}
-              onClick={() => setActiveCategory('all')}
-            >
-              Todas
-            </button>
-            {categories.map((item) => (
+            <div className={styles.filterBar} data-reveal>
               <button
-                key={item.id}
-                className={`${styles.filterChip} ${activeCategory === item.id ? styles.filterChipActive : ''}`}
-                onClick={() => setActiveCategory(item.id)}
+                className={`${styles.filterChip} ${activeCategory === 'all' ? styles.filterChipActive : ''}`}
+                onClick={() => setActiveCategory('all')}
               >
-                {item.title}
+                Todas
               </button>
-            ))}
+              {categories.map((item) => (
+                <button
+                  key={item.id}
+                  className={`${styles.filterChip} ${activeCategory === item.id ? styles.filterChipActive : ''}`}
+                  onClick={() => setActiveCategory(item.id)}
+                >
+                  {item.title}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.courseGrid}>
+              {filteredPrograms.map((program) => (
+                <article key={program.title} className={styles.courseCard} data-reveal>
+                  <div className={styles.courseMedia}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={program.imageUrl} alt={program.title} loading="lazy" />
+                  </div>
+
+                  <div className={styles.courseBody}>
+                    <div className={styles.courseTagRow}>
+                      <span className={styles.courseTag}>{categories.find((item) => item.id === program.categoryId)?.title || 'Ruta'}</span>
+                      <span className={styles.coursePrice}>{program.priceLabel}</span>
+                    </div>
+
+                    <h3 className={styles.courseTitle}>{program.title}</h3>
+
+                    <div className={styles.courseMetaRow}>
+                      <span>
+                        <CalendarClock size={14} />
+                        {program.duration}
+                      </span>
+                      <span>
+                        <Users size={14} />
+                        {program.students}
+                      </span>
+                      <span>
+                        <Star size={14} />
+                        {program.rating.toFixed(1)}
+                      </span>
+                    </div>
+
+                    <p className={styles.courseRating}>{program.author}</p>
+
+                    <a href="#diferenciales" className={styles.courseLink}>
+                      Ver enfoque institucional
+                      <ArrowRight size={15} />
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
+        </section>
 
-          <div className={styles.courseGrid}>
-            {filteredPrograms.map((program) => (
-              <article key={program.title} className={styles.courseCard} data-reveal>
-                <div className={styles.courseMedia}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={program.imageUrl} alt={program.title} loading="lazy" />
-                </div>
-
-                <div className={styles.courseBody}>
-                  <div className={styles.courseTagRow}>
-                    <span className={styles.courseTag}>{categories.find((item) => item.id === program.categoryId)?.title || 'Ruta'}</span>
-                    <span className={styles.coursePrice}>{program.priceLabel}</span>
-                  </div>
-
-                  <h3 className={styles.courseTitle}>{program.title}</h3>
-
-                  <div className={styles.courseMetaRow}>
-                    <span>
-                      <CalendarClock size={14} />
-                      {program.duration}
-                    </span>
-                    <span>
-                      <Users size={14} />
-                      {program.students}
-                    </span>
-                    <span>
-                      <Star size={14} />
-                      {program.rating.toFixed(1)}
-                    </span>
-                  </div>
-
-                  <p className={styles.courseRating}>{program.author}</p>
-
-                  <a href="#diferenciales" className={styles.courseLink}>
-                    Ver enfoque institucional
-                    <ArrowRight size={15} />
-                  </a>
-                </div>
+        <section id="diferenciales" className={`${styles.sectionBlock} ${styles.bandDark}`}>
+          <div className={styles.sectionInner}>
+            <div className={styles.premiumSplit} data-reveal>
+              <article className={styles.premiumMedia}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://images.pexels.com/photos/4145190/pexels-photo-4145190.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                  alt="Equipo académico planificando aprendizaje"
+                  className={styles.premiumMediaImage}
+                />
               </article>
-            ))}
+
+              <article className={styles.premiumCopy}>
+                <p>Valor institucional</p>
+                <h2>Una experiencia premium para gestión pedagógica y tecnológica</h2>
+                <ul>
+                  <li><CheckCircle2 size={16} />Diseño pedagógico ejecutable con foco en resultados.</li>
+                  <li><CheckCircle2 size={16} />Dashboard operativo para estudiantes, docentes y administración.</li>
+                  <li><CheckCircle2 size={16} />Historial de actividad completo y gobernanza en tiempo real.</li>
+                  <li><CheckCircle2 size={16} />Reconocimientos verificables vinculados a evidencias.</li>
+                </ul>
+              </article>
+            </div>
           </div>
         </section>
 
-        <section id="diferenciales" className={styles.sectionBlock}>
-          <div className={styles.premiumSplit} data-reveal>
-            <article className={styles.premiumMedia}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://images.pexels.com/photos/4145190/pexels-photo-4145190.jpeg?auto=compress&cs=tinysrgb&w=1200"
-                alt="Equipo académico planificando aprendizaje"
-                className={styles.premiumMediaImage}
-              />
-            </article>
-
-            <article className={styles.premiumCopy}>
-              <p>Valor institucional</p>
-              <h2>Una experiencia premium para gestión pedagógica y tecnológica</h2>
-              <ul>
-                <li><CheckCircle2 size={16} />Diseño pedagógico ejecutable con foco en resultados.</li>
-                <li><CheckCircle2 size={16} />Dashboard operativo para estudiantes, docentes y administración.</li>
-                <li><CheckCircle2 size={16} />Historial de actividad completo y gobernanza en tiempo real.</li>
-                <li><CheckCircle2 size={16} />Reconocimientos verificables vinculados a evidencias.</li>
-              </ul>
-            </article>
+        <section className={`${styles.sectionBlock} ${styles.bandSlate}`}>
+          <div className={styles.sectionInner}>
+            <LandingAudience />
           </div>
         </section>
 
-        <section className={styles.sectionBlock}>
-          <LandingAudience />
-        </section>
+        <section id="referencias" className={`${styles.sectionBlock} ${styles.bandLight}`}>
+          <div className={styles.sectionInner}>
+            <header className={styles.sectionHeader} data-reveal>
+              <p>Referencias externas</p>
+              <h2>Fuentes reales para orientar tendencias y marcos de implementación</h2>
+            </header>
 
-        <section id="referencias" className={styles.sectionBlock}>
-          <header className={styles.sectionHeader} data-reveal>
-            <p>Referencias externas</p>
-            <h2>Fuentes reales para orientar tendencias y marcos de implementación</h2>
-          </header>
-
-          <div className={styles.referenceGrid}>
-            {references.map((item) => (
-              <a key={item.name} href={item.href} target="_blank" rel="noopener noreferrer" className={styles.referenceCard} data-reveal>
-                <div className={styles.referenceInfo}>
-                  <span className={styles.referenceMark} style={{ backgroundImage: `url(${item.visualUrl})` }} />
-                  <h3>{item.name}</h3>
-                  <p>{item.detail}</p>
-                </div>
-                <ArrowUpRight size={16} />
-              </a>
-            ))}
+            <div className={styles.referenceGrid}>
+              {references.map((item) => (
+                <a key={item.name} href={item.href} target="_blank" rel="noopener noreferrer" className={styles.referenceCard} data-reveal>
+                  <div className={styles.referenceInfo}>
+                    <span className={styles.referenceMark} style={{ backgroundImage: `url(${item.visualUrl})` }} />
+                    <h3>{item.name}</h3>
+                    <p>{item.detail}</p>
+                  </div>
+                  <ArrowUpRight size={16} />
+                </a>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className={styles.finalCta} data-reveal>
-          <div>
-            <p>Implementación institucional</p>
-            <h2>Convierte tu estrategia pedagógica en una operación medible y escalable.</h2>
-            <span>Esta vista de laboratorio utiliza información demostrativa para proteger datos reales.</span>
-          </div>
-          <div className={styles.finalActions}>
-            <Link href="/register" className={styles.finalPrimary}>Solicitar implementación</Link>
-            <Link href="/login" className={styles.finalSecondary}>Ingresar</Link>
+        <section className={`${styles.sectionBlock} ${styles.finalBand}`}>
+          <div className={styles.sectionInner}>
+            <div className={styles.finalCta} data-reveal>
+              <div>
+                <p>Implementación institucional</p>
+                <h2>Convierte tu estrategia pedagógica en una operación medible y escalable.</h2>
+                <span>Esta vista de laboratorio utiliza información demostrativa para proteger datos reales.</span>
+              </div>
+              <div className={styles.finalActions}>
+                <Link href="/register" className={styles.finalPrimary}>Solicitar implementación</Link>
+                <Link href="/login" className={styles.finalSecondary}>Ingresar</Link>
+              </div>
+            </div>
           </div>
         </section>
       </main>
