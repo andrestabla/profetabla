@@ -23,6 +23,9 @@ interface LandingSurfaceProps {
   institutionName?: string;
   logoUrl?: string;
   heroImage?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
 }
 
 const bentoCards = [
