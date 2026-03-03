@@ -1549,12 +1549,12 @@
 }
 
 .bandDark {
-  background: #0a1b3a;
-  color: #dbe7ff;
+  background: #071935;
+  color: #e6efff;
 }
 
 .bandNavy {
-  background: #10274d;
+  background: #0b2550;
   color: #dbe7ff;
 }
 
@@ -1640,6 +1640,18 @@
   background: transparent;
 }
 
+.heroSection.bandDark {
+  background: #071935;
+}
+
+.heroSection.bandDark::before {
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px) 0 0 / 58px 58px,
+    linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px) 0 0 / 58px 58px,
+    radial-gradient(circle at 86% 36%, rgba(var(--primary-rgb), 0.28), transparent 38%),
+    radial-gradient(circle at 12% 88%, rgba(var(--accent-rgb), 0.2), transparent 40%);
+}
+
 .heroGrid {
   width: var(--landing-container-width);
   margin: 0 auto;
@@ -1648,6 +1660,7 @@
 
 .heroCopy h1 {
   max-width: 12.5ch;
+  color: #f6f9ff;
 }
 
 .heroPrimary,
@@ -1658,10 +1671,21 @@
 .heroSecondary,
 .finalSecondary {
   background: transparent;
+  color: #e6efff;
+  border-color: rgba(226, 232, 240, 0.65);
 }
 
 .heroMetricCard {
-  background: rgba(2, 10, 25, 0.32);
+  background: rgba(2, 10, 25, 0.6);
+  border-color: rgba(191, 219, 254, 0.48);
+}
+
+.heroMetricCard strong {
+  color: #ffffff;
+}
+
+.heroMetricCard span {
+  color: #dbe7ff;
 }
 
 .heroImageMain,
@@ -1683,6 +1707,10 @@
   padding: 0;
 }
 
+.benefitsBar.bandNavy {
+  background: #0b2550;
+}
+
 .benefitsGrid {
   width: var(--landing-container-width);
   margin: 0 auto;
@@ -1690,21 +1718,21 @@
 }
 
 .benefitItem {
-  border-color: rgba(147, 197, 253, 0.32);
-  background: rgba(4, 18, 42, 0.3);
+  border-color: rgba(147, 197, 253, 0.46);
+  background: rgba(4, 18, 42, 0.58);
 }
 
 .benefitItem h3 {
-  color: #e2ecff;
+  color: #f2f7ff;
 }
 
 .benefitItem p {
-  color: #b9cae8;
+  color: #d1def6;
 }
 
 .benefitIconWrap {
-  background: rgba(59, 130, 246, 0.2);
-  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.28);
+  color: #e0ecff;
 }
 
 .sectionBlock {
