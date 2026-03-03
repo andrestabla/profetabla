@@ -1,74 +1,18 @@
-import { Suspense } from 'react';
-import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
-import { LandingSurface } from '@/app/LandingSurface';
-import { LandingSkeleton } from '@/app/LandingSkeleton';
-import { authOptions } from '@/lib/auth';
-import { DEFAULT_HOME_LAB_CONTENT, sanitizeHomeLabContent } from '@/lib/home-lab-content';
+import { HomeLanding } from '@/app/HomeLanding';
 
-async function HomeLabData() {
-  const session = await getServerSession(authOptions);
+type HomeLabPageProps = {
+  searchParams: Promise<{ edit?: string | string[] }>;
+};
 
-  const config = await prisma.platformConfig.findUnique({
-    where: { id: 'global-config' },
-    select: {
-      institutionName: true,
-      logoUrl: true,
-      primaryColor: true,
-      secondaryColor: true,
-      accentColor: true,
-      homeLabContentJson: true,
-      landingHeroEyebrow: true,
-      landingHeroTitleStart: true,
-      landingHeroTitleHighlight: true,
-      landingHeroTitleEnd: true,
-      landingHeroDescription: true,
-      landingPrimaryCtaLabel: true,
-      landingSecondaryCtaLabel: true,
-      landingHeroImageMainUrl: true,
-      landingHeroImageSecondaryUrl: true
-    }
-  });
-
-  const jsonContent = config?.homeLabContentJson;
-  const jsonContentObject = jsonContent && typeof jsonContent === 'object' ? (jsonContent as Record<string, unknown>) : {};
-  const jsonHero = jsonContentObject.hero && typeof jsonContentObject.hero === 'object'
-    ? (jsonContentObject.hero as Record<string, unknown>)
-    : {};
-
-  const legacyMergedContent = sanitizeHomeLabContent({
-    ...jsonContentObject,
-    hero: {
-      ...jsonHero,
-      eyebrow: config?.landingHeroEyebrow || undefined,
-      titleStart: config?.landingHeroTitleStart || undefined,
-      titleHighlight: config?.landingHeroTitleHighlight || undefined,
-      titleEnd: config?.landingHeroTitleEnd || undefined,
-      description: config?.landingHeroDescription || undefined,
-      primaryCtaLabel: config?.landingPrimaryCtaLabel || undefined,
-      secondaryCtaLabel: config?.landingSecondaryCtaLabel || undefined,
-      imageMainUrl: config?.landingHeroImageMainUrl || undefined,
-      imageSecondaryUrl: config?.landingHeroImageSecondaryUrl || undefined,
-    },
-  });
-
-  return (
-    <LandingSurface
-      isAdmin={session?.user?.role === 'ADMIN'}
-      institutionName={config?.institutionName || 'Profe Tabla'}
-      logoUrl={config?.logoUrl || ''}
-      primaryColor={config?.primaryColor || '#1AB69D'}
-      secondaryColor={config?.secondaryColor || '#475569'}
-      accentColor={config?.accentColor || '#EE4A62'}
-      editableContent={legacyMergedContent || DEFAULT_HOME_LAB_CONTENT}
-    />
-  );
+function shouldOpenEditMode(editParam: string | string[] | undefined) {
+  const rawValue = Array.isArray(editParam) ? editParam[0] : editParam;
+  const normalized = String(rawValue || '').toLowerCase().trim();
+  return ['1', 'true', 'yes', 'on'].includes(normalized);
 }
 
-export default function HomeLabPage() {
-  return (
-    <Suspense fallback={<LandingSkeleton />}>
-      <HomeLabData />
-    </Suspense>
-  );
+export default async function HomeLabPage({ searchParams }: HomeLabPageProps) {
+  const params = await searchParams;
+  const forceEditMode = shouldOpenEditMode(params?.edit);
+
+  return <HomeLanding forceEditMode={forceEditMode} />;
 }

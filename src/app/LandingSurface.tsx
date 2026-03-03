@@ -39,6 +39,7 @@ interface LandingSurfaceProps {
   secondaryColor: string;
   accentColor: string;
   isAdmin?: boolean;
+  defaultEditMode?: boolean;
   editableContent: HomeLabContent;
 }
 
@@ -133,6 +134,7 @@ export function LandingSurface({
   secondaryColor,
   accentColor,
   isAdmin = false,
+  defaultEditMode = false,
   editableContent,
 }: LandingSurfaceProps) {
   const shellRef = useRef<HTMLDivElement>(null);
@@ -161,6 +163,12 @@ export function LandingSurface({
   useEffect(() => {
     setContent(sanitizeHomeLabContent(editableContent));
   }, [editableContent]);
+
+  useEffect(() => {
+    if (!isAdmin || !defaultEditMode) return;
+    setEditEnabled(true);
+    setRawJson(JSON.stringify(content, null, 2));
+  }, [isAdmin, defaultEditMode, content]);
 
   useEffect(() => {
     setThemePrimaryColor(primaryColor || '#1AB69D');
