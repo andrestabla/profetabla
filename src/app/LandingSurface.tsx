@@ -56,7 +56,7 @@ const bentoCards = [
   }
 ];
 
-export default function LandingSurface({
+export function LandingSurface({
   institutionName = "Profe Tabla",
   logoUrl = "/logo.png",
   heroImage = "/hero-human.png"
