@@ -354,8 +354,8 @@ export function LandingSurface({
 
       <section id="funcionalidades" className={styles.sectionBlock}>
         <header className={styles.sectionHeader} data-reveal>
-          <p>Potencia Educativa</p>
-          <h2>Infraestructura diseñada para la excelencia</h2>
+          <p>Potencial Tecnológico</p>
+          <h2>Herramientas clave para la transformación digital educativa</h2>
         </header>
 
         <div className={styles.bentoGrid}>
@@ -382,24 +382,26 @@ export function LandingSurface({
 
       <section id="diferenciales" className={styles.sectionBlock}>
         <header className={styles.sectionHeader} data-reveal>
-          <p>Diferencia Institucional</p>
-          <h2>Por qué las instituciones líderes eligen Profe Tabla</h2>
+          <p>Ventajas competitivas</p>
+          <h2>Por qué las instituciones de alto desempeño escalan con nosotros</h2>
         </header>
 
         <div className={styles.dualColumn}>
           <article className={styles.glassCard} data-reveal>
-            <h3>Modelo ejecutable de aprendizaje</h3>
+            <h3>Metodología Activa Ejecutable</h3>
             <p>
-              No solo describimos el aprendizaje, lo habilitamos mediante flujos operativos
-              que conectan la planeación con la evidencia real del aula en tiempo real.
+              A diferencia de las plataformas tradicionales, Profe Tabla convierte la planeación
+              pedagógica en un flujo operativo. Habilitamos la creación de proyectos bajo marcos
+              de ABP y retos reales, conectando objetivos educativos con el trabajo diario del estudiante.
             </p>
           </article>
 
           <article className={styles.glassCard} data-reveal>
-            <h3>Trazabilidad e Inteligencia</h3>
+            <h3>Soberanía de Datos Pedagógicos</h3>
             <p>
-              Obtén visibilidad total sobre el progreso de cada cohorte, docente y estudiante
-              mediante un historial de actividad inmutable y accionable institucionalmente.
+              Recupera el control sobre lo que sucede en el aula. Nuestra arquitectura permite
+              una trazabilidad granular del progreso académico, permitiendo intervenciones
+              tempranas basadas en analítica real en lugar de reportes manuales subjetivos.
             </p>
           </article>
         </div>
