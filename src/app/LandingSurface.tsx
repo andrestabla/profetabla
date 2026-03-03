@@ -14,6 +14,7 @@ import {
   Layers3,
   Loader2,
   LibraryBig,
+  Menu,
   Pencil,
   Search,
   ShieldCheck,
@@ -146,6 +147,8 @@ export function LandingSurface({
   const [commandOpen, setCommandOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isNarrowViewportRef = useRef(false);
 
   const [editEnabled, setEditEnabled] = useState(false);
   const [editorSaving, setEditorSaving] = useState(false);
@@ -199,9 +202,30 @@ export function LandingSurface({
   }, [query]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1200px)');
+    const syncViewport = () => {
+      isNarrowViewportRef.current = mediaQuery.matches;
+      if (mediaQuery.matches) {
+        setNavHidden(false);
+      }
+    };
+
+    syncViewport();
+    mediaQuery.addEventListener('change', syncViewport);
+
+    return () => mediaQuery.removeEventListener('change', syncViewport);
+  }, []);
+
+  useEffect(() => {
     const onScroll = () => {
       const currentY = window.scrollY;
       setNavCompact(currentY > 10);
+
+      if (isNarrowViewportRef.current) {
+        setNavHidden(false);
+        lastScrollY.current = currentY;
+        return;
+      }
 
       if (currentY > lastScrollY.current + 8 && currentY > 120) {
         setNavHidden(true);
@@ -226,12 +250,31 @@ export function LandingSurface({
 
       if (event.key === 'Escape') {
         setCommandOpen(false);
+        setMobileMenuOpen(false);
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (commandOpen) {
+      setMobileMenuOpen(false);
+    }
+  }, [commandOpen]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      document.body.style.overflow = '';
+      return;
+    }
+
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     if (commandOpen) {
@@ -399,8 +442,44 @@ export function LandingSurface({
             <Link href="/login" className={styles.navTextCta}>{content.nav.loginLabel}</Link>
             <Link href="/register" className={styles.navPrimaryCta}>{content.nav.registerLabel}</Link>
           </div>
+
+          <button
+            type="button"
+            className={styles.mobileMenuToggle}
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
       </header>
+
+      {mobileMenuOpen && (
+        <div className={styles.mobileMenuOverlay} onClick={() => setMobileMenuOpen(false)}>
+          <nav className={styles.mobileMenuPanel} onClick={(event) => event.stopPropagation()}>
+            <a href="#categorias" onClick={() => setMobileMenuOpen(false)}>{content.nav.categoriesLabel}</a>
+            <a href="#programas" onClick={() => setMobileMenuOpen(false)}>{content.nav.programsLabel}</a>
+            <a href="#diferenciales" onClick={() => setMobileMenuOpen(false)}>{content.nav.differentialsLabel}</a>
+            <a href="#referencias" onClick={() => setMobileMenuOpen(false)}>{content.nav.referencesLabel}</a>
+
+            <button
+              type="button"
+              className={styles.mobileMenuSearch}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setCommandOpen(true);
+              }}
+            >
+              <Search size={15} />
+              <span>{content.nav.searchLabel}</span>
+            </button>
+
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)}>{content.nav.loginLabel}</Link>
+            <Link href="/register" onClick={() => setMobileMenuOpen(false)}>{content.nav.registerLabel}</Link>
+          </nav>
+        </div>
+      )}
 
       <main className={styles.landingMain}>
         <section className={`${styles.heroSection} ${styles.bandDark}`}>
