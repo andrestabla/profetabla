@@ -187,7 +187,6 @@ export function LandingSurface({
   const [navCompact, setNavCompact] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [scrollOffset, setScrollOffset] = useState(0);
 
   const filteredActions = useMemo(() => {
     const normalizedQuery = normalize(query.trim());
@@ -229,12 +228,11 @@ export function LandingSurface({
 
     const onScroll = () => {
       const currentScroll = window.scrollY;
-      setNavCompact(currentScroll > 18);
-      setScrollOffset(Math.min(currentScroll * 0.2, 78));
+      setNavCompact(currentScroll > 50);
 
-      if (currentScroll > lastScroll + 8 && currentScroll > 120) {
+      if (currentScroll > lastScroll + 10 && currentScroll > 200) {
         setNavHidden(true);
-      } else if (currentScroll < lastScroll - 8) {
+      } else if (currentScroll < lastScroll - 10) {
         setNavHidden(false);
       }
 
@@ -243,36 +241,6 @@ export function LandingSurface({
 
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  useEffect(() => {
-    const root = shellRef.current;
-    if (!root) return;
-
-    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-tilt]'));
-    const cleanupFns: Array<() => void> = [];
-
-    cards.forEach((card) => {
-      const onMove = (event: MouseEvent) => {
-        const rect = card.getBoundingClientRect();
-        const offsetX = (event.clientX - rect.left) / rect.width - 0.5;
-        const offsetY = (event.clientY - rect.top) / rect.height - 0.5;
-        card.style.transform = `perspective(1000px) rotateX(${offsetY * -4}deg) rotateY(${offsetX * 6}deg) translateY(-3px)`;
-      };
-
-      const onLeave = () => {
-        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-      };
-
-      card.addEventListener('mousemove', onMove);
-      card.addEventListener('mouseleave', onLeave);
-      cleanupFns.push(() => {
-        card.removeEventListener('mousemove', onMove);
-        card.removeEventListener('mouseleave', onLeave);
-      });
-    });
-
-    return () => cleanupFns.forEach((fn) => fn());
   }, []);
 
   useEffect(() => {
@@ -288,7 +256,7 @@ export function LandingSurface({
           }
         });
       },
-      { threshold: 0.22 }
+      { threshold: 0.15 }
     );
 
     revealElements.forEach((element) => observer.observe(element));
@@ -331,83 +299,41 @@ export function LandingSurface({
               <span>Buscar</span>
               <kbd>⌘K</kbd>
             </button>
-            <Link href="/login" className={styles.navTextCta}>Ingresar</Link>
-            <Link href="/register" className={styles.navPrimaryCta}>Crear cuenta</Link>
+            <Link href="/register" className={styles.navPrimaryCta}>Empezar ahora</Link>
           </div>
         </div>
       </header>
 
       <section className={styles.hero} id="inicio">
-        <video
-          className={styles.heroVideo}
-          style={{ transform: `translate3d(0, ${scrollOffset * -1}px, 0)` }}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-        >
+        <video className={styles.heroVideo} autoPlay muted loop playsInline preload="metadata">
           <source src={HERO_VIDEO} type="video/mp4" />
         </video>
         <div className={styles.heroOverlay} />
 
-        <div className={styles.heroContent}>
-          <article className={styles.heroStatement} data-tilt data-reveal>
-            <p className={styles.heroEyebrow}>
-              <BellRing className="w-3.5 h-3.5" />
-              Plataforma pedagógica y tecnológica
-            </p>
-            <h1>
-              Diseña aprendizaje con
-              <span> estructura pedagógica </span>
-              y operación institucional en tiempo real.
-            </h1>
-            <p>
-              Integras planeación ABP/ABR, seguimiento de entregas, mentorías, evaluación y reconocimientos
-              en una sola experiencia coherente para estudiantes, docentes y administradores.
-            </p>
+        <div className={styles.heroContent} data-reveal>
+          <div className={styles.heroEyebrow}>
+            <Sparkles className="w-4 h-4" />
+            <span>Arquitectura Pedagógica de Vanguardia</span>
+          </div>
+          <h1>
+            Diseña el futuro del <span>aprendizaje estruturado</span> en tiempo real.
+          </h1>
+          <p>
+            La plataforma definitiva para instituciones que buscan integrar planeación ABP, 
+            trazabilidad académica y gobernanza tecnológica en una experiencia premium.
+          </p>
 
-            <button type="button" className={styles.heroSearchBar} onClick={() => setCommandOpen(true)}>
-              <Search className="w-4 h-4" />
-              <span>Busca módulos, rutas, herramientas o secciones...</span>
-              <kbd>⌘K</kbd>
-            </button>
-
-            <div className={styles.heroCtaRow}>
-              <Link href="/register" className={styles.heroPrimaryCta}>Empezar ahora</Link>
-              <a href="#funcionalidades" className={styles.heroSecondaryCta}>Explorar funcionalidades</a>
-            </div>
-          </article>
-
-          <div className={styles.heroAside}>
-            <div data-reveal className={styles.heroAsideCard}>
-              <LandingDemoMetrics />
-            </div>
-            <article className={styles.storyCard} data-tilt data-reveal>
-              <p className={styles.storyEyebrow}>Data storytelling</p>
-              <h3>Indicadores de avance por cohorte (demo)</h3>
-              <svg viewBox="0 0 320 120" className={styles.storyChart} role="img" aria-label="Curva de avance mensual de ejemplo">
-                <defs>
-                  <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="rgb(var(--primary))" />
-                    <stop offset="100%" stopColor="var(--landing-accent)" />
-                  </linearGradient>
-                </defs>
-                <path d="M10 94 C45 74, 70 84, 104 58 C128 44, 152 64, 180 46 C214 26, 240 30, 270 16 C294 8, 308 15, 312 11" />
-              </svg>
-              <div className={styles.storyLegend}>
-                <span><Workflow className="w-4 h-4" /> +42% avance sostenido</span>
-                <span><BookMarked className="w-4 h-4" /> +3.1x uso de recursos</span>
-              </div>
-            </article>
+          <div className={styles.heroCtaRow}>
+            <Link href="/register" className={styles.heroPrimaryCta}>Empezar implementación</Link>
+            <a href="#funcionalidades" className={styles.heroSecondaryCta}>Ver módulos</a>
           </div>
         </div>
       </section>
 
       <section id="funcionalidades" className={styles.sectionBlock}>
-        <header className={styles.sectionHeader}>
-          <p>Funcionalidades clave</p>
-          <h2>Composición tipo bento para una visión integral</h2>
+        <header className={styles.sectionHeader} data-reveal>
+          <p>Módulos de Potencia</p>
+          <h2>Infraestructura diseñada para la excelencia</h2>
         </header>
 
         <div className={styles.bentoGrid}>
@@ -416,7 +342,6 @@ export function LandingSurface({
             return (
               <article
                 key={card.title}
-                data-tilt
                 data-reveal
                 className={[
                   styles.bentoCard,
@@ -424,7 +349,7 @@ export function LandingSurface({
                   cardToneClass(card.tone)
                 ].join(' ')}
               >
-                <p className={styles.bentoEyebrow}>{card.eyebrow}</p>
+                <span className={styles.bentoEyebrow}>{card.eyebrow}</span>
                 <h3>{card.title}</h3>
                 <p>{card.description}</p>
                 <Icon className={styles.bentoIcon} />
@@ -435,60 +360,47 @@ export function LandingSurface({
       </section>
 
       <section id="diferenciales" className={styles.sectionBlock}>
-        <header className={styles.sectionHeader}>
-          <p>Diferenciales</p>
-          <h2>Experiencia de producto orientada a adopción y autoridad</h2>
+        <header className={styles.sectionHeader} data-reveal>
+          <p>Autoridad y Diferencia</p>
+          <h2>Por qué las instituciones líderes eligen Profe Tabla</h2>
         </header>
 
         <div className={styles.dualColumn}>
-          <article className={styles.glassCard} data-reveal data-tilt>
-            <p className={styles.glassEyebrow}>Ventaja pedagógica</p>
-            <h3>Modelo de aprendizaje ejecutable, no solo descriptivo</h3>
-            <ul>
-              <li><GraduationCap className="w-4 h-4" /> Diseño pedagógico y operativo en el mismo flujo.</li>
-              <li><Layers3 className="w-4 h-4" /> Habilidades del siglo XXI vinculadas a cada experiencia.</li>
-              <li><FileCheck2 className="w-4 h-4" /> Evaluación con evidencia y retroalimentación contextual.</li>
-            </ul>
+          <article className={styles.glassCard} data-reveal>
+            <span className={styles.bentoEyebrow}>Ventaja Estratégica</span>
+            <h3>Modelo ejecutable de aprendizaje</h3>
+            <p>
+              No solo describimos el aprendizaje, lo habilitamos mediante flujos operativos 
+              que conectan la planeación con la evidencia real del aula.
+            </p>
           </article>
 
-          <article className={styles.glassCard} data-reveal data-tilt>
-            <p className={styles.glassEyebrow}>Ventaja tecnológica</p>
-            <h3>Trazabilidad, rendimiento y gobernanza institucional</h3>
-            <ul>
-              <li><Radar className="w-4 h-4" /> Historial de actividad en tiempo real por usuario.</li>
-              <li><CalendarClock className="w-4 h-4" /> Coordinación entre entregas, mentorías y resultados.</li>
-              <li><Sparkles className="w-4 h-4" /> Reconocimientos verificables y configurables.</li>
-            </ul>
+          <article className={styles.glassCard} data-reveal>
+            <span className={styles.bentoEyebrow}>Gobernanza de Datos</span>
+            <h3>Trazabilidad e Inteligencia Institucional</h3>
+            <p>
+              Obtén visibilidad total sobre el progreso de cada cohorte, docente y estudiante 
+              mediante un historial de actividad inmutable y accionable.
+            </p>
           </article>
         </div>
       </section>
 
-      <section className={styles.sectionBlock}>
-        <header className={styles.sectionHeader}>
-          <p>Social proof dinámico</p>
-          <h2>Carrusel continuo de testimonios institucionales</h2>
-        </header>
-
-        <div className={styles.marqueeShell} data-reveal>
-          <div className={styles.marqueeTrack}>
-            {duplicatedProof.map((item, index) => (
-              <article key={`${item.author}-${index}`} className={styles.testimonialCard}>
-                <p>{item.quote}</p>
-                <span>{item.author}</span>
-              </article>
-            ))}
-          </div>
+      <div className={styles.marqueeShell} data-reveal>
+        <div className={styles.marqueeTrack}>
+          {duplicatedProof.map((item, index) => (
+            <article key={`${item.author}-${index}`} className={styles.testimonialCard}>
+              <p>{item.quote}</p>
+              <span>{item.author}</span>
+            </article>
+          ))}
         </div>
-      </section>
-
-      <div className={styles.sectionBlock}>
-        <LandingAudience />
       </div>
 
       <section id="referencias" className={styles.sectionBlock}>
-        <header className={styles.sectionHeader}>
-          <p>Referencias</p>
-          <h2>Fuentes y marcos que respaldan la propuesta</h2>
+        <header className={styles.sectionHeader} data-reveal>
+          <p>Base Científica</p>
+          <h2>Respaldado por marcos internacionales</h2>
         </header>
 
         <div className={styles.referenceGrid}>
@@ -505,33 +417,28 @@ export function LandingSurface({
       </section>
 
       <section className={styles.finalCta} data-reveal>
-        <div>
-          <p>Implementación institucional</p>
-          <h2>Convierte tu estrategia pedagógica en una operación medible y escalable.</h2>
-          <span>La vista pública usa métricas demostrativas para proteger datos reales.</span>
-        </div>
-        <div className={styles.finalActions}>
-          <Link href="/register" className={styles.finalPrimary}>Crear cuenta</Link>
-          <Link href="/login" className={styles.finalSecondary}>Ingresar</Link>
-        </div>
+        <article>
+          <h2>Convierte tu visión pedagógica en una operación escalable.</h2>
+          <Link href="/register" className={styles.finalPrimary}>Comenzar ahora</Link>
+        </article>
       </section>
 
       {commandOpen && (
         <div className={styles.commandOverlay} onClick={() => setCommandOpen(false)}>
           <div className={styles.commandPanel} onClick={(event) => event.stopPropagation()}>
             <div className={styles.commandInputWrap}>
-              <Search className="w-4 h-4 text-slate-400" />
+              <Search className="w-4 h-4 opacity-50" />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por intención: evaluación, mentorías, recursos, perfiles..."
+                placeholder="¿Qué necesitas buscar?"
               />
             </div>
 
             <div className={styles.commandResults}>
               {filteredActions.length === 0 ? (
-                <p className={styles.commandEmpty}>No hay coincidencias para esa búsqueda.</p>
+                <p className={styles.commandEmpty}>No hay coincidencias.</p>
               ) : (
                 filteredActions.map((action) => (
                   <a key={action.title} href={action.href} onClick={() => setCommandOpen(false)} className={styles.commandItem}>
@@ -539,7 +446,7 @@ export function LandingSurface({
                       <h4>{action.title}</h4>
                       <p>{action.description}</p>
                     </div>
-                    <Command className="w-4 h-4 text-slate-400" />
+                    <Command className="w-4 h-4 opacity-40" />
                   </a>
                 ))
               )}
