@@ -1,7 +1,8 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;700;800&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --background: #f8fafc;
+  --background: #ffffff;
   --foreground: #1e293b;
 
   /* EduBlink Palette: Teal & Coral */
@@ -10,16 +11,27 @@
   --primary-rgb: 26, 182, 157;
   --accent: 238 74 98;
   /* #EE4A62 Coral */
-  --radius: 1rem;
-  --font-main: 'Outfit', 'Inter', sans-serif;
+  --radius: 1.5rem;
+
+  /* Brand Typography */
+  --font-header: 'League Spartan', sans-serif;
+  --font-body: 'Poppins', sans-serif;
 
   /* Glassmorphism & Light UI Tokens */
-  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(0, 0, 0, 0.05);
-  --glass-blur: 12px;
+  --glass-blur: 16px;
 
-  --shadow-soft: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
-  --shadow-hover: 0 20px 40px -15px rgba(0, 0, 0, 0.12);
+  /* Layered Premium Shadows */
+  --shadow-soft:
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 10px 20px rgba(0, 0, 0, 0.04),
+    0 20px 40px rgba(0, 0, 0, 0.06);
+
+  --shadow-luxury:
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.02),
+    0 40px 80px -20px rgba(26, 182, 157, 0.1);
 }
 
 @theme inline {
@@ -31,20 +43,32 @@
 
   --color-accent: rgb(var(--accent));
 
-  --radius-xl: 1.5rem;
+  --radius-xl: 2rem;
   --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 4px);
-  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 8px);
+  --radius-sm: calc(var(--radius) - 12px);
 
-  --font-sans: var(--font-main), system-ui, sans-serif;
+  --font-sans: var(--font-body);
+  --font-header: var(--font-header);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-main);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-header);
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 /* Custom Selection */
