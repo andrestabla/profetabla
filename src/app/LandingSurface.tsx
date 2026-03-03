@@ -313,7 +313,7 @@ export function LandingSurface({
             <span>Arquitectura Pedagógica de Vanguardia</span>
           </div>
           <h1>
-            Diseña el futuro del <span>aprendizaje estruturado</span>
+            Diseña el futuro del <span>aprendizaje estructurado</span>
           </h1>
           <p>
             La plataforma definitiva para instituciones que buscan integrar planeación ABP,

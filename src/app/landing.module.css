@@ -34,8 +34,15 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 40px;
-  /* Reduced vertical padding */
   transition: all 0.3s ease;
+}
+
+@media (max-width: 900px) {
+
+  .navLinks,
+  .commandTrigger {
+    display: none;
+  }
 }
 
 .navCompact .navInner {
@@ -55,7 +62,6 @@
 
 .brandLogo {
   height: 32px;
-  /* Set fixed height for icon/logo */
   width: auto;
   object-fit: contain;
 }
@@ -70,7 +76,6 @@
 
 .brandName {
   font-size: 1.1rem;
-  /* Slightly smaller for elegance */
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--foreground);
@@ -136,6 +141,7 @@
   font-size: 0.95rem;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);
+  white-space: nowrap;
 }
 
 .navPrimaryCta:hover {
@@ -146,15 +152,14 @@
 /* EduBlink Hero Section */
 .hero {
   position: relative;
-  padding: 160px 40px 100px;
-  /* More vertical space */
+  padding: 140px 40px 80px;
+  /* Balanced padding */
   max-width: 1280px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: center;
-  gap: 80px;
-  /* Increased gap */
+  gap: 60px;
   z-index: 10;
 }
 
@@ -256,8 +261,8 @@
 /* EduBlink Sections */
 .sectionBlock {
   max-width: 1280px;
-  margin: 160px auto;
-  /* Significantly increased vertical margin */
+  margin: 80px auto;
+  /* Reduced from 160px for tighter rhythm */
   padding: 0 40px;
 }
 
@@ -286,12 +291,14 @@
 .bentoGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 20px;
+  /* Tighter gap */
 }
 
 .bentoCard {
   border-radius: 20px;
-  padding: 40px;
+  padding: 32px;
+  /* Slightly reduced padding */
   position: relative;
   overflow: hidden;
   background: white;
