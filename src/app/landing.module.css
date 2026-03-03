@@ -37,13 +37,6 @@
   transition: all 0.3s ease;
 }
 
-@media (max-width: 900px) {
-
-  .navLinks,
-  .commandTrigger {
-    display: none;
-  }
-}
 
 .navCompact .navInner {
   padding: 10px 40px;
