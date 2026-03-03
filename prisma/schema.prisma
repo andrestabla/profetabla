@@ -531,6 +531,7 @@ model PlatformConfig {
   landingSecondaryCtaLabel      String?
   landingHeroImageMainUrl       String?
   landingHeroImageSecondaryUrl  String?
+  homeLabContentJson            Json?
   customCss                     String?
   geminiApiKey                  String?
   geminiModel                   String   @default("gemini-pro")

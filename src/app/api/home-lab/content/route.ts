@@ -4,8 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
+import { sanitizeHexColor, sanitizeHomeLabContent } from '@/lib/home-lab-content';
 
 type LandingContentPayload = {
+  homeLabContent?: unknown;
+  primaryColor?: unknown;
+  secondaryColor?: unknown;
+  accentColor?: unknown;
   heroEyebrow?: unknown;
   heroTitleStart?: unknown;
   heroTitleHighlight?: unknown;
@@ -37,16 +42,44 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, message: 'Payload inválido.' }, { status: 400 });
   }
 
+  const existing = await prisma.platformConfig.findUnique({
+    where: { id: 'global-config' },
+    select: { primaryColor: true, secondaryColor: true, accentColor: true }
+  });
+
+  const payloadFromLegacyHero = {
+    hero: {
+      eyebrow: cleanString(body.heroEyebrow, 120) || undefined,
+      titleStart: cleanString(body.heroTitleStart, 150) || undefined,
+      titleHighlight: cleanString(body.heroTitleHighlight, 120) || undefined,
+      titleEnd: cleanString(body.heroTitleEnd, 150) || undefined,
+      description: cleanString(body.heroDescription, 500) || undefined,
+      primaryCtaLabel: cleanString(body.primaryCtaLabel, 60) || undefined,
+      secondaryCtaLabel: cleanString(body.secondaryCtaLabel, 60) || undefined,
+      imageMainUrl: cleanString(body.heroImageMainUrl, 500) || undefined,
+      imageSecondaryUrl: cleanString(body.heroImageSecondaryUrl, 500) || undefined,
+    }
+  };
+
+  const normalizedContent = sanitizeHomeLabContent(body.homeLabContent ?? payloadFromLegacyHero);
+  const primaryColor = sanitizeHexColor(body.primaryColor, existing?.primaryColor || '#2563EB');
+  const secondaryColor = sanitizeHexColor(body.secondaryColor, existing?.secondaryColor || '#475569');
+  const accentColor = sanitizeHexColor(body.accentColor, existing?.accentColor || '#F59E0B');
+
   const data = {
-    landingHeroEyebrow: cleanString(body.heroEyebrow, 120),
-    landingHeroTitleStart: cleanString(body.heroTitleStart, 150),
-    landingHeroTitleHighlight: cleanString(body.heroTitleHighlight, 120),
-    landingHeroTitleEnd: cleanString(body.heroTitleEnd, 150),
-    landingHeroDescription: cleanString(body.heroDescription, 500),
-    landingPrimaryCtaLabel: cleanString(body.primaryCtaLabel, 60),
-    landingSecondaryCtaLabel: cleanString(body.secondaryCtaLabel, 60),
-    landingHeroImageMainUrl: cleanString(body.heroImageMainUrl, 500),
-    landingHeroImageSecondaryUrl: cleanString(body.heroImageSecondaryUrl, 500)
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    homeLabContentJson: normalizedContent,
+    landingHeroEyebrow: normalizedContent.hero.eyebrow,
+    landingHeroTitleStart: normalizedContent.hero.titleStart,
+    landingHeroTitleHighlight: normalizedContent.hero.titleHighlight,
+    landingHeroTitleEnd: normalizedContent.hero.titleEnd,
+    landingHeroDescription: normalizedContent.hero.description,
+    landingPrimaryCtaLabel: normalizedContent.hero.primaryCtaLabel,
+    landingSecondaryCtaLabel: normalizedContent.hero.secondaryCtaLabel,
+    landingHeroImageMainUrl: normalizedContent.hero.imageMainUrl,
+    landingHeroImageSecondaryUrl: normalizedContent.hero.imageSecondaryUrl,
   };
 
   await prisma.platformConfig.upsert({
@@ -63,7 +96,10 @@ export async function POST(req: Request) {
     'UPDATE_HOME_LAB_CONTENT',
     'Actualizó el contenido editable del home de laboratorio',
     'INFO',
-    { updatedFields: Object.keys(data).filter((key) => data[key as keyof typeof data] !== null) }
+    {
+      updatedFields: Object.keys(data).filter((key) => data[key as keyof typeof data] !== null),
+      colors: { primaryColor, secondaryColor, accentColor }
+    }
   );
 
   revalidatePath('/home-lab');

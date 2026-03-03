@@ -20,11 +20,17 @@ import {
   Sparkles,
   Star,
   Users,
-  X
+  X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import styles from './landing.module.css';
 import { LandingAudience } from './LandingAudience';
+import {
+  DEFAULT_HOME_LAB_CONTENT,
+  type HomeLabContent,
+  sanitizeHexColor,
+  sanitizeHomeLabContent,
+} from '@/lib/home-lab-content';
 
 interface LandingSurfaceProps {
   institutionName: string;
@@ -33,52 +39,8 @@ interface LandingSurfaceProps {
   secondaryColor: string;
   accentColor: string;
   isAdmin?: boolean;
-  editableContent: LandingEditableContent;
+  editableContent: HomeLabContent;
 }
-
-type LandingEditableContent = {
-  heroEyebrow: string;
-  heroTitleStart: string;
-  heroTitleHighlight: string;
-  heroTitleEnd: string;
-  heroDescription: string;
-  primaryCtaLabel: string;
-  secondaryCtaLabel: string;
-  heroImageMainUrl: string;
-  heroImageSecondaryUrl: string;
-}
-
-type HeroMetric = {
-  label: string;
-  value: number;
-  suffix?: string;
-};
-
-type Benefit = {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-};
-
-type Category = {
-  id: string;
-  title: string;
-  description: string;
-  routes: number;
-  icon: LucideIcon;
-};
-
-type Program = {
-  title: string;
-  categoryId: string;
-  level: string;
-  duration: string;
-  students: number;
-  rating: number;
-  priceLabel: string;
-  imageUrl: string;
-  author: string;
-};
 
 type CommandAction = {
   title: string;
@@ -87,246 +49,81 @@ type CommandAction = {
   keywords: string[];
 };
 
-const HERO_IMAGE_MAIN = 'https://images.pexels.com/photos/6238118/pexels-photo-6238118.jpeg?auto=compress&cs=tinysrgb&w=1280';
-const HERO_IMAGE_SECONDARY = 'https://images.pexels.com/photos/5212345/pexels-photo-5212345.jpeg?auto=compress&cs=tinysrgb&w=960';
-
-const heroMetrics: HeroMetric[] = [
-  { label: 'Proyectos activos', value: 248, suffix: '+' },
-  { label: 'Estudiantes en seguimiento', value: 5840, suffix: '+' },
-  { label: 'Mentorías mensuales', value: 730, suffix: '+' }
-];
-
-const benefits: Benefit[] = [
-  {
-    title: 'Operación pedagógica conectada',
-    description: 'Planeación, tareas, mentorías y evaluación en un mismo flujo.',
-    icon: Layers3
-  },
-  {
-    title: 'Seguimiento por estudiante y equipo',
-    description: 'Visibilidad de avance para intervenir con precisión y a tiempo.',
-    icon: Users
-  },
-  {
-    title: 'Reconocimientos verificables',
-    description: 'Insignias y certificados vinculados a evidencias reales.',
-    icon: ShieldCheck
-  }
-];
-
-const categories: Category[] = [
-  {
-    id: 'innovacion',
-    title: 'Innovación educativa',
-    description: 'Metodologías activas y diseño didáctico aplicable.',
-    routes: 26,
-    icon: Sparkles
-  },
-  {
-    id: 'tecnologia',
-    title: 'Tecnología aplicada',
-    description: 'Herramientas para resolver retos formativos reales.',
-    routes: 34,
-    icon: Layers3
-  },
-  {
-    id: 'liderazgo',
-    title: 'Liderazgo académico',
-    description: 'Gestión de equipos docentes y mejora institucional.',
-    routes: 19,
-    icon: ShieldCheck
-  },
-  {
-    id: 'analitica',
-    title: 'Analítica y evaluación',
-    description: 'Lectura de evidencias para decisiones de calidad.',
-    routes: 22,
-    icon: LibraryBig
-  },
-  {
-    id: 'habilidades',
-    title: 'Habilidades del siglo XXI',
-    description: 'Competencias alineadas con tendencias por industria.',
-    routes: 29,
-    icon: GraduationCap
-  },
-  {
-    id: 'mentorias',
-    title: 'Mentorías estratégicas',
-    description: 'Acompañamiento estructurado por calendario y metas.',
-    routes: 16,
-    icon: CalendarClock
-  }
-];
-
-const programs: Program[] = [
-  {
-    title: 'Diseño de proyectos ABP con evaluación por evidencias',
-    categoryId: 'innovacion',
-    level: 'Intermedio',
-    duration: '10 semanas',
-    students: 236,
-    rating: 4.9,
-    priceLabel: 'Demostrativo',
-    author: 'Equipo pedagógico',
-    imageUrl: 'https://images.pexels.com/photos/5427673/pexels-photo-5427673.jpeg?auto=compress&cs=tinysrgb&w=900'
-  },
-  {
-    title: 'Laboratorio de herramientas digitales para docentes líderes',
-    categoryId: 'tecnologia',
-    level: 'Avanzado',
-    duration: '8 semanas',
-    students: 188,
-    rating: 4.8,
-    priceLabel: 'Demostrativo',
-    author: 'Unidad de innovación',
-    imageUrl: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=900'
-  },
-  {
-    title: 'Mentoría académica para proyectos interdisciplinarios',
-    categoryId: 'mentorias',
-    level: 'Todos los niveles',
-    duration: '6 semanas',
-    students: 162,
-    rating: 4.7,
-    priceLabel: 'Demostrativo',
-    author: 'Red de mentores',
-    imageUrl: 'https://images.pexels.com/photos/8199678/pexels-photo-8199678.jpeg?auto=compress&cs=tinysrgb&w=900'
-  },
-  {
-    title: 'Analítica educativa para directivos y coordinación',
-    categoryId: 'analitica',
-    level: 'Intermedio',
-    duration: '7 semanas',
-    students: 174,
-    rating: 4.9,
-    priceLabel: 'Demostrativo',
-    author: 'Mesa de analítica',
-    imageUrl: 'https://images.pexels.com/photos/7947663/pexels-photo-7947663.jpeg?auto=compress&cs=tinysrgb&w=900'
-  },
-  {
-    title: 'Liderazgo pedagógico para transformación institucional',
-    categoryId: 'liderazgo',
-    level: 'Intermedio',
-    duration: '9 semanas',
-    students: 201,
-    rating: 4.8,
-    priceLabel: 'Demostrativo',
-    author: 'Dirección académica',
-    imageUrl: 'https://images.pexels.com/photos/5717411/pexels-photo-5717411.jpeg?auto=compress&cs=tinysrgb&w=900'
-  },
-  {
-    title: 'Competencias del siglo XXI para entornos de innovación',
-    categoryId: 'habilidades',
-    level: 'Inicial',
-    duration: '5 semanas',
-    students: 221,
-    rating: 4.6,
-    priceLabel: 'Demostrativo',
-    author: 'Equipo de habilidades',
-    imageUrl: 'https://images.pexels.com/photos/4145190/pexels-photo-4145190.jpeg?auto=compress&cs=tinysrgb&w=900'
-  },
-  {
-    title: 'Diseño de rúbricas y retroalimentación formativa',
-    categoryId: 'analitica',
-    level: 'Intermedio',
-    duration: '6 semanas',
-    students: 149,
-    rating: 4.8,
-    priceLabel: 'Demostrativo',
-    author: 'Centro de evaluación',
-    imageUrl: 'https://images.pexels.com/photos/4143794/pexels-photo-4143794.jpeg?auto=compress&cs=tinysrgb&w=900'
-  },
-  {
-    title: 'Plan de integración tecnológica para currículo escolar',
-    categoryId: 'tecnologia',
-    level: 'Avanzado',
-    duration: '12 semanas',
-    students: 132,
-    rating: 4.7,
-    priceLabel: 'Demostrativo',
-    author: 'Laboratorio digital',
-    imageUrl: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=900'
-  }
-];
-
-const references = [
-  {
-    name: 'UNESCO',
-    detail: 'Futures of Education',
-    href: 'https://www.unesco.org/en/futures-education',
-    visualUrl: 'https://www.google.com/s2/favicons?sz=128&domain_url=unesco.org'
-  },
-  {
-    name: 'OECD',
-    detail: 'Education at a Glance',
-    href: 'https://www.oecd.org/en/publications/education-at-a-glance_b858e7fe-en.html',
-    visualUrl: 'https://www.google.com/s2/favicons?sz=128&domain_url=oecd.org'
-  },
-  {
-    name: 'World Economic Forum',
-    detail: 'Future of Jobs Report',
-    href: 'https://www.weforum.org/reports/',
-    visualUrl: 'https://www.google.com/s2/favicons?sz=128&domain_url=weforum.org'
-  },
-  {
-    name: 'ISTE',
-    detail: 'ISTE Standards',
-    href: 'https://iste.org/standards',
-    visualUrl: 'https://www.google.com/s2/favicons?sz=128&domain_url=iste.org'
-  }
-];
-
 const semanticActions: CommandAction[] = [
   {
     title: 'Ver categorías',
     description: 'Explorar categorías estratégicas de aprendizaje.',
     href: '#categorias',
-    keywords: ['categorías', 'rutas', 'habilidades', 'industria']
+    keywords: ['categorías', 'rutas', 'habilidades', 'industria'],
   },
   {
     title: 'Ver programas',
     description: 'Revisar catálogo de programas demostrativos.',
     href: '#programas',
-    keywords: ['programas', 'cursos', 'tarjetas', 'catálogo']
+    keywords: ['programas', 'cursos', 'tarjetas', 'catálogo'],
   },
   {
     title: 'Ver diferenciales',
     description: 'Conocer la propuesta pedagógica y tecnológica.',
     href: '#diferenciales',
-    keywords: ['diferenciales', 'pedagógico', 'tecnológico']
+    keywords: ['diferenciales', 'pedagógico', 'tecnológico'],
   },
   {
     title: 'Comparar perfiles',
     description: 'Ver experiencia por estudiantes, docentes y administración.',
     href: '#perfiles',
-    keywords: ['perfiles', 'estudiantes', 'docentes', 'administradores']
+    keywords: ['perfiles', 'estudiantes', 'docentes', 'administradores'],
   },
   {
     title: 'Consultar referencias',
     description: 'Abrir fuentes externas para lineamientos y tendencias.',
     href: '#referencias',
-    keywords: ['unesco', 'oecd', 'wef', 'iste', 'referencias']
+    keywords: ['unesco', 'oecd', 'wef', 'iste', 'referencias'],
   },
   {
     title: 'Ingresar',
     description: 'Acceder al entorno institucional.',
     href: '/login',
-    keywords: ['login', 'ingresar', 'acceso']
+    keywords: ['login', 'ingresar', 'acceso'],
   },
   {
     title: 'Crear cuenta',
     description: 'Iniciar proceso de implementación institucional.',
     href: '/register',
-    keywords: ['registro', 'cuenta', 'implementación']
-  }
+    keywords: ['registro', 'cuenta', 'implementación'],
+  },
 ];
+
+const categoryIconMap: Record<string, LucideIcon> = {
+  innovacion: Sparkles,
+  tecnologia: Layers3,
+  liderazgo: ShieldCheck,
+  analitica: LibraryBig,
+  habilidades: GraduationCap,
+  mentorias: CalendarClock,
+};
+
+const benefitIcons: LucideIcon[] = [Layers3, Users, ShieldCheck, Sparkles, GraduationCap];
 
 function normalize(value: string) {
   return value
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+}
+
+function hexToRgbComma(hex: string, fallback: string) {
+  const clean = sanitizeHexColor(hex, '');
+  if (!clean) return fallback;
+  const normalized = clean.replace('#', '');
+  if (normalized.length !== 6) return fallback;
+
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+
+  if ([r, g, b].some((item) => Number.isNaN(item))) return fallback;
+  return `${r}, ${g}, ${b}`;
 }
 
 export function LandingSurface({
@@ -336,7 +133,7 @@ export function LandingSurface({
   secondaryColor,
   accentColor,
   isAdmin = false,
-  editableContent
+  editableContent,
 }: LandingSurfaceProps) {
   const shellRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -347,16 +144,40 @@ export function LandingSurface({
   const [commandOpen, setCommandOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
-  const [metricValues, setMetricValues] = useState<number[]>(() => heroMetrics.map(() => 0));
-  const [editorOpen, setEditorOpen] = useState(false);
+
+  const [editEnabled, setEditEnabled] = useState(false);
   const [editorSaving, setEditorSaving] = useState(false);
   const [editorMessage, setEditorMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [content, setContent] = useState<LandingEditableContent>(editableContent);
+
+  const [themePrimaryColor, setThemePrimaryColor] = useState(primaryColor || '#1AB69D');
+  const [themeSecondaryColor, setThemeSecondaryColor] = useState(secondaryColor || '#475569');
+  const [themeAccentColor, setThemeAccentColor] = useState(accentColor || '#EE4A62');
+
+  const [content, setContent] = useState<HomeLabContent>(sanitizeHomeLabContent(editableContent));
+  const [rawJson, setRawJson] = useState('');
+
+  const [metricValues, setMetricValues] = useState<number[]>(() => content.metrics.map(() => 0));
+
+  useEffect(() => {
+    setContent(sanitizeHomeLabContent(editableContent));
+  }, [editableContent]);
+
+  useEffect(() => {
+    setThemePrimaryColor(primaryColor || '#1AB69D');
+    setThemeSecondaryColor(secondaryColor || '#475569');
+    setThemeAccentColor(accentColor || '#EE4A62');
+  }, [primaryColor, secondaryColor, accentColor]);
+
+  useEffect(() => {
+    if (activeCategory !== 'all' && !content.categories.some((item) => item.id === activeCategory)) {
+      setActiveCategory('all');
+    }
+  }, [activeCategory, content.categories]);
 
   const filteredPrograms = useMemo(() => {
-    if (activeCategory === 'all') return programs;
-    return programs.filter((program) => program.categoryId === activeCategory);
-  }, [activeCategory]);
+    if (activeCategory === 'all') return content.programs;
+    return content.programs.filter((program) => program.categoryId === activeCategory);
+  }, [activeCategory, content.programs]);
 
   const filteredActions = useMemo(() => {
     const normalizedQuery = normalize(query.trim());
@@ -368,10 +189,6 @@ export function LandingSurface({
       return terms.every((term) => haystack.includes(term));
     });
   }, [query]);
-
-  useEffect(() => {
-    setContent(editableContent);
-  }, [editableContent]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -417,19 +234,19 @@ export function LandingSurface({
   useEffect(() => {
     let frameId = 0;
     const start = performance.now();
-    const duration = 1400;
+    const duration = 1200;
 
     const animate = (timestamp: number) => {
       const progress = Math.min((timestamp - start) / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setMetricValues(heroMetrics.map((item) => Math.floor(item.value * eased)));
+      setMetricValues(content.metrics.map((item) => Math.floor(item.value * eased)));
 
       if (progress < 1) frameId = requestAnimationFrame(animate);
     };
 
     frameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frameId);
-  }, []);
+  }, [content.metrics]);
 
   useEffect(() => {
     const root = shellRef.current;
@@ -444,19 +261,58 @@ export function LandingSurface({
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: 0.15 },
     );
 
     revealItems.forEach((item) => observer.observe(item));
     return () => observer.disconnect();
   }, []);
 
-  const heroImageMain = content.heroImageMainUrl?.trim() || HERO_IMAGE_MAIN;
-  const heroImageSecondary = content.heroImageSecondaryUrl?.trim() || HERO_IMAGE_SECONDARY;
-
-  const updateContentField = (field: keyof LandingEditableContent, value: string) => {
+  const updateContent = (updater: (prev: HomeLabContent) => HomeLabContent) => {
     setEditorMessage(null);
-    setContent((prev) => ({ ...prev, [field]: value }));
+    setContent((prev) => sanitizeHomeLabContent(updater(prev)));
+  };
+
+  const updateNavField = (field: keyof HomeLabContent['nav'], value: string) => {
+    updateContent((prev) => ({ ...prev, nav: { ...prev.nav, [field]: value } }));
+  };
+
+  const updateHeroField = (field: keyof HomeLabContent['hero'], value: string) => {
+    updateContent((prev) => ({ ...prev, hero: { ...prev.hero, [field]: value } }));
+  };
+
+  const updateSectionsField = (field: keyof HomeLabContent['sections'], value: string) => {
+    updateContent((prev) => ({ ...prev, sections: { ...prev.sections, [field]: value } }));
+  };
+
+  const updateDifferentialsField = (field: keyof HomeLabContent['differentials'], value: string | string[]) => {
+    updateContent((prev) => ({ ...prev, differentials: { ...prev.differentials, [field]: value } }));
+  };
+
+  const updateFinalCtaField = (field: keyof HomeLabContent['finalCta'], value: string) => {
+    updateContent((prev) => ({ ...prev, finalCta: { ...prev.finalCta, [field]: value } }));
+  };
+
+  const applyJsonContent = () => {
+    try {
+      const parsed = JSON.parse(rawJson) as unknown;
+      const normalized = sanitizeHomeLabContent(parsed);
+      setContent(normalized);
+      setEditorMessage({ type: 'success', text: 'JSON aplicado correctamente.' });
+    } catch {
+      setEditorMessage({ type: 'error', text: 'El JSON no es válido.' });
+    }
+  };
+
+  const toggleEdition = () => {
+    setEditEnabled((prev) => {
+      const next = !prev;
+      if (next) {
+        setRawJson(JSON.stringify(content, null, 2));
+      }
+      return next;
+    });
+    setEditorMessage(null);
   };
 
   const saveEditableContent = async () => {
@@ -464,10 +320,19 @@ export function LandingSurface({
       setEditorSaving(true);
       setEditorMessage(null);
 
+      const cleanPrimary = sanitizeHexColor(themePrimaryColor, '#1AB69D');
+      const cleanSecondary = sanitizeHexColor(themeSecondaryColor, '#475569');
+      const cleanAccent = sanitizeHexColor(themeAccentColor, '#EE4A62');
+
       const response = await fetch('/api/home-lab/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(content)
+        body: JSON.stringify({
+          homeLabContent: content,
+          primaryColor: cleanPrimary,
+          secondaryColor: cleanSecondary,
+          accentColor: cleanAccent,
+        }),
       });
 
       const result = (await response.json()) as { success?: boolean; message?: string };
@@ -475,8 +340,10 @@ export function LandingSurface({
         throw new Error(result.message || 'No fue posible guardar los cambios.');
       }
 
+      setThemePrimaryColor(cleanPrimary);
+      setThemeSecondaryColor(cleanSecondary);
+      setThemeAccentColor(cleanAccent);
       setEditorMessage({ type: 'success', text: 'Cambios guardados correctamente.' });
-      setEditorOpen(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error al guardar.';
       setEditorMessage({ type: 'error', text: message });
@@ -486,10 +353,10 @@ export function LandingSurface({
   };
 
   const cssVars = {
-    '--primary-rgb': primaryColor,
-    '--secondary-rgb': secondaryColor,
-    '--accent-rgb': accentColor,
-    '--primary': primaryColor.replace(/,\s*/g, ' ')
+    '--primary-rgb': hexToRgbComma(themePrimaryColor, '26, 182, 157'),
+    '--secondary-rgb': hexToRgbComma(themeSecondaryColor, '71, 85, 105'),
+    '--accent-rgb': hexToRgbComma(themeAccentColor, '238, 74, 98'),
+    '--primary': hexToRgbComma(themePrimaryColor, '26, 182, 157').replace(/,\s*/g, ' '),
   } as CSSProperties;
 
   return (
@@ -509,20 +376,20 @@ export function LandingSurface({
           </div>
 
           <nav className={styles.navLinks}>
-            <a href="#categorias">Categorías</a>
-            <a href="#programas">Programas</a>
-            <a href="#diferenciales">Diferenciales</a>
-            <a href="#referencias">Referencias</a>
+            <a href="#categorias">{content.nav.categoriesLabel}</a>
+            <a href="#programas">{content.nav.programsLabel}</a>
+            <a href="#diferenciales">{content.nav.differentialsLabel}</a>
+            <a href="#referencias">{content.nav.referencesLabel}</a>
           </nav>
 
           <div className={styles.navActions}>
             <button className={styles.commandTrigger} onClick={() => setCommandOpen(true)}>
               <Search size={15} />
-              <span>Buscar</span>
+              <span>{content.nav.searchLabel}</span>
               <kbd>⌘K</kbd>
             </button>
-            <Link href="/login" className={styles.navTextCta}>Ingresar</Link>
-            <Link href="/register" className={styles.navPrimaryCta}>Crear cuenta</Link>
+            <Link href="/login" className={styles.navTextCta}>{content.nav.loginLabel}</Link>
+            <Link href="/register" className={styles.navPrimaryCta}>{content.nav.registerLabel}</Link>
           </div>
         </div>
       </header>
@@ -531,59 +398,57 @@ export function LandingSurface({
         <section className={`${styles.heroSection} ${styles.bandDark}`}>
           <div className={styles.sectionInner}>
             <div className={styles.heroGrid}>
-            <article className={styles.heroCopy} data-reveal>
-              <p className={styles.heroEyebrow}>{content.heroEyebrow}</p>
-              <h1>
-                {content.heroTitleStart}
-                <span> {content.heroTitleHighlight}</span>
-                {' '}{content.heroTitleEnd}
-              </h1>
-              <p>
-                {content.heroDescription}
-              </p>
+              <article className={styles.heroCopy} data-reveal>
+                <p className={styles.heroEyebrow}>{content.hero.eyebrow}</p>
+                <h1>
+                  {content.hero.titleStart}
+                  <span> {content.hero.titleHighlight}</span>
+                  {' '}{content.hero.titleEnd}
+                </h1>
+                <p>{content.hero.description}</p>
 
-              <div className={styles.heroActions}>
-                <Link href="/register" className={styles.heroPrimary}>{content.primaryCtaLabel}</Link>
-                <a href="#programas" className={styles.heroSecondary}>{content.secondaryCtaLabel}</a>
-              </div>
-
-              <button className={styles.heroSearch} onClick={() => setCommandOpen(true)}>
-                <Search size={16} />
-                <span>Busca por mentorías, evaluación, habilidades o rutas formativas...</span>
-                <kbd>⌘K</kbd>
-              </button>
-
-              <div className={styles.heroMetricRow}>
-                {heroMetrics.map((item, index) => (
-                  <article key={item.label} className={styles.heroMetricCard}>
-                    <strong>{new Intl.NumberFormat('es-CO').format(metricValues[index])}{item.suffix || ''}</strong>
-                    <span>{item.label}</span>
-                  </article>
-                ))}
-              </div>
-            </article>
-
-            <aside className={styles.heroVisual} data-reveal>
-              <span className={styles.heroCircleOne} />
-              <span className={styles.heroCircleTwo} />
-
-              <div className={styles.heroImageStack}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={heroImageMain} alt="Estudiante desarrollando actividad de aprendizaje" className={styles.heroImageMain} />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={heroImageSecondary} alt="Estudiante en sesión de trabajo colaborativo" className={styles.heroImageSecondary} />
-              </div>
-
-              <article className={styles.heroBadge}>
-                <div className={styles.heroBadgeIcon}>
-                  <CheckCircle2 size={16} />
+                <div className={styles.heroActions}>
+                  <Link href="/register" className={styles.heroPrimary}>{content.hero.primaryCtaLabel}</Link>
+                  <a href="#programas" className={styles.heroSecondary}>{content.hero.secondaryCtaLabel}</a>
                 </div>
-                <div>
-                  <strong>Implementación guiada</strong>
-                  <span>Arquitectura pedagógica + operación digital</span>
+
+                <button className={styles.heroSearch} onClick={() => setCommandOpen(true)}>
+                  <Search size={16} />
+                  <span>{content.hero.searchPlaceholder}</span>
+                  <kbd>⌘K</kbd>
+                </button>
+
+                <div className={styles.heroMetricRow}>
+                  {content.metrics.map((item, index) => (
+                    <article key={`${item.label}-${index}`} className={styles.heroMetricCard}>
+                      <strong>{new Intl.NumberFormat('es-CO').format(metricValues[index] || 0)}{item.suffix || ''}</strong>
+                      <span>{item.label}</span>
+                    </article>
+                  ))}
                 </div>
               </article>
-            </aside>
+
+              <aside className={styles.heroVisual} data-reveal>
+                <span className={styles.heroCircleOne} />
+                <span className={styles.heroCircleTwo} />
+
+                <div className={styles.heroImageStack}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={content.hero.imageMainUrl} alt="Estudiante desarrollando actividad de aprendizaje" className={styles.heroImageMain} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={content.hero.imageSecondaryUrl} alt="Estudiante en sesión de trabajo colaborativo" className={styles.heroImageSecondary} />
+                </div>
+
+                <article className={styles.heroBadge}>
+                  <div className={styles.heroBadgeIcon}>
+                    <CheckCircle2 size={16} />
+                  </div>
+                  <div>
+                    <strong>{content.hero.badgeTitle}</strong>
+                    <span>{content.hero.badgeSubtitle}</span>
+                  </div>
+                </article>
+              </aside>
             </div>
           </div>
         </section>
@@ -591,10 +456,10 @@ export function LandingSurface({
         <section className={`${styles.benefitsBar} ${styles.bandNavy}`} data-reveal>
           <div className={styles.sectionInner}>
             <div className={styles.benefitsGrid}>
-              {benefits.map((item) => {
-                const Icon = item.icon;
+              {content.benefits.map((item, index) => {
+                const Icon = benefitIcons[index] || Sparkles;
                 return (
-                  <article key={item.title} className={styles.benefitItem}>
+                  <article key={`${item.title}-${index}`} className={styles.benefitItem}>
                     <span className={styles.benefitIconWrap}>
                       <Icon size={17} />
                     </span>
@@ -612,13 +477,13 @@ export function LandingSurface({
         <section id="categorias" className={`${styles.sectionBlock} ${styles.bandLight}`}>
           <div className={styles.sectionInner}>
             <header className={styles.sectionHeader} data-reveal>
-              <p>Categorías destacadas</p>
-              <h2>Rutas de formación por enfoque y necesidad institucional</h2>
+              <p>{content.sections.categoriesEyebrow}</p>
+              <h2>{content.sections.categoriesTitle}</h2>
             </header>
 
             <div className={styles.categoryGrid}>
-              {categories.map((item) => {
-                const Icon = item.icon;
+              {content.categories.map((item) => {
+                const Icon = categoryIconMap[item.id] || Layers3;
                 return (
                   <article key={item.id} className={styles.categoryCard} data-reveal>
                     <Icon className={styles.categoryIcon} />
@@ -637,8 +502,8 @@ export function LandingSurface({
         <section id="programas" className={`${styles.sectionBlock} ${styles.bandWhite}`}>
           <div className={styles.sectionInner}>
             <header className={styles.sectionHeader} data-reveal>
-              <p>Programas recomendados</p>
-              <h2>Catálogo demostrativo con estética editorial y lectura rápida</h2>
+              <p>{content.sections.programsEyebrow}</p>
+              <h2>{content.sections.programsTitle}</h2>
             </header>
 
             <div className={styles.filterBar} data-reveal>
@@ -648,7 +513,7 @@ export function LandingSurface({
               >
                 Todas
               </button>
-              {categories.map((item) => (
+              {content.categories.map((item) => (
                 <button
                   key={item.id}
                   className={`${styles.filterChip} ${activeCategory === item.id ? styles.filterChipActive : ''}`}
@@ -660,8 +525,8 @@ export function LandingSurface({
             </div>
 
             <div className={styles.courseGrid}>
-              {filteredPrograms.map((program) => (
-                <article key={program.title} className={styles.courseCard} data-reveal>
+              {filteredPrograms.map((program, index) => (
+                <article key={`${program.title}-${index}`} className={styles.courseCard} data-reveal>
                   <div className={styles.courseMedia}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={program.imageUrl} alt={program.title} loading="lazy" />
@@ -669,7 +534,7 @@ export function LandingSurface({
 
                   <div className={styles.courseBody}>
                     <div className={styles.courseTagRow}>
-                      <span className={styles.courseTag}>{categories.find((item) => item.id === program.categoryId)?.title || 'Ruta'}</span>
+                      <span className={styles.courseTag}>{content.categories.find((item) => item.id === program.categoryId)?.title || 'Ruta'}</span>
                       <span className={styles.coursePrice}>{program.priceLabel}</span>
                     </div>
 
@@ -709,20 +574,19 @@ export function LandingSurface({
               <article className={styles.premiumMedia}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://images.pexels.com/photos/4145190/pexels-photo-4145190.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                  src={content.differentials.imageUrl}
                   alt="Equipo académico planificando aprendizaje"
                   className={styles.premiumMediaImage}
                 />
               </article>
 
               <article className={styles.premiumCopy}>
-                <p>Valor institucional</p>
-                <h2>Una experiencia premium para gestión pedagógica y tecnológica</h2>
+                <p>{content.sections.differentialsEyebrow}</p>
+                <h2>{content.sections.differentialsTitle}</h2>
                 <ul>
-                  <li><CheckCircle2 size={16} />Diseño pedagógico ejecutable con foco en resultados.</li>
-                  <li><CheckCircle2 size={16} />Dashboard operativo para estudiantes, docentes y administración.</li>
-                  <li><CheckCircle2 size={16} />Historial de actividad completo y gobernanza en tiempo real.</li>
-                  <li><CheckCircle2 size={16} />Reconocimientos verificables vinculados a evidencias.</li>
+                  {content.differentials.bullets.map((bullet, index) => (
+                    <li key={`${bullet}-${index}`}><CheckCircle2 size={16} />{bullet}</li>
+                  ))}
                 </ul>
               </article>
             </div>
@@ -738,13 +602,13 @@ export function LandingSurface({
         <section id="referencias" className={`${styles.sectionBlock} ${styles.bandLight}`}>
           <div className={styles.sectionInner}>
             <header className={styles.sectionHeader} data-reveal>
-              <p>Referencias externas</p>
-              <h2>Fuentes reales para orientar tendencias y marcos de implementación</h2>
+              <p>{content.sections.referencesEyebrow}</p>
+              <h2>{content.sections.referencesTitle}</h2>
             </header>
 
             <div className={styles.referenceGrid}>
-              {references.map((item) => (
-                <a key={item.name} href={item.href} target="_blank" rel="noopener noreferrer" className={styles.referenceCard} data-reveal>
+              {content.references.map((item, index) => (
+                <a key={`${item.name}-${index}`} href={item.href} target="_blank" rel="noopener noreferrer" className={styles.referenceCard} data-reveal>
                   <div className={styles.referenceInfo}>
                     <span className={styles.referenceMark} style={{ backgroundImage: `url(${item.visualUrl})` }} />
                     <h3>{item.name}</h3>
@@ -761,13 +625,13 @@ export function LandingSurface({
           <div className={styles.sectionInner}>
             <div className={styles.finalCta} data-reveal>
               <div>
-                <p>Implementación institucional</p>
-                <h2>Convierte tu estrategia pedagógica en una operación medible y escalable.</h2>
-                <span>Esta vista de laboratorio utiliza información demostrativa para proteger datos reales.</span>
+                <p>{content.finalCta.eyebrow}</p>
+                <h2>{content.finalCta.title}</h2>
+                <span>{content.finalCta.description}</span>
               </div>
               <div className={styles.finalActions}>
-                <Link href="/register" className={styles.finalPrimary}>Solicitar implementación</Link>
-                <Link href="/login" className={styles.finalSecondary}>Ingresar</Link>
+                <Link href="/register" className={styles.finalPrimary}>{content.finalCta.primaryLabel}</Link>
+                <Link href="/login" className={styles.finalSecondary}>{content.finalCta.secondaryLabel}</Link>
               </div>
             </div>
           </div>
@@ -779,17 +643,17 @@ export function LandingSurface({
           <button
             type="button"
             className={styles.adminEditFab}
-            onClick={() => setEditorOpen((prev) => !prev)}
-            aria-label="Editar contenido del home"
+            onClick={toggleEdition}
+            aria-label={editEnabled ? 'Desactivar edición del home' : 'Activar edición del home'}
           >
             <Pencil size={16} />
-            <span>Editar home</span>
+            <span>{editEnabled ? 'Desactivar edición' : 'Activar edición'}</span>
           </button>
 
-          <aside className={`${styles.adminEditor} ${editorOpen ? styles.adminEditorOpen : ''}`}>
+          <aside className={`${styles.adminEditor} ${editEnabled ? styles.adminEditorOpen : ''}`}>
             <header className={styles.adminEditorHeader}>
-              <h3>Edición rápida del home</h3>
-              <button type="button" onClick={() => setEditorOpen(false)}>Cerrar</button>
+              <h3>Modo edición activado</h3>
+              <button type="button" onClick={() => setEditEnabled(false)}>Cerrar</button>
             </header>
 
             {editorMessage && (
@@ -801,71 +665,164 @@ export function LandingSurface({
 
             <div className={styles.adminEditorFields}>
               <label>
-                <span>Eyebrow</span>
-                <input
-                  value={content.heroEyebrow}
-                  onChange={(event) => updateContentField('heroEyebrow', event.target.value)}
-                />
+                <span>Color primario</span>
+                <input type="color" value={sanitizeHexColor(themePrimaryColor, '#1AB69D')} onChange={(event) => setThemePrimaryColor(event.target.value)} />
               </label>
               <label>
-                <span>Título (inicio)</span>
-                <input
-                  value={content.heroTitleStart}
-                  onChange={(event) => updateContentField('heroTitleStart', event.target.value)}
-                />
+                <span>Color secundario</span>
+                <input type="color" value={sanitizeHexColor(themeSecondaryColor, '#475569')} onChange={(event) => setThemeSecondaryColor(event.target.value)} />
               </label>
               <label>
-                <span>Título resaltado</span>
-                <input
-                  value={content.heroTitleHighlight}
-                  onChange={(event) => updateContentField('heroTitleHighlight', event.target.value)}
-                />
+                <span>Color acento</span>
+                <input type="color" value={sanitizeHexColor(themeAccentColor, '#EE4A62')} onChange={(event) => setThemeAccentColor(event.target.value)} />
+              </label>
+
+              <label>
+                <span>Menú: Categorías</span>
+                <input value={content.nav.categoriesLabel} onChange={(event) => updateNavField('categoriesLabel', event.target.value)} />
               </label>
               <label>
-                <span>Título (cierre)</span>
-                <input
-                  value={content.heroTitleEnd}
-                  onChange={(event) => updateContentField('heroTitleEnd', event.target.value)}
-                />
+                <span>Menú: Programas</span>
+                <input value={content.nav.programsLabel} onChange={(event) => updateNavField('programsLabel', event.target.value)} />
               </label>
               <label>
-                <span>Descripción principal</span>
+                <span>Menú: Diferenciales</span>
+                <input value={content.nav.differentialsLabel} onChange={(event) => updateNavField('differentialsLabel', event.target.value)} />
+              </label>
+              <label>
+                <span>Menú: Referencias</span>
+                <input value={content.nav.referencesLabel} onChange={(event) => updateNavField('referencesLabel', event.target.value)} />
+              </label>
+
+              <label>
+                <span>Hero - Eyebrow</span>
+                <input value={content.hero.eyebrow} onChange={(event) => updateHeroField('eyebrow', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - Título inicio</span>
+                <input value={content.hero.titleStart} onChange={(event) => updateHeroField('titleStart', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - Título resaltado</span>
+                <input value={content.hero.titleHighlight} onChange={(event) => updateHeroField('titleHighlight', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - Título final</span>
+                <input value={content.hero.titleEnd} onChange={(event) => updateHeroField('titleEnd', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - Descripción</span>
+                <textarea rows={3} value={content.hero.description} onChange={(event) => updateHeroField('description', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - CTA principal</span>
+                <input value={content.hero.primaryCtaLabel} onChange={(event) => updateHeroField('primaryCtaLabel', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - CTA secundario</span>
+                <input value={content.hero.secondaryCtaLabel} onChange={(event) => updateHeroField('secondaryCtaLabel', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - Buscador placeholder</span>
+                <input value={content.hero.searchPlaceholder} onChange={(event) => updateHeroField('searchPlaceholder', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - Badge título</span>
+                <input value={content.hero.badgeTitle} onChange={(event) => updateHeroField('badgeTitle', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - Badge descripción</span>
+                <input value={content.hero.badgeSubtitle} onChange={(event) => updateHeroField('badgeSubtitle', event.target.value)} />
+              </label>
+              <label>
+                <span>Hero - URL imagen principal</span>
+                <input value={content.hero.imageMainUrl} onChange={(event) => updateHeroField('imageMainUrl', event.target.value)} placeholder="https://..." />
+              </label>
+              <label>
+                <span>Hero - URL imagen secundaria</span>
+                <input value={content.hero.imageSecondaryUrl} onChange={(event) => updateHeroField('imageSecondaryUrl', event.target.value)} placeholder="https://..." />
+              </label>
+
+              <label>
+                <span>Categorías - Eyebrow</span>
+                <input value={content.sections.categoriesEyebrow} onChange={(event) => updateSectionsField('categoriesEyebrow', event.target.value)} />
+              </label>
+              <label>
+                <span>Categorías - Título</span>
+                <input value={content.sections.categoriesTitle} onChange={(event) => updateSectionsField('categoriesTitle', event.target.value)} />
+              </label>
+              <label>
+                <span>Programas - Eyebrow</span>
+                <input value={content.sections.programsEyebrow} onChange={(event) => updateSectionsField('programsEyebrow', event.target.value)} />
+              </label>
+              <label>
+                <span>Programas - Título</span>
+                <input value={content.sections.programsTitle} onChange={(event) => updateSectionsField('programsTitle', event.target.value)} />
+              </label>
+              <label>
+                <span>Diferenciales - Eyebrow</span>
+                <input value={content.sections.differentialsEyebrow} onChange={(event) => updateSectionsField('differentialsEyebrow', event.target.value)} />
+              </label>
+              <label>
+                <span>Diferenciales - Título</span>
+                <input value={content.sections.differentialsTitle} onChange={(event) => updateSectionsField('differentialsTitle', event.target.value)} />
+              </label>
+              <label>
+                <span>Diferenciales - URL imagen</span>
+                <input value={content.differentials.imageUrl} onChange={(event) => updateDifferentialsField('imageUrl', event.target.value)} placeholder="https://..." />
+              </label>
+              <label>
+                <span>Diferenciales - bullets (una línea por bullet)</span>
                 <textarea
-                  rows={3}
-                  value={content.heroDescription}
-                  onChange={(event) => updateContentField('heroDescription', event.target.value)}
+                  rows={5}
+                  value={content.differentials.bullets.join('\n')}
+                  onChange={(event) => updateDifferentialsField('bullets', event.target.value.split('\n').map((line) => line.trim()).filter(Boolean))}
                 />
+              </label>
+
+              <label>
+                <span>Referencias - Eyebrow</span>
+                <input value={content.sections.referencesEyebrow} onChange={(event) => updateSectionsField('referencesEyebrow', event.target.value)} />
               </label>
               <label>
-                <span>CTA principal</span>
-                <input
-                  value={content.primaryCtaLabel}
-                  onChange={(event) => updateContentField('primaryCtaLabel', event.target.value)}
-                />
+                <span>Referencias - Título</span>
+                <input value={content.sections.referencesTitle} onChange={(event) => updateSectionsField('referencesTitle', event.target.value)} />
+              </label>
+
+              <label>
+                <span>CTA final - Eyebrow</span>
+                <input value={content.finalCta.eyebrow} onChange={(event) => updateFinalCtaField('eyebrow', event.target.value)} />
               </label>
               <label>
-                <span>CTA secundario</span>
-                <input
-                  value={content.secondaryCtaLabel}
-                  onChange={(event) => updateContentField('secondaryCtaLabel', event.target.value)}
-                />
+                <span>CTA final - Título</span>
+                <textarea rows={3} value={content.finalCta.title} onChange={(event) => updateFinalCtaField('title', event.target.value)} />
               </label>
               <label>
-                <span>URL imagen principal</span>
-                <input
-                  value={content.heroImageMainUrl}
-                  onChange={(event) => updateContentField('heroImageMainUrl', event.target.value)}
-                  placeholder="https://..."
-                />
+                <span>CTA final - Descripción</span>
+                <textarea rows={3} value={content.finalCta.description} onChange={(event) => updateFinalCtaField('description', event.target.value)} />
               </label>
               <label>
-                <span>URL imagen secundaria</span>
-                <input
-                  value={content.heroImageSecondaryUrl}
-                  onChange={(event) => updateContentField('heroImageSecondaryUrl', event.target.value)}
-                  placeholder="https://..."
+                <span>CTA final - Botón principal</span>
+                <input value={content.finalCta.primaryLabel} onChange={(event) => updateFinalCtaField('primaryLabel', event.target.value)} />
+              </label>
+              <label>
+                <span>CTA final - Botón secundario</span>
+                <input value={content.finalCta.secondaryLabel} onChange={(event) => updateFinalCtaField('secondaryLabel', event.target.value)} />
+              </label>
+
+              <label>
+                <span>Contenido completo (JSON avanzado)</span>
+                <textarea
+                  rows={10}
+                  value={rawJson}
+                  onChange={(event) => setRawJson(event.target.value)}
+                  placeholder={JSON.stringify(DEFAULT_HOME_LAB_CONTENT, null, 2)}
                 />
               </label>
+              <button type="button" className={styles.adminEditorSave} onClick={applyJsonContent}>
+                <Check size={16} />
+                <span>Aplicar JSON</span>
+              </button>
             </div>
 
             <button

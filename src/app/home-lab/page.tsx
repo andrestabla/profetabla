@@ -1,19 +1,10 @@
 import { Suspense } from 'react';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { hexToRgb } from '@/lib/design-utils';
 import { LandingSurface } from '@/app/LandingSurface';
 import { LandingSkeleton } from '@/app/LandingSkeleton';
 import { authOptions } from '@/lib/auth';
-
-function toRgbComma(hex?: string | null, fallback = '26, 182, 157') {
-  if (!hex) return fallback;
-  try {
-    return hexToRgb(hex).replace(/\s+/g, ', ');
-  } catch {
-    return fallback;
-  }
-}
+import { DEFAULT_HOME_LAB_CONTENT, sanitizeHomeLabContent } from '@/lib/home-lab-content';
 
 async function HomeLabData() {
   const session = await getServerSession(authOptions);
@@ -26,6 +17,7 @@ async function HomeLabData() {
       primaryColor: true,
       secondaryColor: true,
       accentColor: true,
+      homeLabContentJson: true,
       landingHeroEyebrow: true,
       landingHeroTitleStart: true,
       landingHeroTitleHighlight: true,
@@ -38,25 +30,37 @@ async function HomeLabData() {
     }
   });
 
+  const jsonContent = config?.homeLabContentJson;
+  const jsonContentObject = jsonContent && typeof jsonContent === 'object' ? (jsonContent as Record<string, unknown>) : {};
+  const jsonHero = jsonContentObject.hero && typeof jsonContentObject.hero === 'object'
+    ? (jsonContentObject.hero as Record<string, unknown>)
+    : {};
+
+  const legacyMergedContent = sanitizeHomeLabContent({
+    ...jsonContentObject,
+    hero: {
+      ...jsonHero,
+      eyebrow: config?.landingHeroEyebrow || undefined,
+      titleStart: config?.landingHeroTitleStart || undefined,
+      titleHighlight: config?.landingHeroTitleHighlight || undefined,
+      titleEnd: config?.landingHeroTitleEnd || undefined,
+      description: config?.landingHeroDescription || undefined,
+      primaryCtaLabel: config?.landingPrimaryCtaLabel || undefined,
+      secondaryCtaLabel: config?.landingSecondaryCtaLabel || undefined,
+      imageMainUrl: config?.landingHeroImageMainUrl || undefined,
+      imageSecondaryUrl: config?.landingHeroImageSecondaryUrl || undefined,
+    },
+  });
+
   return (
     <LandingSurface
       isAdmin={session?.user?.role === 'ADMIN'}
       institutionName={config?.institutionName || 'Profe Tabla'}
       logoUrl={config?.logoUrl || ''}
-      primaryColor={toRgbComma(config?.primaryColor, '26, 182, 157')}
-      secondaryColor={toRgbComma(config?.secondaryColor, '71, 85, 105')}
-      accentColor={toRgbComma(config?.accentColor, '238, 74, 98')}
-      editableContent={{
-        heroEyebrow: config?.landingHeroEyebrow || 'DESARROLLADA PARA INSTITUCIONES EDUCATIVAS',
-        heroTitleStart: config?.landingHeroTitleStart || 'Plataforma integral para',
-        heroTitleHighlight: config?.landingHeroTitleHighlight || 'aprendizaje por proyectos',
-        heroTitleEnd: config?.landingHeroTitleEnd || 'con trazabilidad completa.',
-        heroDescription: config?.landingHeroDescription || 'ProfeTabla conecta diseño pedagógico, entregas, mentorías, analítica y reconocimientos en una operación académica coherente, medible y escalable.',
-        primaryCtaLabel: config?.landingPrimaryCtaLabel || 'Explorar implementación',
-        secondaryCtaLabel: config?.landingSecondaryCtaLabel || 'Ver programas',
-        heroImageMainUrl: config?.landingHeroImageMainUrl || '',
-        heroImageSecondaryUrl: config?.landingHeroImageSecondaryUrl || ''
-      }}
+      primaryColor={config?.primaryColor || '#1AB69D'}
+      secondaryColor={config?.secondaryColor || '#475569'}
+      accentColor={config?.accentColor || '#EE4A62'}
+      editableContent={legacyMergedContent || DEFAULT_HOME_LAB_CONTENT}
     />
   );
 }
