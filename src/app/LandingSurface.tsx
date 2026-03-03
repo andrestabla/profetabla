@@ -5,20 +5,18 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import {
-  ArrowUpRight,
-  BellRing,
-  BookMarked,
-  BrainCircuit,
-  CalendarClock,
-  Command,
-  FileCheck2,
-  GaugeCircle,
-  GraduationCap,
-  Layers3,
-  Radar,
   Search,
   Sparkles,
-  Workflow
+  ArrowUpRight,
+  Command,
+  ChevronRight,
+  Users,
+  LayoutDashboard,
+  GraduationCap,
+  BookOpen,
+  Clock,
+  FileCheck,
+  BarChart3
 } from 'lucide-react';
 import styles from './landing.module.css';
 import { LandingDemoMetrics } from './LandingDemoMetrics';
@@ -44,7 +42,7 @@ type BentoCard = {
   description: string;
   eyebrow: string;
   icon: ComponentType<{ className?: string; style?: CSSProperties }>;
-  tone: 'neutral' | 'accent' | 'dark';
+  tone: 'teal' | 'coral' | 'amber' | 'indigo';
   size: 'small' | 'wide' | 'tall';
 };
 
@@ -52,51 +50,51 @@ const HERO_VIDEO = 'https://videos.pexels.com/video-files/3195394/3195394-hd_192
 
 const bentoCards: BentoCard[] = [
   {
-    title: 'Planificación curricular asistida',
-    description: 'Construye proyectos, retos y problemas con enfoque pedagógico y resultados esperados desde el primer momento.',
-    eyebrow: 'Diseño instruccional',
-    icon: BrainCircuit,
-    tone: 'accent',
+    title: 'Diseño Curricular Pro',
+    description: 'Crea proyectos y retos con enfoque pedagógico de alta calidad desde el inicio.',
+    eyebrow: 'Diseño',
+    icon: GraduationCap,
+    tone: 'teal',
     size: 'wide'
   },
   {
-    title: 'Panel de avance continuo',
-    description: 'Monitorea progreso, bloqueos y próximos hitos por estudiante o equipo con visualización accionable.',
-    eyebrow: 'Gestión operativa',
-    icon: GaugeCircle,
-    tone: 'neutral',
+    title: 'Gestión de Hitos',
+    description: 'Monitorea progreso y fechas clave por cada equipo en tiempo real.',
+    eyebrow: 'Operación',
+    icon: Clock,
+    tone: 'amber',
     size: 'small'
   },
   {
-    title: 'Mentorías conectadas al resultado',
-    description: 'Agenda sesiones, registra acuerdos y enlaza cada mentoría con evidencias de aprendizaje.',
-    eyebrow: 'Acompañamiento',
-    icon: CalendarClock,
-    tone: 'neutral',
+    title: 'Recursos Conectados',
+    description: 'Agenda mentorías y enlaza cada sesión con evidencias de aprendizaje reales.',
+    eyebrow: 'Recursos',
+    icon: BookOpen,
+    tone: 'indigo',
     size: 'small'
   },
   {
-    title: 'Evaluación con evidencia verificable',
-    description: 'Integra rúbricas, retroalimentación y trazabilidad para elevar la calidad pedagógica.',
-    eyebrow: 'Evaluación',
-    icon: FileCheck2,
-    tone: 'dark',
+    title: 'Evaluación de Calidad',
+    description: 'Integra rúbricas y retroalimentación con trazabilidad institucional completa.',
+    eyebrow: 'Calidad',
+    icon: FileCheck,
+    tone: 'coral',
     size: 'tall'
   },
   {
-    title: 'Habilidades del siglo XXI',
-    description: 'Conecta cada experiencia con tendencias por industria y fortalece transferencias reales al entorno profesional.',
-    eyebrow: 'Pertinencia',
+    title: 'Habilidades del Siglo XXI',
+    description: 'Conecta cada experiencia con competencias globales para el éxito profesional.',
+    eyebrow: 'Futuro',
     icon: Sparkles,
-    tone: 'neutral',
+    tone: 'teal',
     size: 'wide'
   },
   {
-    title: 'Observabilidad institucional',
-    description: 'Registra actividad en tiempo real para gestión, auditoría y mejora continua.',
-    eyebrow: 'Gobernanza',
-    icon: Radar,
-    tone: 'accent',
+    title: 'Analítica en Vivo',
+    description: 'Observabilidad completa sobre el desempeño de cohorte y docentes.',
+    eyebrow: 'Datos',
+    icon: BarChart3,
+    tone: 'amber',
     size: 'small'
   }
 ];
@@ -162,16 +160,20 @@ function normalize(text: string) {
 }
 
 function cardSizeClass(size: BentoCard['size']) {
-  if (size === 'wide') return styles.bentoWide;
-  if (size === 'tall') return styles.bentoTall;
-  return styles.bentoSmall;
+  if (size === 'wide') return styles.cardWide;
+  if (size === 'tall') return styles.cardTall;
+  return '';
 }
 
 function cardToneClass(tone: BentoCard['tone']) {
-  if (tone === 'accent') return styles.bentoAccent;
-  if (tone === 'dark') return styles.bentoDark;
-  return styles.bentoNeutral;
+  if (tone === 'teal') return styles.toneTeal;
+  if (tone === 'coral') return styles.toneCoral;
+  if (tone === 'amber') return styles.toneAmber;
+  if (tone === 'indigo') return styles.toneIndigo;
+  return styles.toneTeal;
 }
+
+const HERO_IMAGE = 'file:///Users/andrestabla/.gemini/antigravity/brain/629cc9bf-f5cd-4a00-aa98-2384f9c88fa5/edublink_hero_mockup_1772503568045.png';
 
 export function LandingSurface({
   institutionName,
@@ -252,7 +254,7 @@ export function LandingSurface({
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add(styles.visible);
+            entry.target.classList.add('visible');
           }
         });
       },
@@ -288,15 +290,15 @@ export function LandingSurface({
           </div>
 
           <nav className={styles.navLinks}>
-            <a href="#funcionalidades">Funcionalidades</a>
-            <a href="#diferenciales">Diferenciales</a>
-            <a href="#referencias">Referencias</a>
+            <a href="#funcionalidades">Módulos</a>
+            <a href="#diferenciales">Ventajas</a>
+            <a href="#referencias">Recursos</a>
           </nav>
 
           <div className={styles.navActions}>
             <button type="button" className={styles.commandTrigger} onClick={() => setCommandOpen(true)}>
               <Search className="w-4 h-4" />
-              <span>Buscar</span>
+              <span>Buscar...</span>
               <kbd>⌘K</kbd>
             </button>
             <Link href="/register" className={styles.navPrimaryCta}>Empezar ahora</Link>
@@ -305,22 +307,17 @@ export function LandingSurface({
       </header>
 
       <section className={styles.hero} id="inicio">
-        <video className={styles.heroVideo} autoPlay muted loop playsInline preload="metadata">
-          <source src={HERO_VIDEO} type="video/mp4" />
-        </video>
-        <div className={styles.heroOverlay} />
-
         <div className={styles.heroContent} data-reveal>
           <div className={styles.heroEyebrow}>
             <Sparkles className="w-4 h-4" />
             <span>Arquitectura Pedagógica de Vanguardia</span>
           </div>
           <h1>
-            Diseña el futuro del <span>aprendizaje estruturado</span> en tiempo real.
+            Diseña el futuro del <span>aprendizaje estruturado</span>
           </h1>
           <p>
-            La plataforma definitiva para instituciones que buscan integrar planeación ABP, 
-            trazabilidad académica y gobernanza tecnológica en una experiencia premium.
+            La plataforma definitiva para instituciones que buscan integrar planeación ABP,
+            trazabilidad académica y gobernanza en una experiencia profesional.
           </p>
 
           <div className={styles.heroCtaRow}>
@@ -328,11 +325,36 @@ export function LandingSurface({
             <a href="#funcionalidades" className={styles.heroSecondaryCta}>Ver módulos</a>
           </div>
         </div>
+
+        <div className={styles.heroImageContainer} data-reveal>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={HERO_IMAGE} alt="Estudiante Profe Tabla" className={styles.heroMainImage} />
+
+          <div className={`${styles.floatingBadge} top-10 -left-10`}>
+            <div className={styles.badgeIcon}>
+              <Users className="w-6 h-6" />
+            </div>
+            <div className={styles.badgeText}>
+              <h4>+2k</h4>
+              <p>Usuarios activos</p>
+            </div>
+          </div>
+
+          <div className={`${styles.floatingBadge} bottom-20 -right-5`}>
+            <div className={styles.badgeIcon} style={{ background: 'rgba(26, 182, 157, 0.1)', color: '#1AB69D' }}>
+              <LayoutDashboard className="w-6 h-6" />
+            </div>
+            <div className={styles.badgeText}>
+              <h4>Pilas ABP</h4>
+              <p>Metodología Activa</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="funcionalidades" className={styles.sectionBlock}>
         <header className={styles.sectionHeader} data-reveal>
-          <p>Módulos de Potencia</p>
+          <p>Potencia Educativa</p>
           <h2>Infraestructura diseñada para la excelencia</h2>
         </header>
 
@@ -349,10 +371,9 @@ export function LandingSurface({
                   cardToneClass(card.tone)
                 ].join(' ')}
               >
-                <span className={styles.bentoEyebrow}>{card.eyebrow}</span>
+                <Icon className={styles.bentoIcon} />
                 <h3>{card.title}</h3>
                 <p>{card.description}</p>
-                <Icon className={styles.bentoIcon} />
               </article>
             );
           })}
@@ -361,26 +382,24 @@ export function LandingSurface({
 
       <section id="diferenciales" className={styles.sectionBlock}>
         <header className={styles.sectionHeader} data-reveal>
-          <p>Autoridad y Diferencia</p>
+          <p>Diferencia Institucional</p>
           <h2>Por qué las instituciones líderes eligen Profe Tabla</h2>
         </header>
 
         <div className={styles.dualColumn}>
           <article className={styles.glassCard} data-reveal>
-            <span className={styles.bentoEyebrow}>Ventaja Estratégica</span>
             <h3>Modelo ejecutable de aprendizaje</h3>
             <p>
-              No solo describimos el aprendizaje, lo habilitamos mediante flujos operativos 
-              que conectan la planeación con la evidencia real del aula.
+              No solo describimos el aprendizaje, lo habilitamos mediante flujos operativos
+              que conectan la planeación con la evidencia real del aula en tiempo real.
             </p>
           </article>
 
           <article className={styles.glassCard} data-reveal>
-            <span className={styles.bentoEyebrow}>Gobernanza de Datos</span>
-            <h3>Trazabilidad e Inteligencia Institucional</h3>
+            <h3>Trazabilidad e Inteligencia</h3>
             <p>
-              Obtén visibilidad total sobre el progreso de cada cohorte, docente y estudiante 
-              mediante un historial de actividad inmutable y accionable.
+              Obtén visibilidad total sobre el progreso de cada cohorte, docente y estudiante
+              mediante un historial de actividad inmutable y accionable institucionalmente.
             </p>
           </article>
         </div>

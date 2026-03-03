@@ -1,36 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #020617;
-  --foreground: #f8fafc;
-  
-  /* Vanguard Palette: Deep Slate & Electric Aromatic */
-  --primary: 94 234 212; /* Teal 300 */
-  --primary-rgb: 94, 234, 212;
-  --accent: 129 140 248; /* Indigo 400 */
+  --background: #f8fafc;
+  --foreground: #1e293b;
+
+  /* EduBlink Palette: Teal & Coral */
+  --primary: 26 182 157;
+  /* #1AB69D Teal */
+  --primary-rgb: 26, 182, 157;
+  --accent: 238 74 98;
+  /* #EE4A62 Coral */
   --radius: 1rem;
   --font-main: 'Outfit', 'Inter', sans-serif;
 
-  /* Glassmorphism Tokens */
-  --glass-bg: rgba(15, 23, 42, 0.65);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-blur: 16px;
+  /* Glassmorphism & Light UI Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --glass-blur: 12px;
+
+  --shadow-soft: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 20px 40px -15px rgba(0, 0, 0, 0.12);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  
+
   --color-primary: rgb(var(--primary));
   --color-primary-foreground: #020617;
-  
+
   --color-accent: rgb(var(--accent));
-  
+
   --radius-xl: 1.5rem;
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 4px);
   --radius-sm: calc(var(--radius) - 8px);
-  
+
   --font-sans: var(--font-main), system-ui, sans-serif;
 }
 
