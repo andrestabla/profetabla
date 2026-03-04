@@ -148,6 +148,8 @@
   display: grid;
   gap: 0.12rem;
   padding: 0.6rem;
+  max-height: calc(100vh - 5.4rem);
+  overflow-y: auto;
 }
 
 .mobileMenuPanel a,
@@ -161,6 +163,16 @@
   font-weight: 700;
   padding: 0.62rem 0.68rem;
   text-align: left;
+}
+
+.mobileMenuPanel a[href="/register"] {
+  background: rgb(var(--primary-rgb));
+  border-color: rgb(var(--primary-rgb));
+  color: #ffffff;
+}
+
+.mobileMenuPanel a[href="/login"] {
+  border-color: var(--landing-border);
 }
 
 .mobileMenuPanel a:hover,
@@ -1442,7 +1454,7 @@
   .benefitsBar,
   .sectionBlock,
   .finalCta {
-    width: calc(100% - 0.7rem);
+    width: calc(100% - 1rem);
   }
 
   .navInner {
@@ -1584,6 +1596,23 @@
   .mobileMenuToggle {
     width: 2rem;
     height: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroActions,
+  .finalActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .heroPrimary,
+  .heroSecondary,
+  .finalPrimary,
+  .finalSecondary {
+    width: 100%;
+    flex: 1 1 100%;
   }
 }
 
@@ -1914,7 +1943,7 @@
 @media (max-width: 640px) {
   .navInner,
   .sectionInner {
-    width: calc(100% - 0.7rem);
+    width: calc(100% - 1rem);
   }
 
   .navInner {

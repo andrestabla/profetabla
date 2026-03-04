@@ -58,18 +58,18 @@ export function LandingAudience() {
 
   return (
     <section id="perfiles" className="p-0">
-      <div className="flex items-center justify-between gap-4 mb-8">
+      <div className="flex items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.28em] mb-2" style={{ color: 'rgb(var(--primary))' }}>
             Experiencia por perfil
           </p>
-          <h2 className="text-3xl md:text-4xl font-black text-slate-900">Mismo ecosistema, vistas y decisiones distintas</h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900">Mismo ecosistema, vistas y decisiones distintas</h2>
         </div>
         <UserSquare2 className="hidden md:block w-11 h-11" style={{ color: 'rgb(var(--primary))' }} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
-        <div className="border border-slate-300 p-2 bg-transparent">
+        <div className="border border-slate-300 p-2 bg-transparent grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const activeTab = tab.key === active;
@@ -77,7 +77,7 @@ export function LandingAudience() {
               <button
                 key={tab.key}
                 onClick={() => setActive(tab.key)}
-                className={`w-full text-left px-4 py-3 rounded-none mb-2 last:mb-0 transition-all inline-flex items-center gap-2 ${activeTab ? 'text-white shadow-lg' : 'text-slate-600 hover:bg-slate-200/70'
+                className={`w-full text-left sm:text-center lg:text-left px-4 py-3 rounded-none transition-all inline-flex items-center sm:justify-center lg:justify-start gap-2 ${activeTab ? 'text-white shadow-lg' : 'text-slate-600 hover:bg-slate-200/70'
                   }`}
                 style={activeTab ? { backgroundColor: 'rgb(var(--primary))', boxShadow: '0 14px 28px -22px rgba(var(--primary), 0.85)' } : undefined}
               >
@@ -88,9 +88,9 @@ export function LandingAudience() {
           })}
         </div>
 
-        <article className="border p-6 md:p-8 transition-all" style={{ borderColor: 'rgba(var(--primary), 0.18)', background: 'linear-gradient(145deg, rgba(var(--primary), 0.08) 0%, #ffffff 48%, rgba(15, 23, 42, 0.03) 100%)' }}>
+        <article className="border p-4 sm:p-6 md:p-8 transition-all" style={{ borderColor: 'rgba(var(--primary), 0.18)', background: 'linear-gradient(145deg, rgba(var(--primary), 0.08) 0%, #ffffff 48%, rgba(15, 23, 42, 0.03) 100%)' }}>
           <p className="text-xs font-black uppercase tracking-[0.24em]" style={{ color: 'rgb(var(--primary))' }}>{data.title}</p>
-          <h3 className="text-2xl font-black text-slate-900 mt-2">{data.subtitle}</h3>
+          <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-2">{data.subtitle}</h3>
           <p className="text-slate-700 mt-3">{data.value}</p>
 
           <ul className="mt-6 space-y-2.5">
