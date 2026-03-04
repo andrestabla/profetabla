@@ -136,7 +136,7 @@ export function DesignEditor({ config }: { config: any }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">Secundario</label>
                             <input type="color" name="secondaryColor" defaultValue={config?.secondaryColor} className="w-full h-10 rounded cursor-pointer" />

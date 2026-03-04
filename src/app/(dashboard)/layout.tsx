@@ -31,8 +31,8 @@ export default async function DashboardLayout({
             <MobileNavbar config={config} />
             <Sidebar config={config} />
             <ActivityTracker />
-            <main className="flex-1 p-4 md:p-8 overflow-y-auto h-screen">
-                <div className="max-w-7xl mx-auto">
+            <main className="flex-1 min-w-0 p-3 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden lg:overflow-y-auto lg:h-screen">
+                <div className="max-w-7xl mx-auto w-full">
                     {children}
                 </div>
             </main>

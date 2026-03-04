@@ -9,10 +9,10 @@ export default function MentorshipRoomClient({ booking, student, project }: { bo
     const [isSaving, setIsSaving] = useState(false);
 
     return (
-        <div className="h-[calc(100vh-80px)] flex gap-6 p-6 bg-slate-100">
+        <div className="min-h-[calc(100vh-80px)] flex flex-col lg:flex-row gap-4 lg:gap-6 p-3 sm:p-4 md:p-6 bg-slate-100">
 
             {/* COLUMNA IZQUIERDA: Contexto y Videollamada */}
-            <div className="w-1/3 flex flex-col gap-6">
+            <div className="w-full lg:w-1/3 flex flex-col gap-4 lg:gap-6">
 
                 {/* Tarjeta del Estudiante */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -31,7 +31,7 @@ export default function MentorshipRoomClient({ booking, student, project }: { bo
                 </div>
 
                 {/* INTEGRACIÓN DE VIDEOLLAMADA */}
-                <div className="flex-1 bg-slate-900 rounded-2xl flex flex-col items-center justify-center text-white p-8 relative overflow-hidden">
+                <div className="min-h-[320px] lg:min-h-0 flex-1 bg-slate-900 rounded-2xl flex flex-col items-center justify-center text-white p-5 md:p-8 relative overflow-hidden">
                     {/* Fondo decorativo */}
                     <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('/pattern.svg')]"></div>
 
@@ -40,7 +40,7 @@ export default function MentorshipRoomClient({ booking, student, project }: { bo
                             <Video className="w-8 h-8 text-white" />
                         </div>
                         <h3 className="text-xl font-bold mb-2">Sala de Conferencia</h3>
-                        <p className="text-slate-400 mb-8 max-w-xs mx-auto">
+                        <p className="text-slate-400 mb-6 md:mb-8 max-w-xs mx-auto text-sm">
                             La sesión se realiza a través de su proveedor configurado.
                         </p>
 
@@ -48,13 +48,13 @@ export default function MentorshipRoomClient({ booking, student, project }: { bo
                             href={booking.slot?.meetingUrl || '#'}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-2 bg-white text-slate-900 font-bold py-3 px-8 rounded-full hover:bg-blue-50 transition-all transform hover:scale-105"
+                            className="inline-flex items-center gap-2 bg-white text-slate-900 font-bold py-3 px-6 md:px-8 rounded-full hover:bg-blue-50 transition-all transform hover:scale-105 text-sm md:text-base"
                         >
                             <ExternalLink className="w-5 h-5" /> Unirse a la Reunión
                         </a>
                     </div>
 
-                    <div className="mt-12 flex gap-4 text-slate-500 text-sm">
+                    <div className="mt-8 md:mt-12 flex flex-wrap justify-center gap-3 md:gap-4 text-slate-500 text-xs md:text-sm">
                         <span className="flex items-center gap-1"><Mic className="w-4 h-4" /> Audio Externo</span>
                         <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> 45:00 min</span>
                     </div>
@@ -62,8 +62,8 @@ export default function MentorshipRoomClient({ booking, student, project }: { bo
             </div>
 
             {/* COLUMNA DERECHA: Libro de Actas (Live Minutes) */}
-            <div className="w-2/3 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-                <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+            <div className="w-full lg:w-2/3 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                <div className="p-4 border-b border-slate-100 bg-slate-50 flex flex-wrap justify-between items-center gap-2">
                     <h2 className="font-bold text-slate-800 flex items-center gap-2">
                         <FileText className="w-5 h-5 text-blue-600" /> Bitácora de Sesión
                     </h2>
@@ -72,7 +72,7 @@ export default function MentorshipRoomClient({ booking, student, project }: { bo
                     </span>
                 </div>
 
-                <form action={async (fd) => { setIsSaving(true); await closeSessionAction(fd); }} className="flex-1 flex flex-col p-6 overflow-y-auto">
+                <form action={async (fd) => { setIsSaving(true); await closeSessionAction(fd); }} className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
                     <input type="hidden" name="bookingId" value={booking.id} />
                     <input type="hidden" name="projectId" value={project.id} />
 
@@ -82,7 +82,7 @@ export default function MentorshipRoomClient({ booking, student, project }: { bo
                         <textarea
                             name="minutes"
                             required
-                            className="w-full h-full min-h-[200px] p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none font-medium text-slate-700 leading-relaxed"
+                            className="w-full h-full min-h-[180px] md:min-h-[220px] p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none font-medium text-slate-700 leading-relaxed"
                             placeholder="Escribe aquí el resumen de lo conversado durante la sesión..."
                         ></textarea>
                     </div>

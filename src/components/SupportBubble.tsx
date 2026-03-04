@@ -9,10 +9,10 @@ export function SupportBubble() {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-4">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] flex flex-col items-end gap-3 sm:gap-4">
             {/* Tooltip hint */}
             {!isOpen && (
-                <div className="bg-slate-900 text-white px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest animate-in fade-in slide-in-from-right-5 duration-500 shadow-xl border border-white/10">
+                <div className="hidden sm:block bg-slate-900 text-white px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest animate-in fade-in slide-in-from-right-5 duration-500 shadow-xl border border-white/10">
                     <div className="flex items-center gap-2">
                         <Sparkles className="w-3 h-3 text-blue-400" />
                         ¿Necesitas ayuda?
@@ -27,7 +27,7 @@ export function SupportBubble() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "w-16 h-16 rounded-[2rem] flex items-center justify-center transition-all duration-500 shadow-2xl relative group overflow-hidden",
+                    "w-14 h-14 sm:w-16 sm:h-16 rounded-[1.4rem] sm:rounded-[2rem] flex items-center justify-center transition-all duration-500 shadow-2xl relative group overflow-hidden",
                     isOpen
                         ? "bg-slate-900 text-white rotate-90 scale-90"
                         : "bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 active:scale-95 shadow-blue-500/30"
@@ -39,9 +39,9 @@ export function SupportBubble() {
                 )}
 
                 {isOpen ? (
-                    <X className="w-8 h-8" />
+                    <X className="w-7 h-7 sm:w-8 sm:h-8" />
                 ) : (
-                    <MessageCircle className="w-8 h-8 group-hover:rotate-12 transition-transform duration-300" />
+                    <MessageCircle className="w-7 h-7 sm:w-8 sm:h-8 group-hover:rotate-12 transition-transform duration-300" />
                 )}
 
                 {/* Notification pulse (only when closed) */}

@@ -19,24 +19,33 @@ export function MobileNavbar({ config }: { config?: any }) {
         } else {
             document.body.style.overflow = 'unset';
         }
+
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
     }, [isOpen]);
 
     return (
         <div className="lg:hidden">
             {/* Top Bar */}
-            <div className="bg-[#0F172A] text-white p-4 flex items-center justify-between border-b border-slate-800 sticky top-0 z-40">
-                <div className="flex items-center gap-3">
+            <div className="bg-[#0F172A] text-white px-3 py-2.5 flex items-center justify-between border-b border-slate-800 sticky top-0 z-40">
+                <div className="flex items-center gap-2 min-w-0">
                     {logo ? (
-                        <img src={logo} alt={title} className="h-8 w-auto object-contain" />
+                        <>
+                            <img src={logo} alt={title} className="h-8 w-8 object-cover rounded-md border border-slate-700 shrink-0" />
+                            <span className="font-bold text-sm truncate">{title}</span>
+                        </>
                     ) : (
-                        <span className="font-bold text-lg text-primary">{title}</span>
+                        <span className="font-bold text-sm text-primary truncate">{title}</span>
                     )}
                 </div>
                 <button
-                    onClick={() => setIsOpen(true)}
-                    className="p-2 text-slate-400 hover:text-white transition-colors"
+                    onClick={() => setIsOpen((prev) => !prev)}
+                    className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg border border-slate-700"
+                    aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
+                    aria-expanded={isOpen}
                 >
-                    <Menu className="w-6 h-6" />
+                    {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
             </div>
 
@@ -51,7 +60,7 @@ export function MobileNavbar({ config }: { config?: any }) {
                 {/* Sidebar Container */}
                 <div
                     className={cn(
-                        "fixed top-0 left-0 bottom-0 w-[280px] bg-[#0F172A] shadow-2xl transition-transform duration-300 ease-in-out z-50 overflow-y-auto",
+                        "fixed top-0 left-0 bottom-0 w-[88vw] max-w-[320px] bg-[#0F172A] shadow-2xl transition-transform duration-300 ease-in-out z-50 overflow-y-auto",
                         isOpen ? "translate-x-0" : "-translate-x-full"
                     )}
                     onClick={(e) => e.stopPropagation()}

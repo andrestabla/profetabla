@@ -418,7 +418,7 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
     const totalProjectWeights = project?.assignments.reduce((sum, a) => sum + (a.weight || 1), 0) || 1;
 
     return (
-        <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
+        <div className="max-w-[1400px] mx-auto p-3 sm:p-4 md:p-8 space-y-6 md:space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
@@ -426,11 +426,11 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
                     <p className="text-slate-500 mt-2 font-medium">Gestión centralizada de notas por proyecto y estudiante.</p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2 md:gap-3 w-full md:w-auto">
                     <button
                         onClick={handleOpenWeightModal}
                         disabled={!project || project.assignments.length === 0}
-                        className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl shadow-sm hover:bg-slate-50 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                        className="flex-1 md:flex-none justify-center flex items-center gap-2 px-4 md:px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl shadow-sm hover:bg-slate-50 transition-all hover:-translate-y-0.5 disabled:opacity-50 text-sm"
                     >
                         <Settings2 className="w-5 h-5 text-blue-500" />
                         Configurar Pesos
@@ -439,7 +439,7 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
                         <button
                             onClick={() => setShowExportMenu(!showExportMenu)}
                             disabled={!project || isExporting}
-                            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                            className="w-full md:w-auto justify-center flex items-center gap-2 px-4 md:px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 transition-all hover:-translate-y-0.5 disabled:opacity-50 text-sm"
                         >
                             {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
                             Exportar Notas
@@ -518,11 +518,11 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100">
-                                    <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest sticky left-0 bg-slate-50 z-10 w-[300px]">
+                                    <th className="px-3 md:px-6 py-4 md:py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest md:sticky md:left-0 bg-slate-50 z-10 w-[220px] md:w-[300px]">
                                         Estudiante
                                     </th>
                                     {project.assignments.map(a => (
-                                        <th key={a.id} className="px-6 py-5 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest min-w-[150px]">
+                                        <th key={a.id} className="px-3 md:px-6 py-4 md:py-5 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest min-w-[130px] md:min-w-[150px]">
                                             <div className="flex flex-col items-center gap-1">
                                                 <FileSpreadsheet className="w-4 h-4 text-blue-500 mb-1" />
                                                 <span className="line-clamp-1" title={a.title}>{a.title}</span>
@@ -532,7 +532,7 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
                                             </div>
                                         </th>
                                     ))}
-                                    <th className="px-6 py-5 text-right text-[10px] font-bold text-slate-600 uppercase tracking-widest bg-blue-50/50 sticky right-0 z-10">
+                                    <th className="px-3 md:px-6 py-4 md:py-5 text-right text-[10px] font-bold text-slate-600 uppercase tracking-widest bg-blue-50/50 md:sticky md:right-0 z-10">
                                         Promedio
                                     </th>
                                 </tr>
@@ -553,7 +553,7 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
 
                                         return (
                                             <tr key={student.id} className="hover:bg-slate-50 transition-colors group">
-                                                <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                                <td className="px-3 md:px-6 py-4 md:sticky md:left-0 bg-white group-hover:bg-slate-50 z-10 md:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold overflow-hidden border border-slate-200 relative">
                                                             {student.avatarUrl ? (
@@ -569,7 +569,7 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
                                                         </div>
                                                         <div className="min-w-0">
                                                             <p className="font-bold text-slate-800 text-sm truncate">{student.name}</p>
-                                                            <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                            <p className="hidden sm:flex text-[10px] text-slate-400 items-center gap-1">
                                                                 <Mail className="w-3 h-3" /> {student.email}
                                                             </p>
                                                         </div>
@@ -586,7 +586,7 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
                                                     }
 
                                                     return (
-                                                        <td key={a.id} className="px-6 py-4 text-center">
+                                                        <td key={a.id} className="px-3 md:px-6 py-4 text-center">
                                                             <div className="flex items-center justify-center gap-2 group/cell relative min-h-[40px]">
                                                                 {grade !== undefined && grade !== null ? (
                                                                     <>
@@ -624,7 +624,7 @@ export default function ProfessorGradesClient({ projects, config }: { projects: 
                                                         </td>
                                                     );
                                                 })}
-                                                <td className="px-6 py-4 text-right sticky right-0 bg-white group-hover:bg-slate-50 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                                <td className="px-3 md:px-6 py-4 text-right md:sticky md:right-0 bg-white group-hover:bg-slate-50 z-10 md:shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                                                     <span className={cn(
                                                         "text-lg font-black",
                                                         parseFloat(average) >= 3 ? "text-blue-600" : "text-amber-500"

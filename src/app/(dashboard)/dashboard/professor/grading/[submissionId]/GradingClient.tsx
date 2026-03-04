@@ -218,33 +218,33 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
     const displayedMax = rubricItems.length > 0 ? maxTotal : (isQuiz ? maxQuizScore : 0);
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50">
+        <div className="flex flex-col min-h-screen lg:h-screen bg-slate-50">
             {/* Header / Navbar */}
-            <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-                <div className="flex items-center gap-4">
+            <div className="bg-white border-b border-slate-200 px-3 sm:px-4 md:px-6 py-3 md:py-4 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                     <button
                         onClick={handleBack}
                         className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <div>
-                        <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <div className="min-w-0">
+                        <h1 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2 truncate">
                             Evaluación de {submission.student.name || submission.student.email}
                         </h1>
-                        <p className="text-xs text-slate-500">{isQuiz ? 'Cuestionario' : submission.fileName || 'Sin archivo'}</p>
+                        <p className="text-xs text-slate-500 truncate">{isQuiz ? 'Cuestionario' : submission.fileName || 'Sin archivo'}</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3 md:gap-6 flex-wrap justify-end ml-auto">
                     <div className="text-right">
                         <span className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider">Nota Actual</span>
-                        <span className={`text-2xl font-black ${displayedTotal >= (displayedMax || 1) * 0.6 ? 'text-green-600' : 'text-amber-600'}`}>
+                        <span className={`text-xl md:text-2xl font-black ${displayedTotal >= (displayedMax || 1) * 0.6 ? 'text-green-600' : 'text-amber-600'}`}>
                             {displayedTotal} <span className="text-slate-300 text-lg">/ {displayedMax}</span>
                         </span>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap justify-end">
                         {isQuiz && (
                             <button
                                 onClick={handleReset}
@@ -271,9 +271,9 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
                 {/* Left: Content Viewer */}
-                <div className="flex-1 bg-slate-100 border-r border-slate-200 flex flex-col relative overflow-hidden">
+                <div className="flex-1 bg-slate-100 lg:border-r border-slate-200 flex flex-col relative min-h-[42vh] lg:min-h-0 overflow-hidden">
                     {/* Toolbar for Viewer */}
                     {(!isQuiz && submission.fileUrl) && (
                         <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -291,7 +291,7 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
 
                     <div className="flex-1 overflow-y-auto w-full h-full">
                         {isQuiz ? (
-                            <div className="p-8 max-w-3xl mx-auto space-y-6">
+                            <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-4 md:space-y-6">
                                 {quizData?.questions?.map((q: any, i: number) => {
                                     const answer = submission.answers?.[q.id];
                                     return (
@@ -333,7 +333,7 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                                         title="Visor de Documento"
                                     />
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center h-full text-slate-400 p-10">
+                                    <div className="flex flex-col items-center justify-center h-full text-slate-400 p-6 md:p-10">
                                         <FileText className="w-20 h-20 mb-6 text-slate-300" />
                                         <p className="text-lg font-medium text-slate-500">Vista previa no disponible para este tipo de archivo</p>
                                         <a
@@ -347,7 +347,7 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                                 )
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-full text-slate-400 bg-slate-50">
-                                    <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center max-w-sm text-center">
+                                    <div className="p-6 md:p-8 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center max-w-sm text-center">
                                         <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-4">
                                             <Edit2 className="w-8 h-8" />
                                         </div>
@@ -363,8 +363,8 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                 </div>
 
                 {/* Right: Grading Sidebar */}
-                <div className="w-[400px] lg:w-[450px] bg-white border-l border-slate-200 flex flex-col shadow-xl z-10">
-                    <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div className="w-full lg:w-[420px] xl:w-[450px] bg-white lg:border-l border-slate-200 flex flex-col shadow-xl z-10 max-h-[58vh] lg:max-h-none">
+                    <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center gap-3 bg-white">
                         <h3 className="font-bold text-slate-600 uppercase text-sm tracking-wider">Criterios de Evaluación</h3>
                         {!isQuiz && rubricItems.length > 0 && submission.fileUrl && (
                             <button
@@ -391,7 +391,7 @@ export default function GradingClient({ submission, rubricItems, quizData }: Gra
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 md:space-y-8">
                         {isQuiz ? (
                             <div className="space-y-6">
                                 <div className="bg-slate-50 p-1 rounded-xl border border-slate-200 flex text-sm font-bold">

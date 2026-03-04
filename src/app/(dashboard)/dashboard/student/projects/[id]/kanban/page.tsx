@@ -29,15 +29,15 @@ export default async function StudentKanbanPage({ params }: { params: Promise<{ 
     });
 
     return (
-        <div className="p-4 md:p-8 h-[calc(100vh-4rem)] max-w-[1920px] mx-auto">
-            <header className="mb-6 flex items-center justify-between">
+        <div className="p-3 sm:p-4 md:p-8 min-h-[calc(100vh-4rem)] max-w-[1920px] mx-auto">
+            <header className="mb-4 md:mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Tablero Kanban</h1>
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-800">Tablero Kanban</h1>
                     <p className="text-slate-500 text-sm">Gestiona tus tareas y el progreso del proyecto</p>
                 </div>
             </header>
 
-            <div className="h-[calc(100%-5rem)]">
+            <div className="h-[calc(100vh-10rem)] min-h-[520px] md:h-[calc(100%-5rem)]">
                 <KanbanBoard projectId={project.id} userRole={session.user.role} allProjects={allProjects} />
             </div>
         </div>

@@ -338,9 +338,9 @@ export function KanbanBoard({ projectId, userRole, allProjects }: { projectId: s
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <div className="flex gap-6 h-[calc(100%-4rem)] min-h-[600px] overflow-x-auto pb-4 custom-scrollbar">
+                <div className="flex gap-4 md:gap-6 h-[calc(100%-3.5rem)] md:h-[calc(100%-4rem)] min-h-[420px] md:min-h-[600px] overflow-x-auto pb-4 custom-scrollbar">
                     {columns.map((col) => (
-                        <div key={col.id} className={`p-4 rounded-xl border ${col.color} min-h-[500px] w-80 flex-shrink-0`}>
+                        <div key={col.id} className={`p-4 rounded-xl border ${col.color} min-h-[420px] md:min-h-[500px] w-[88vw] sm:w-80 flex-shrink-0`}>
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
                                     <h3 className="font-semibold text-slate-700">{col.title}</h3>

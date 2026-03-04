@@ -236,7 +236,7 @@ export default function AssignmentDetailClient({ assignment }: { assignment: Ass
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="bg-white p-4 rounded-xl border border-slate-200">
                             <div className="flex items-center gap-2 text-slate-400 mb-1">
                                 <Calendar className="w-4 h-4" />

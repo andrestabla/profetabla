@@ -59,9 +59,9 @@ export function SupportChatWindow({ onClose }: SupportChatWindowProps) {
     };
 
     return (
-        <div className="fixed bottom-24 right-6 w-[400px] h-[600px] bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden z-[100] animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-20 left-3 right-3 sm:left-auto sm:right-6 sm:w-[400px] w-auto h-[70vh] max-h-[600px] bg-white rounded-3xl sm:rounded-[2.5rem] shadow-2xl border border-slate-200 flex flex-col overflow-hidden z-[100] animate-in slide-in-from-bottom-5 duration-300">
             {/* Header */}
-            <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
+            <div className="p-4 sm:p-6 bg-slate-900 text-white flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
                         <Bot className="w-6 h-6" />
@@ -85,7 +85,7 @@ export function SupportChatWindow({ onClose }: SupportChatWindowProps) {
             {/* Messages */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50"
+                className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 bg-slate-50/50"
             >
                 {messages.map((msg, i) => (
                     <div
@@ -128,7 +128,7 @@ export function SupportChatWindow({ onClose }: SupportChatWindowProps) {
             </div>
 
             {/* Input */}
-            <div className="p-4 bg-white border-t border-slate-100">
+            <div className="p-3 sm:p-4 bg-white border-t border-slate-100">
                 <div className="relative">
                     <input
                         type="text"
@@ -136,7 +136,7 @@ export function SupportChatWindow({ onClose }: SupportChatWindowProps) {
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                         placeholder="Escribe tu duda aquí..."
-                        className="w-full bg-slate-50 border border-slate-200 rounded-3xl py-4 pl-6 pr-14 text-sm font-medium focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-3xl py-3.5 pl-5 pr-14 text-sm font-medium focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                     />
                     <button
                         onClick={handleSend}

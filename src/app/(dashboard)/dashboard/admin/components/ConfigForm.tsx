@@ -303,7 +303,7 @@ export function ConfigForm({ config }: { config: any }) {
                     <p className="text-[10px] text-slate-400 mt-1">Define el &quot;Rol&quot; base de la IA para todos los proyectos.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tono de Respuesta</label>
                         <select name="aiTone" defaultValue={config?.aiTone || 'ACADEMIC'} className="w-full px-3 py-2 border rounded-lg">
@@ -436,7 +436,7 @@ export function ConfigForm({ config }: { config: any }) {
                     Configura el servidor para el envío de notificaciones automáticas, invitaciones y nuevas contraseñas.
                 </p>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Host SMTP</label>
                         <input
@@ -459,7 +459,7 @@ export function ConfigForm({ config }: { config: any }) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Remitente</label>
                         <input

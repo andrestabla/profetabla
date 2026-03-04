@@ -214,7 +214,7 @@ export default function ProfilePageClient({ user }: { user: any }) {
                                     <Plus className="w-5 h-5" />
                                 </button>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {user.languages.map((lang: any) => (
                                     <div key={lang.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
