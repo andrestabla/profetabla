@@ -294,20 +294,26 @@
 
 .heroEyebrow {
   width: fit-content;
+  max-width: 100%;
   font-size: 0.66rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   font-weight: 800;
   color: rgba(226, 232, 240, 0.95);
   padding-left: 0.88rem;
+  padding-right: 0.18rem;
   position: relative;
+  line-height: 1.35;
+  white-space: normal;
+  text-wrap: balance;
 }
 
 .heroEyebrow::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 50%;
+  top: 0.66em;
+  transform: translateY(-50%);
   width: 0.58rem;
   height: 1px;
   background: rgba(var(--primary-rgb), 0.95);
@@ -1491,8 +1497,22 @@
   }
 
   .heroEyebrow {
-    font-size: 0.6rem;
-    letter-spacing: 0.14em;
+    font-size: 0.58rem;
+    letter-spacing: 0.11em;
+    line-height: 1.3;
+    padding-left: 0.74rem;
+  }
+
+  .heroActions {
+    gap: 0.48rem;
+  }
+
+  .heroPrimary,
+  .heroSecondary {
+    min-height: 2.65rem;
+    padding: 0.58rem 0.72rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
   }
 
   .heroCopy > p {
@@ -1501,11 +1521,34 @@
   }
 
   .heroSearch {
-    padding: 0.56rem 0.62rem;
+    margin-top: 0.22rem;
+    min-height: 2.55rem;
+    padding: 0.5rem 0.58rem;
+  }
+
+  .heroSearch span {
+    font-size: 0.76rem;
   }
 
   .heroSearch kbd {
     display: none;
+  }
+
+  .heroMetricRow {
+    gap: 0.45rem;
+  }
+
+  .heroMetricCard {
+    padding: 0.52rem 0.58rem;
+  }
+
+  .heroMetricCard strong {
+    font-size: 1rem;
+  }
+
+  .heroMetricCard span {
+    font-size: 0.65rem;
+    letter-spacing: 0.07em;
   }
 
   .heroVisual {
@@ -1572,6 +1615,11 @@
 
   .heroCopy h1 {
     font-size: clamp(1.68rem, 11vw, 2.34rem);
+  }
+
+  .heroEyebrow {
+    font-size: 0.54rem;
+    letter-spacing: 0.09em;
   }
 
   .heroImageMain {

@@ -148,6 +148,7 @@ export function LandingSurface({
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const isNarrowViewportRef = useRef(false);
 
   const [editEnabled, setEditEnabled] = useState(false);
@@ -168,10 +169,10 @@ export function LandingSurface({
   }, [editableContent]);
 
   useEffect(() => {
-    if (!isAdmin || !defaultEditMode) return;
+    if (!isAdmin || !defaultEditMode || isMobileViewport) return;
     setEditEnabled(true);
     setRawJson(JSON.stringify(content, null, 2));
-  }, [isAdmin, defaultEditMode, content]);
+  }, [isAdmin, defaultEditMode, content, isMobileViewport]);
 
   useEffect(() => {
     setThemePrimaryColor(primaryColor || '#1AB69D');
@@ -215,6 +216,23 @@ export function LandingSurface({
 
     return () => mediaQuery.removeEventListener('change', syncViewport);
   }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 860px)');
+    const syncViewport = () => {
+      setIsMobileViewport(mediaQuery.matches);
+    };
+
+    syncViewport();
+    mediaQuery.addEventListener('change', syncViewport);
+
+    return () => mediaQuery.removeEventListener('change', syncViewport);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    setEditEnabled(false);
+  }, [isMobileViewport]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -409,6 +427,8 @@ export function LandingSurface({
     '--accent-rgb': hexToRgbComma(themeAccentColor, '238, 74, 98'),
     '--primary': hexToRgbComma(themePrimaryColor, '26, 182, 157').replace(/,\s*/g, ' '),
   } as CSSProperties;
+
+  const canRenderAdminEditor = isAdmin && defaultEditMode && !isMobileViewport;
 
   return (
     <div ref={shellRef} className={styles.pageShell} style={cssVars}>
@@ -725,7 +745,7 @@ export function LandingSurface({
         </section>
       </main>
 
-      {isAdmin && (
+      {canRenderAdminEditor && (
         <>
           <button
             type="button"
