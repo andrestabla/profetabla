@@ -237,6 +237,14 @@ function formatOptionalPercent(value: number | null) {
     return `${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(value)}%`;
 }
 
+function getOccupationIndustryLabel(occupation: Occupation) {
+    return occupation.industryCode?.trim() || 'Sin industria';
+}
+
+function truncateLabel(value: string, size = 44) {
+    return value.length > size ? `${value.slice(0, size)}…` : value;
+}
+
 function formatIndustryBreakdownText(breakdown: unknown) {
     if (!breakdown || typeof breakdown !== 'object') return 'N/D';
     const entries = Object.entries(breakdown as Record<string, number>)
@@ -280,6 +288,7 @@ export default function Skills21Client({
     const [isWorldRefreshPending, startWorldRefreshTransition] = useTransition();
     const [isWorkspacePending, startWorkspaceTransition] = useTransition();
     const [isTabPending, startTabTransition] = useTransition();
+    const [isHomeInsightsPending, startHomeInsightsTransition] = useTransition();
     const activeTab = parseTabKey(searchParams.get('tab')) || 'home';
     const blsSocCodesRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -317,6 +326,14 @@ export default function Skills21Client({
     const [escoDeactivateMissing, setEscoDeactivateMissing] = useState(false);
     const [mindMaxSkills, setMindMaxSkills] = useState(1200);
     const [mindDeactivateMissing, setMindDeactivateMissing] = useState(false);
+
+    const [homeDemandYearFilter, setHomeDemandYearFilter] = useState('AUTO');
+    const [homeDemandIndustryFilter, setHomeDemandIndustryFilter] = useState('ALL');
+    const [homeDemandGeographyFilter, setHomeDemandGeographyFilter] = useState('ALL');
+    const [homeSkillsYearFilter, setHomeSkillsYearFilter] = useState('AUTO');
+    const [homeSkillsIndustryFilter, setHomeSkillsIndustryFilter] = useState('ALL');
+    const [homeSkillsGeographyFilter, setHomeSkillsGeographyFilter] = useState('ALL');
+    const [homeSkillsOccupationFilter, setHomeSkillsOccupationFilter] = useState('ALL');
 
     const [workspaceOccupationId, setWorkspaceOccupationId] = useState('');
     const [workspaceSkillIds, setWorkspaceSkillIds] = useState<string[]>([]);
@@ -386,6 +403,16 @@ export default function Skills21Client({
                 occupations.flatMap((occupation) => occupation.forecasts.map((forecast) => forecast.year))
             )
         ).sort((a, b) => a - b);
+    }, [occupations]);
+
+    const latestOccupationYear = useMemo(
+        () => occupationYears[occupationYears.length - 1] || null,
+        [occupationYears]
+    );
+
+    const occupationIndustryOptions = useMemo(() => {
+        return Array.from(new Set(occupations.map((occupation) => getOccupationIndustryLabel(occupation))))
+            .sort((a, b) => a.localeCompare(b));
     }, [occupations]);
 
     const filteredOccupations = useMemo(() => {
@@ -491,6 +518,158 @@ export default function Skills21Client({
             .map(([geography, total]) => ({ geography, total }))
             .sort((a, b) => b.total - a.total);
     }, [filteredOccupations]);
+
+    const selectedHomeDemandYear = homeDemandYearFilter === 'AUTO'
+        ? latestOccupationYear
+        : Number(homeDemandYearFilter);
+
+    const homeDemandRows = useMemo(() => {
+        if (!selectedHomeDemandYear) return [];
+
+        const rows: Array<{
+            id: string;
+            occupationTitle: string;
+            occupationCode: string | null;
+            geography: string;
+            industry: string;
+            employmentCount: number;
+            skillCount: number;
+        }> = [];
+
+        for (const occupation of occupations) {
+            const industry = getOccupationIndustryLabel(occupation);
+            if (homeDemandIndustryFilter !== 'ALL' && industry !== homeDemandIndustryFilter) continue;
+            if (homeDemandGeographyFilter !== 'ALL' && occupation.geography !== homeDemandGeographyFilter) continue;
+
+            const forecast = occupation.forecasts.find((item) => item.year === selectedHomeDemandYear);
+            if (!forecast || !Number.isFinite(forecast.employmentCount)) continue;
+
+            rows.push({
+                id: occupation.id,
+                occupationTitle: occupation.occupationTitle,
+                occupationCode: occupation.occupationCode,
+                geography: occupation.geography,
+                industry,
+                employmentCount: forecast.employmentCount,
+                skillCount: occupation.skills.length
+            });
+        }
+
+        return rows;
+    }, [occupations, selectedHomeDemandYear, homeDemandIndustryFilter, homeDemandGeographyFilter]);
+
+    const homeTopDemandedOccupations = useMemo(() => {
+        return [...homeDemandRows]
+            .sort((a, b) => b.employmentCount - a.employmentCount)
+            .slice(0, 15);
+    }, [homeDemandRows]);
+
+    const homeLowestSupplyOccupations = useMemo(() => {
+        return homeDemandRows
+            .filter((row) => row.employmentCount > 0)
+            .sort((a, b) => a.employmentCount - b.employmentCount)
+            .slice(0, 15);
+    }, [homeDemandRows]);
+
+    const homeDemandChartData = useMemo(() => {
+        return homeTopDemandedOccupations
+            .slice(0, 10)
+            .map((row) => ({
+                occupationShort: truncateLabel(row.occupationTitle, 34),
+                employmentCount: Number(row.employmentCount.toFixed(2))
+            }))
+            .reverse();
+    }, [homeTopDemandedOccupations]);
+
+    const selectedHomeSkillsYear = homeSkillsYearFilter === 'AUTO'
+        ? latestOccupationYear
+        : Number(homeSkillsYearFilter);
+
+    const homeSkillScopeOccupations = useMemo(() => {
+        if (!selectedHomeSkillsYear) return [];
+
+        return occupations
+            .map((occupation) => {
+                const industry = getOccupationIndustryLabel(occupation);
+                if (homeSkillsIndustryFilter !== 'ALL' && industry !== homeSkillsIndustryFilter) return null;
+                if (homeSkillsGeographyFilter !== 'ALL' && occupation.geography !== homeSkillsGeographyFilter) return null;
+
+                const forecast = occupation.forecasts.find((item) => item.year === selectedHomeSkillsYear);
+                if (!forecast || !Number.isFinite(forecast.employmentCount)) return null;
+
+                return {
+                    occupation,
+                    industry,
+                    employmentCount: forecast.employmentCount
+                };
+            })
+            .filter(Boolean) as Array<{
+                occupation: Occupation;
+                industry: string;
+                employmentCount: number;
+            }>;
+    }, [occupations, selectedHomeSkillsYear, homeSkillsIndustryFilter, homeSkillsGeographyFilter]);
+
+    const homeSkillsOccupationOptions = useMemo(() => {
+        return homeSkillScopeOccupations
+            .filter((item) => item.occupation.skills.length > 0)
+            .sort((a, b) => a.occupation.occupationTitle.localeCompare(b.occupation.occupationTitle))
+            .slice(0, 300)
+            .map((item) => ({
+                id: item.occupation.id,
+                label: `${item.occupation.occupationTitle} (${item.occupation.geography})`
+            }));
+    }, [homeSkillScopeOccupations]);
+
+    const homeTopSkillsDemand = useMemo(() => {
+        const bySkill = new Map<string, {
+            id: string;
+            name: string;
+            industry: string;
+            category: string | null;
+            demand: number;
+            occupationCount: number;
+        }>();
+
+        for (const item of homeSkillScopeOccupations) {
+            if (homeSkillsOccupationFilter !== 'ALL' && item.occupation.id !== homeSkillsOccupationFilter) continue;
+
+            for (const skill of item.occupation.skills) {
+                const current = bySkill.get(skill.id);
+                if (!current) {
+                    bySkill.set(skill.id, {
+                        id: skill.id,
+                        name: skill.name,
+                        industry: skill.industry,
+                        category: skill.category,
+                        demand: item.employmentCount,
+                        occupationCount: 1
+                    });
+                } else {
+                    current.demand += item.employmentCount;
+                    current.occupationCount += 1;
+                }
+            }
+        }
+
+        return Array.from(bySkill.values())
+            .sort((a, b) => b.demand - a.demand)
+            .slice(0, 50)
+            .map((row) => ({
+                ...row,
+                demand: Number(row.demand.toFixed(2))
+            }));
+    }, [homeSkillScopeOccupations, homeSkillsOccupationFilter]);
+
+    const homeTopSkillsChartData = useMemo(() => {
+        return homeTopSkillsDemand
+            .slice(0, 12)
+            .map((row) => ({
+                skillShort: truncateLabel(row.name, 32),
+                demand: row.demand
+            }))
+            .reverse();
+    }, [homeTopSkillsDemand]);
 
     const skillsByIndustryData = useMemo(() => {
         const byIndustry = new Map<string, number>();
@@ -954,6 +1133,23 @@ export default function Skills21Client({
         setShowInactive(false);
     };
 
+    const handleResetHomeDemandFilters = () => {
+        startHomeInsightsTransition(() => {
+            setHomeDemandYearFilter('AUTO');
+            setHomeDemandIndustryFilter('ALL');
+            setHomeDemandGeographyFilter('ALL');
+        });
+    };
+
+    const handleResetHomeSkillsFilters = () => {
+        startHomeInsightsTransition(() => {
+            setHomeSkillsYearFilter('AUTO');
+            setHomeSkillsIndustryFilter('ALL');
+            setHomeSkillsGeographyFilter('ALL');
+            setHomeSkillsOccupationFilter('ALL');
+        });
+    };
+
     const handleResetOccupationFilters = () => {
         setOccupationSearch('');
         setOccupationSourceFilter('ALL');
@@ -1089,6 +1285,13 @@ export default function Skills21Client({
 
             {activeTab === 'home' && (
                 <div className="space-y-5">
+                    {isHomeInsightsPending && (
+                        <div className="bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-xs text-sky-700 font-semibold inline-flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Actualizando analítica de Inicio...
+                        </div>
+                    )}
+
                     <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                         <article className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-5">
                             <div className="flex items-center justify-between mb-3">
@@ -1122,21 +1325,301 @@ export default function Skills21Client({
 
                         <article className="bg-white border border-slate-200 rounded-2xl p-5">
                             <h2 className="text-base font-black text-slate-900 flex items-center gap-2 mb-3">
-                                <BarChart3 className="w-4 h-4 text-indigo-600" />
-                                Habilidades por industria
+                                <Sparkles className="w-4 h-4 text-indigo-600" />
+                                Resumen rápido de demanda
                             </h2>
-                            <div className="h-72">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={skillsByIndustryData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                                        <XAxis dataKey="industry" tick={{ fill: '#64748B', fontSize: 11 }} />
-                                        <YAxis tick={{ fill: '#64748B', fontSize: 11 }} />
-                                        <Tooltip formatter={(value) => [toNumeric(value), 'Habilidades']} />
-                                        <Bar dataKey="total" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                            <div className="space-y-3 text-sm">
+                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                                    <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Más demandada</p>
+                                    <p className="font-bold text-slate-900 mt-1 line-clamp-2">
+                                        {homeTopDemandedOccupations[0]?.occupationTitle || 'N/D'}
+                                    </p>
+                                    <p className="text-xs text-slate-600 mt-1">
+                                        {homeTopDemandedOccupations[0]
+                                            ? `${formatEmploymentThousands(homeTopDemandedOccupations[0].employmentCount)} · ${homeTopDemandedOccupations[0].geography}`
+                                            : 'Sin datos para filtros actuales'}
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                    <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Menor oferta</p>
+                                    <p className="font-bold text-slate-900 mt-1 line-clamp-2">
+                                        {homeLowestSupplyOccupations[0]?.occupationTitle || 'N/D'}
+                                    </p>
+                                    <p className="text-xs text-slate-600 mt-1">
+                                        {homeLowestSupplyOccupations[0]
+                                            ? `${formatEmploymentThousands(homeLowestSupplyOccupations[0].employmentCount)} · ${homeLowestSupplyOccupations[0].geography}`
+                                            : 'Sin datos para filtros actuales'}
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+                                    <p className="text-[11px] font-black uppercase tracking-wider text-cyan-700">Top habilidad demandada</p>
+                                    <p className="font-bold text-slate-900 mt-1 line-clamp-2">
+                                        {homeTopSkillsDemand[0]?.name || 'N/D'}
+                                    </p>
+                                    <p className="text-xs text-slate-600 mt-1">
+                                        {homeTopSkillsDemand[0]
+                                            ? `${formatEmploymentThousands(homeTopSkillsDemand[0].demand)} · ${homeTopSkillsDemand[0].occupationCount} ocupaciones`
+                                            : 'Sin datos para filtros actuales'}
+                                    </p>
+                                </div>
                             </div>
                         </article>
+                    </section>
+
+                    <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 space-y-4">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <div>
+                                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                                    <Briefcase className="w-4 h-4 text-indigo-600" />
+                                    Ocupaciones más demandadas y menor oferta
+                                </h2>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Consulta por año, industria y región con base en la proyección de empleo.
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleResetHomeDemandFilters}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                            >
+                                Limpiar filtros
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select
+                                value={homeDemandYearFilter}
+                                onChange={(event) => startHomeInsightsTransition(() => setHomeDemandYearFilter(event.target.value))}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="AUTO">Año más reciente ({latestOccupationYear || 'N/D'})</option>
+                                {occupationYears.map((year) => (
+                                    <option key={`home-demand-year-${year}`} value={String(year)}>{year}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={homeDemandIndustryFilter}
+                                onChange={(event) => startHomeInsightsTransition(() => setHomeDemandIndustryFilter(event.target.value))}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todas las industrias</option>
+                                {occupationIndustryOptions.map((industry) => (
+                                    <option key={`home-demand-industry-${industry}`} value={industry}>{industry}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={homeDemandGeographyFilter}
+                                onChange={(event) => startHomeInsightsTransition(() => setHomeDemandGeographyFilter(event.target.value))}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todas las regiones</option>
+                                {occupationGeographies.map((geography) => (
+                                    <option key={`home-demand-geo-${geography}`} value={geography}>{geography}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="text-xs text-slate-500">
+                            Registros analizados: {homeDemandRows.length} · Año activo: {selectedHomeDemandYear || 'N/D'}
+                        </div>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <article className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
+                                <h3 className="text-sm font-black text-emerald-800 mb-3">Top ocupaciones más demandadas</h3>
+                                {homeTopDemandedOccupations.length === 0 ? (
+                                    <p className="text-sm text-slate-500">No hay datos con los filtros actuales.</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <div className="h-52">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={homeDemandChartData}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#D1FAE5" />
+                                                    <XAxis dataKey="occupationShort" tick={{ fill: '#065F46', fontSize: 10 }} />
+                                                    <YAxis tick={{ fill: '#065F46', fontSize: 11 }} tickFormatter={formatCompactThousands} />
+                                                    <Tooltip formatter={(value) => [formatEmploymentThousands(toNumeric(value)), 'Demanda']} />
+                                                    <Bar dataKey="employmentCount" fill="#10B981" radius={[6, 6, 0, 0]} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-xs">
+                                                <thead className="text-emerald-800">
+                                                    <tr>
+                                                        <th className="text-left py-1.5">Ocupación</th>
+                                                        <th className="text-right py-1.5">Demanda</th>
+                                                        <th className="text-left py-1.5">Región</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {homeTopDemandedOccupations.slice(0, 8).map((row) => (
+                                                        <tr key={`home-demand-top-${row.id}`} className="border-t border-emerald-100">
+                                                            <td className="py-1.5 text-slate-800">
+                                                                {truncateLabel(row.occupationTitle, 56)}
+                                                            </td>
+                                                            <td className="py-1.5 text-right font-semibold text-slate-900">
+                                                                {formatEmploymentThousands(row.employmentCount)}
+                                                            </td>
+                                                            <td className="py-1.5 text-slate-600">{row.geography}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </article>
+
+                            <article className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4">
+                                <h3 className="text-sm font-black text-amber-800 mb-3">Ocupaciones con menor oferta</h3>
+                                {homeLowestSupplyOccupations.length === 0 ? (
+                                    <p className="text-sm text-slate-500">No hay datos con los filtros actuales.</p>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-xs">
+                                            <thead className="text-amber-800">
+                                                <tr>
+                                                    <th className="text-left py-1.5">Ocupación</th>
+                                                    <th className="text-right py-1.5">Oferta</th>
+                                                    <th className="text-left py-1.5">Industria</th>
+                                                    <th className="text-left py-1.5">Región</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {homeLowestSupplyOccupations.map((row) => (
+                                                    <tr key={`home-demand-low-${row.id}`} className="border-t border-amber-100">
+                                                        <td className="py-1.5 text-slate-800">{truncateLabel(row.occupationTitle, 54)}</td>
+                                                        <td className="py-1.5 text-right font-semibold text-slate-900">{formatEmploymentThousands(row.employmentCount)}</td>
+                                                        <td className="py-1.5 text-slate-600">{row.industry}</td>
+                                                        <td className="py-1.5 text-slate-600">{row.geography}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </article>
+                        </div>
+                    </section>
+
+                    <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 space-y-4">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <div>
+                                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                                    <BarChart3 className="w-4 h-4 text-indigo-600" />
+                                    Top 50 habilidades más demandadas
+                                </h2>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Filtro por industria, ocupación y región para priorizar competencias con mayor peso de empleo.
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleResetHomeSkillsFilters}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                            >
+                                Limpiar filtros
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <select
+                                value={homeSkillsYearFilter}
+                                onChange={(event) => startHomeInsightsTransition(() => setHomeSkillsYearFilter(event.target.value))}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="AUTO">Año más reciente ({latestOccupationYear || 'N/D'})</option>
+                                {occupationYears.map((year) => (
+                                    <option key={`home-skills-year-${year}`} value={String(year)}>{year}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={homeSkillsIndustryFilter}
+                                onChange={(event) => startHomeInsightsTransition(() => {
+                                    setHomeSkillsIndustryFilter(event.target.value);
+                                    setHomeSkillsOccupationFilter('ALL');
+                                })}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todas las industrias</option>
+                                {occupationIndustryOptions.map((industry) => (
+                                    <option key={`home-skills-industry-${industry}`} value={industry}>{industry}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={homeSkillsGeographyFilter}
+                                onChange={(event) => startHomeInsightsTransition(() => {
+                                    setHomeSkillsGeographyFilter(event.target.value);
+                                    setHomeSkillsOccupationFilter('ALL');
+                                })}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todas las regiones</option>
+                                {occupationGeographies.map((geography) => (
+                                    <option key={`home-skills-geo-${geography}`} value={geography}>{geography}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={homeSkillsOccupationFilter}
+                                onChange={(event) => startHomeInsightsTransition(() => setHomeSkillsOccupationFilter(event.target.value))}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todas las ocupaciones</option>
+                                {homeSkillsOccupationOptions.map((option) => (
+                                    <option key={`home-skills-occ-${option.id}`} value={option.id}>{option.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="text-xs text-slate-500">
+                            Ocupaciones en alcance: {homeSkillScopeOccupations.length} · Habilidades listadas: {homeTopSkillsDemand.length}
+                        </div>
+
+                        {homeTopSkillsDemand.length === 0 ? (
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                                No hay habilidades demandadas para los filtros seleccionados.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="h-72">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={homeTopSkillsChartData}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                            <XAxis dataKey="skillShort" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                            <YAxis tick={{ fill: '#64748B', fontSize: 11 }} tickFormatter={formatCompactThousands} />
+                                            <Tooltip formatter={(value) => [formatEmploymentThousands(toNumeric(value)), 'Demanda agregada']} />
+                                            <Bar dataKey="demand" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                                    <table className="w-full text-xs min-w-[760px]">
+                                        <thead className="bg-slate-50 text-slate-600">
+                                            <tr>
+                                                <th className="text-left px-3 py-2.5 font-bold">#</th>
+                                                <th className="text-left px-3 py-2.5 font-bold">Habilidad</th>
+                                                <th className="text-left px-3 py-2.5 font-bold">Industria habilidad</th>
+                                                <th className="text-right px-3 py-2.5 font-bold">Demanda agregada</th>
+                                                <th className="text-right px-3 py-2.5 font-bold">Ocupaciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {homeTopSkillsDemand.map((row, index) => (
+                                                <tr key={`home-top-skill-${row.id}`} className="border-t border-slate-100">
+                                                    <td className="px-3 py-2.5 text-slate-500">{index + 1}</td>
+                                                    <td className="px-3 py-2.5 font-semibold text-slate-900">{row.name}</td>
+                                                    <td className="px-3 py-2.5 text-slate-600">{row.industry}</td>
+                                                    <td className="px-3 py-2.5 text-right font-semibold text-slate-900">{formatEmploymentThousands(row.demand)}</td>
+                                                    <td className="px-3 py-2.5 text-right text-slate-600">{row.occupationCount}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
                     </section>
 
                     <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
