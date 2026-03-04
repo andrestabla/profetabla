@@ -48,6 +48,15 @@ type OccupationUploadStats = {
     skippedOccupationLinks: number;
 };
 
+function chunkArray<T>(input: T[], size: number): T[][] {
+    if (size <= 0) return [input];
+    const chunks: T[][] = [];
+    for (let index = 0; index < input.length; index += size) {
+        chunks.push(input.slice(index, index + size));
+    }
+    return chunks;
+}
+
 function areSameSet(a: string[], b: string[]): boolean {
     if (a.length !== b.length) return false;
     const setA = new Set(a);
@@ -115,6 +124,8 @@ async function generateAnalysisIfAvailable(stats: OccupationUploadStats): Promis
 async function main() {
     const inputDir = process.argv[2] || path.join(process.cwd(), 'habilidades SXXI', 'ocupaciones-input');
     const prisma = new PrismaClient();
+    const inClauseBatchSize = 5000;
+    const createBatchSize = 1000;
 
     try {
         const dirEntries = await readdir(inputDir, { withFileTypes: true });
@@ -142,11 +153,16 @@ async function main() {
         }
 
         const canonicalKeys = Array.from(grouped.keys());
-        const existing = await prisma.occupation.findMany({
-            where: { canonicalKey: { in: canonicalKeys } },
-            select: { id: true, canonicalKey: true }
-        });
-        const existingByKey = new Map(existing.map((item) => [item.canonicalKey, item.id]));
+        const existingByKey = new Map<string, string>();
+        for (const keyBatch of chunkArray(canonicalKeys, inClauseBatchSize)) {
+            const existing = await prisma.occupation.findMany({
+                where: { canonicalKey: { in: keyBatch } },
+                select: { id: true, canonicalKey: true }
+            });
+            for (const item of existing) {
+                existingByKey.set(item.canonicalKey, item.id);
+            }
+        }
 
         const toCreate = canonicalKeys
             .filter((key) => !existingByKey.has(key))
@@ -165,13 +181,19 @@ async function main() {
             });
 
         if (toCreate.length > 0) {
-            await prisma.occupation.createMany({ data: toCreate, skipDuplicates: true });
+            for (const createBatch of chunkArray(toCreate, createBatchSize)) {
+                await prisma.occupation.createMany({ data: createBatch, skipDuplicates: true });
+            }
         }
 
-        const touchedOccupations = await prisma.occupation.findMany({
-            where: { canonicalKey: { in: canonicalKeys } },
-            select: { id: true, canonicalKey: true }
-        });
+        const touchedOccupations: Array<{ id: string; canonicalKey: string }> = [];
+        for (const keyBatch of chunkArray(canonicalKeys, inClauseBatchSize)) {
+            const touchedBatch = await prisma.occupation.findMany({
+                where: { canonicalKey: { in: keyBatch } },
+                select: { id: true, canonicalKey: true }
+            });
+            touchedOccupations.push(...touchedBatch);
+        }
 
         if (touchedOccupations.length === 0) {
             throw new Error('No fue posible persistir ocupaciones en la base de datos.');
@@ -180,14 +202,18 @@ async function main() {
         const occupationIdByKey = new Map(touchedOccupations.map((item) => [item.canonicalKey, item.id]));
         const occupationIds = touchedOccupations.map((item) => item.id);
 
-        await prisma.occupation.updateMany({
-            where: { id: { in: occupationIds } },
-            data: { isActive: true }
-        });
+        for (const idBatch of chunkArray(occupationIds, inClauseBatchSize)) {
+            await prisma.occupation.updateMany({
+                where: { id: { in: idBatch } },
+                data: { isActive: true }
+            });
+        }
 
-        await prisma.occupationForecast.deleteMany({
-            where: { occupationId: { in: occupationIds } }
-        });
+        for (const idBatch of chunkArray(occupationIds, inClauseBatchSize)) {
+            await prisma.occupationForecast.deleteMany({
+                where: { occupationId: { in: idBatch } }
+            });
+        }
 
         const forecastRows: Array<{
             occupationId: string;
@@ -212,10 +238,9 @@ async function main() {
             }
         }
 
-        const chunkSize = 1000;
-        for (let i = 0; i < forecastRows.length; i += chunkSize) {
+        for (let i = 0; i < forecastRows.length; i += createBatchSize) {
             await prisma.occupationForecast.createMany({
-                data: forecastRows.slice(i, i + chunkSize)
+                data: forecastRows.slice(i, i + createBatchSize)
             });
         }
 

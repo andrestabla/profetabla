@@ -32,6 +32,10 @@ type CsvRecord = Record<string, string>;
 
 const EU_FILE_PREFIX = 'Employment_occupation';
 const US_FILE_PREFIX = 'National Employment Matrix_IND_';
+const EU_FILE_SECTOR_OCCUPATION_DETAIL = 'employment_sector_occupation_detail.csv';
+const EU_FILE_JOB_OPENINGS_OCCUPATION = 'job_openings_occupation.csv';
+const EU_FILE_REPLACEMENT_DEMAND_OCCUPATION_DETAIL = 'replacement_demand_occupation_detail.csv';
+const EU_FILE_REPLACEMENT_DEMAND_OCCUPATION_DETAIL_QUALIFICATION = 'replacement_demand_occupation_detail_qualification.csv';
 
 function sanitizeFileName(fileName: string): string {
     return fileName.replace(/[^a-zA-Z0-9._ -]/g, '_');
@@ -128,7 +132,7 @@ function parseDelimited(content: string, delimiter: string): string[][] {
 
 function rowsToRecords(rows: string[][]): CsvRecord[] {
     if (rows.length === 0) return [];
-    const header = rows[0].map((cell) => cell.trim());
+    const header = rows[0].map((cell) => cell.trim().replace(/^\uFEFF/, ''));
     return rows
         .slice(1)
         .filter((row) => row.some((cell) => String(cell || '').trim() !== ''))
@@ -198,7 +202,7 @@ function parseEuFileFallback(file: InMemoryCsvFile): CompiledOccupationRow[] {
     const records = rowsToRecords(parseDelimited(file.content, ';'));
     if (records.length === 0) return [];
 
-    const yearColumns = Object.keys(records[0]).filter((column) => column.startsWith('20'));
+    const yearColumns = Object.keys(records[0]).filter((column) => /^20\d{2}$/.test(column));
     const rows: CompiledOccupationRow[] = [];
 
     for (const record of records) {
@@ -221,6 +225,176 @@ function parseEuFileFallback(file: InMemoryCsvFile): CompiledOccupationRow[] {
                 occupationCode: null,
                 occupationTitle,
                 occupationType: 'Summary',
+                qualificationLevel,
+                year,
+                employmentCount: rawEmployment / 1000,
+                percentOfIndustry: null,
+                percentOfOccupation: null
+            });
+        }
+    }
+
+    return rows;
+}
+
+function parseEuSectorOccupationDetailFile(file: InMemoryCsvFile): CompiledOccupationRow[] {
+    const records = rowsToRecords(parseDelimited(file.content, ';'));
+    if (records.length === 0) return [];
+
+    const yearColumns = Object.keys(records[0]).filter((column) => /^20\d{2}$/.test(column));
+    const rows: CompiledOccupationRow[] = [];
+
+    for (const record of records) {
+        const geography = (record.country || '').trim();
+        const occupationTitle = (record.occupation || '').trim();
+        const sector = (record.sector || '').trim();
+        if (!geography || !occupationTitle) continue;
+
+        const occupationType = sector
+            ? `Detalle sectorial: ${sector}`
+            : 'Detalle sectorial';
+        const industryCode = trimOrNull(record.nace_1d_code);
+        const occupationCode = trimOrNull(record.isco_2d_code) || trimOrNull(record.isco_1d_code);
+
+        for (const yearColumn of yearColumns) {
+            const year = Number(yearColumn);
+            if (!Number.isFinite(year)) continue;
+
+            const rawEmployment = toEuNumber(record[yearColumn]);
+            if (rawEmployment === null) continue;
+
+            rows.push({
+                dataSource: 'EU_Sector_Occupation_Forecast',
+                geography,
+                industryCode,
+                occupationCode,
+                occupationTitle,
+                occupationType,
+                qualificationLevel: 'Total',
+                year,
+                employmentCount: rawEmployment / 1000,
+                percentOfIndustry: null,
+                percentOfOccupation: null
+            });
+        }
+    }
+
+    return rows;
+}
+
+function parseEuJobOpeningsOccupationFile(file: InMemoryCsvFile): CompiledOccupationRow[] {
+    const records = rowsToRecords(parseDelimited(file.content, ';'));
+    if (records.length === 0) return [];
+
+    const yearColumns = Object.keys(records[0]).filter((column) => /^20\d{2}$/.test(column));
+    const rows: CompiledOccupationRow[] = [];
+
+    for (const record of records) {
+        const geography = (record.country || '').trim();
+        const occupationTitle = (record.occupation || '').trim();
+        if (!geography || !occupationTitle) continue;
+
+        const breakdown = (record.breakdown || '').trim();
+        const occupationType = breakdown
+            ? `Vacantes: ${breakdown}`
+            : 'Vacantes';
+        const occupationCode = trimOrNull(record.isco_1d_code);
+
+        for (const yearColumn of yearColumns) {
+            const year = Number(yearColumn);
+            if (!Number.isFinite(year)) continue;
+
+            const rawEmployment = toEuNumber(record[yearColumn]);
+            if (rawEmployment === null) continue;
+
+            rows.push({
+                dataSource: 'EU_Job_Openings',
+                geography,
+                industryCode: null,
+                occupationCode,
+                occupationTitle,
+                occupationType,
+                qualificationLevel: 'Total',
+                year,
+                employmentCount: rawEmployment / 1000,
+                percentOfIndustry: null,
+                percentOfOccupation: null
+            });
+        }
+    }
+
+    return rows;
+}
+
+function parseEuReplacementDemandOccupationDetailFile(file: InMemoryCsvFile): CompiledOccupationRow[] {
+    const records = rowsToRecords(parseDelimited(file.content, ';'));
+    if (records.length === 0) return [];
+
+    const yearColumns = Object.keys(records[0]).filter((column) => /^20\d{2}$/.test(column));
+    const rows: CompiledOccupationRow[] = [];
+
+    for (const record of records) {
+        const geography = (record.country || '').trim();
+        const occupationTitle = (record.occupation || '').trim();
+        if (!geography || !occupationTitle) continue;
+
+        const occupationCode = trimOrNull(record.isco_code) || trimOrNull(record.isco_1d_code);
+
+        for (const yearColumn of yearColumns) {
+            const year = Number(yearColumn);
+            if (!Number.isFinite(year)) continue;
+
+            const rawEmployment = toEuNumber(record[yearColumn]);
+            if (rawEmployment === null) continue;
+
+            rows.push({
+                dataSource: 'EU_Replacement_Demand',
+                geography,
+                industryCode: null,
+                occupationCode,
+                occupationTitle,
+                occupationType: 'Demanda de reemplazo',
+                qualificationLevel: 'Total',
+                year,
+                employmentCount: rawEmployment / 1000,
+                percentOfIndustry: null,
+                percentOfOccupation: null
+            });
+        }
+    }
+
+    return rows;
+}
+
+function parseEuReplacementDemandOccupationDetailQualificationFile(file: InMemoryCsvFile): CompiledOccupationRow[] {
+    const records = rowsToRecords(parseDelimited(file.content, ';'));
+    if (records.length === 0) return [];
+
+    const yearColumns = Object.keys(records[0]).filter((column) => /^20\d{2}$/.test(column));
+    const rows: CompiledOccupationRow[] = [];
+
+    for (const record of records) {
+        const geography = (record.country || '').trim();
+        const occupationTitle = (record.occupation || '').trim();
+        if (!geography || !occupationTitle) continue;
+
+        const occupationCode = trimOrNull(record.isco_2d_code) || trimOrNull(record.isco_1d_code);
+        const qualificationLevel = trimOrNull(record.qualification) || 'Total';
+
+        for (const yearColumn of yearColumns) {
+            const year = Number(yearColumn);
+            if (!Number.isFinite(year)) continue;
+
+            const rawEmployment = toEuNumber(record[yearColumn]);
+            if (rawEmployment === null) continue;
+
+            rows.push({
+                dataSource: 'EU_Replacement_Demand',
+                geography,
+                industryCode: null,
+                occupationCode,
+                occupationTitle,
+                occupationType: 'Demanda de reemplazo',
                 qualificationLevel,
                 year,
                 employmentCount: rawEmployment / 1000,
@@ -326,6 +500,45 @@ function parseUsFileFallback(file: InMemoryCsvFile): CompiledOccupationRow[] {
     return compiledRows;
 }
 
+function parseAdditionalEuOccupationFile(file: InMemoryCsvFile): CompiledOccupationRow[] {
+    const normalizedName = file.name.toLowerCase();
+    if (normalizedName === EU_FILE_SECTOR_OCCUPATION_DETAIL) {
+        return parseEuSectorOccupationDetailFile(file);
+    }
+    if (normalizedName === EU_FILE_JOB_OPENINGS_OCCUPATION) {
+        return parseEuJobOpeningsOccupationFile(file);
+    }
+    if (normalizedName === EU_FILE_REPLACEMENT_DEMAND_OCCUPATION_DETAIL) {
+        return parseEuReplacementDemandOccupationDetailFile(file);
+    }
+    if (normalizedName === EU_FILE_REPLACEMENT_DEMAND_OCCUPATION_DETAIL_QUALIFICATION) {
+        return parseEuReplacementDemandOccupationDetailQualificationFile(file);
+    }
+    return [];
+}
+
+function deduplicateCompiledRows(rows: CompiledOccupationRow[]): CompiledOccupationRow[] {
+    const deduplicated: CompiledOccupationRow[] = [];
+    const seen = new Set<string>();
+
+    for (const row of rows) {
+        const key = `${buildOccupationCanonicalKey({
+            dataSource: row.dataSource,
+            geography: row.geography,
+            industryCode: row.industryCode,
+            occupationCode: row.occupationCode,
+            occupationTitle: row.occupationTitle,
+            occupationType: row.occupationType,
+            qualificationLevel: row.qualificationLevel
+        })}|${row.year}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        deduplicated.push(row);
+    }
+
+    return deduplicated;
+}
+
 async function runPythonCompiler(tempDir: string, outputFilePath: string): Promise<{ ok: boolean; output: string; error?: string }> {
     const scriptPath = path.join(process.cwd(), 'scripts', 'skills21', 'compile_occupations.py');
     const pythonBins = [process.env.PYTHON_BIN, 'python3', 'python'].filter(Boolean) as string[];
@@ -382,16 +595,28 @@ function compileFallback(files: InMemoryCsvFile[]): CompiledOccupationRow[] {
         if (!normalizedName.endsWith('.csv')) continue;
 
         if (normalizedName.startsWith(EU_FILE_PREFIX.toLowerCase())) {
-            allRows.push(...parseEuFileFallback(file));
+            const euRows = parseEuFileFallback(file);
+            for (const row of euRows) {
+                allRows.push(row);
+            }
             continue;
         }
 
         if (normalizedName.startsWith(US_FILE_PREFIX.toLowerCase())) {
-            allRows.push(...parseUsFileFallback(file));
+            const usRows = parseUsFileFallback(file);
+            for (const row of usRows) {
+                allRows.push(row);
+            }
+            continue;
+        }
+
+        const additionalRows = parseAdditionalEuOccupationFile(file);
+        for (const row of additionalRows) {
+            allRows.push(row);
         }
     }
 
-    return allRows;
+    return deduplicateCompiledRows(allRows);
 }
 
 export async function compileOccupationRowsFromFiles(files: InMemoryCsvFile[]): Promise<CompileResult> {
@@ -415,10 +640,13 @@ export async function compileOccupationRowsFromFiles(files: InMemoryCsvFile[]): 
         const pythonResult = await runPythonCompiler(tempDir, outputFilePath);
         if (pythonResult.ok) {
             const compiledContent = await readFile(outputFilePath, 'utf8');
+            const pythonRows = parseCompiledCsv(compiledContent);
+            const extraRows = files.flatMap((file) => parseAdditionalEuOccupationFile(file));
+            const mergedRows = deduplicateCompiledRows([...pythonRows, ...extraRows]);
             return {
-                rows: parseCompiledCsv(compiledContent),
+                rows: mergedRows,
                 usedPythonCompiler: true,
-                compilerMessage: pythonResult.output
+                compilerMessage: `${pythonResult.output} Registros adicionales ocupacionales UE: ${extraRows.length}.`
             };
         }
 
