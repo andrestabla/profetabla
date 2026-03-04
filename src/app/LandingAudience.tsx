@@ -28,7 +28,7 @@ const audienceMap: Record<AudienceKey, {
     value: 'Planeas, acompañas y evalúas con enfoque ABP/ABR en una sola plataforma.',
     bullets: [
       'Creación guiada de proyectos, retos y problemas con IA.',
-      'Asignación de Objetos de Aprendizaje y Habilidades del Siglo XXI.',
+      'Asignación de Objetos de Aprendizaje y Ocupaciones/Habilidades del Siglo XXI.',
       'Evaluación con rúbricas, retroalimentación y control de entregas.',
       'Mentorías planificadas y gestión de solicitudes de estudiantes.'
     ]

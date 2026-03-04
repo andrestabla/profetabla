@@ -56,7 +56,7 @@ export function Sidebar({ config, isMobile, onClose }: { config?: any, isMobile?
         { name: 'Mis reconocimientos', href: '/dashboard/recognitions', icon: Award, roles: ['STUDENT'] },
         { name: 'Calificaciones', href: '/dashboard/grades', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Aprendizaje', href: '/dashboard/learning', icon: GraduationCap, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
-        { name: 'Habilidades Siglo XXI', href: '/dashboard/skills21', icon: Sparkles, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
+        { name: 'Ocupaciones y Habilidades SXXI', href: '/dashboard/skills21', icon: Sparkles, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Mentorías', href: '/dashboard/mentorship', icon: Calendar, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Mercado de Proyectos', href: '/dashboard/market', icon: ShoppingBag, roles: ['STUDENT', 'TEACHER', 'ADMIN'] },
         { name: 'Unirse con Código', href: '/dashboard/join', icon: Terminal, roles: ['STUDENT'] },

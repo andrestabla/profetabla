@@ -145,7 +145,7 @@ export const DEFAULT_HOME_LAB_CONTENT: HomeLabContent = {
     { id: 'tecnologia', title: 'Tecnología aplicada', description: 'Herramientas para resolver retos formativos reales.', routes: 34 },
     { id: 'liderazgo', title: 'Liderazgo académico', description: 'Gestión de equipos docentes y mejora institucional.', routes: 19 },
     { id: 'analitica', title: 'Analítica y evaluación', description: 'Lectura de evidencias para decisiones de calidad.', routes: 22 },
-    { id: 'habilidades', title: 'Habilidades del siglo XXI', description: 'Competencias alineadas con tendencias por industria.', routes: 29 },
+    { id: 'habilidades', title: 'Ocupaciones y habilidades del siglo XXI', description: 'Competencias y ocupaciones proyectadas alineadas con tendencias por industria.', routes: 29 },
     { id: 'mentorias', title: 'Mentorías estratégicas', description: 'Acompañamiento estructurado por calendario y metas.', routes: 16 },
   ],
   programs: [

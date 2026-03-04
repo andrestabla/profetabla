@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -8,12 +8,37 @@ import {
     BarChart3,
     BookOpen,
     Briefcase,
+    Database,
     Lightbulb,
     Loader2,
+    PieChart,
+    Search,
     Sparkles,
     TrendingUp
 } from 'lucide-react';
-import { createTwentyFirstSkillAction, toggleTwentyFirstSkillStatusAction } from './actions';
+import {
+    Area,
+    AreaChart,
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Legend,
+    Line,
+    LineChart,
+    Pie,
+    PieChart as RechartsPieChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis
+} from 'recharts';
+import {
+    createTwentyFirstSkillAction,
+    syncOccupationsFromBlsAction,
+    syncSkillsFromEscoAction,
+    toggleTwentyFirstSkillStatusAction
+} from './actions';
 import { useModals } from '@/components/ModalProvider';
 
 type SkillSource = {
@@ -33,9 +58,41 @@ type Skill = {
     isActive: boolean;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sources: any;
+    sourceProvider: string;
+    sourceUri: string | null;
+    sourceLanguage: string | null;
+    sourceLastSyncedAt: string | null;
     createdAt: string;
     updatedAt: string;
     projectCount: number;
+};
+
+type OccupationForecast = {
+    year: number;
+    employmentCount: number;
+    percentOfIndustry: number | null;
+    percentOfOccupation: number | null;
+};
+
+type Occupation = {
+    id: string;
+    dataSource: string;
+    geography: string;
+    industryCode: string | null;
+    occupationCode: string | null;
+    occupationTitle: string;
+    occupationType: string;
+    qualificationLevel: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    forecasts: OccupationForecast[];
+    skills: Array<{
+        id: string;
+        name: string;
+        industry: string;
+        category: string | null;
+    }>;
 };
 
 function normalizeSources(raw: unknown): SkillSource[] {
@@ -67,20 +124,76 @@ function trendBadge(projectCount: number) {
     return { label: 'Emergente', styles: 'bg-blue-100 text-blue-700 border-blue-200' };
 }
 
+const CHART_PALETTE = ['#4F46E5', '#0EA5E9', '#14B8A6', '#22C55E', '#F59E0B', '#F97316', '#EF4444', '#A855F7'];
+
+function formatOccupationSourceLabel(source: string) {
+    if (source === 'US_BLS_Matrix') return 'BLS Matriz (CSV)';
+    if (source === 'US_BLS_API_OE') return 'BLS API (OE)';
+    if (source === 'EU_Forecast') return 'Proyección UE';
+    return source;
+}
+
+function formatOccupationTypeLabel(type: string) {
+    const normalized = type.trim().toLowerCase();
+    if (normalized === 'summary') return 'Resumen';
+    if (normalized === 'line item') return 'Detalle';
+    if (normalized === 'serie bls') return 'Serie BLS';
+    return type;
+}
+
+function formatEmploymentThousands(value: number) {
+    return `${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(value)} mil`;
+}
+
+function formatCompactThousands(value: number) {
+    return new Intl.NumberFormat('es-CO', {
+        notation: 'compact',
+        compactDisplay: 'short',
+        maximumFractionDigits: 1
+    }).format(value);
+}
+
+function toNumeric(value: unknown): number {
+    if (Array.isArray(value) && value.length > 0) {
+        return toNumeric(value[0]);
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+}
+
+function formatOptionalPercent(value: number | null) {
+    if (value === null || Number.isNaN(value)) return 'N/D';
+    return `${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(value)}%`;
+}
+
 export default function Skills21Client({
     skills,
-    canManage,
+    occupations,
+    occupationTotal,
+    canManageSkills,
+    canUploadOccupations,
     currentRole
 }: {
     skills: Skill[];
-    canManage: boolean;
+    occupations: Occupation[];
+    occupationTotal: number;
+    canManageSkills: boolean;
+    canUploadOccupations: boolean;
     currentRole: string;
 }) {
     const router = useRouter();
     const { showAlert } = useModals();
-    const [isPending, startTransition] = useTransition();
-    const [expandedId, setExpandedId] = useState<string | null>(skills[0]?.id || null);
+    const [isSkillPending, startSkillTransition] = useTransition();
+    const [isBlsSyncPending, startBlsSyncTransition] = useTransition();
+    const [isEscoSyncPending, startEscoSyncTransition] = useTransition();
+    const [activeTab, setActiveTab] = useState<'skills' | 'occupations'>('skills');
+    const blsSocCodesRef = useRef<HTMLTextAreaElement | null>(null);
 
+    const [expandedId, setExpandedId] = useState<string | null>(skills[0]?.id || null);
     const [search, setSearch] = useState('');
     const [industryFilter, setIndustryFilter] = useState('ALL');
     const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -97,6 +210,21 @@ export default function Skills21Client({
         sourcesText: '',
         tagsText: ''
     });
+
+    const [occupationSearch, setOccupationSearch] = useState('');
+    const [occupationSourceFilter, setOccupationSourceFilter] = useState('ALL');
+    const [occupationGeographyFilter, setOccupationGeographyFilter] = useState('ALL');
+    const [occupationYearFilter, setOccupationYearFilter] = useState('ALL');
+    const [blsIncremental, setBlsIncremental] = useState(true);
+    const [blsStartYear, setBlsStartYear] = useState(new Date().getFullYear() - 5);
+    const [blsEndYear, setBlsEndYear] = useState(new Date().getFullYear());
+    const [blsMaxCodes, setBlsMaxCodes] = useState(120);
+    const [blsIncludePopular, setBlsIncludePopular] = useState(true);
+    const [blsDeactivateMissing, setBlsDeactivateMissing] = useState(false);
+    const [blsCodesText, setBlsCodesText] = useState('');
+    const [escoLanguage, setEscoLanguage] = useState('es');
+    const [escoMaxSkills, setEscoMaxSkills] = useState(300);
+    const [escoDeactivateMissing, setEscoDeactivateMissing] = useState(false);
 
     const industries = useMemo(() => {
         const set = new Set(skills.map((skill) => skill.industry).filter(Boolean));
@@ -134,11 +262,133 @@ export default function Skills21Client({
         });
     }, [skills, showInactive, industryFilter, categoryFilter, search]);
 
+    const occupationSources = useMemo(() => {
+        return Array.from(new Set(occupations.map((occupation) => occupation.dataSource))).sort((a, b) => a.localeCompare(b));
+    }, [occupations]);
+
+    const occupationGeographies = useMemo(() => {
+        return Array.from(new Set(occupations.map((occupation) => occupation.geography))).sort((a, b) => a.localeCompare(b));
+    }, [occupations]);
+
+    const occupationYears = useMemo(() => {
+        return Array.from(
+            new Set(
+                occupations.flatMap((occupation) => occupation.forecasts.map((forecast) => forecast.year))
+            )
+        ).sort((a, b) => a - b);
+    }, [occupations]);
+
+    const filteredOccupations = useMemo(() => {
+        const term = occupationSearch.trim().toLowerCase();
+        const selectedYear = occupationYearFilter === 'ALL' ? null : Number(occupationYearFilter);
+
+        return occupations.filter((occupation) => {
+            if (occupationSourceFilter !== 'ALL' && occupation.dataSource !== occupationSourceFilter) return false;
+            if (occupationGeographyFilter !== 'ALL' && occupation.geography !== occupationGeographyFilter) return false;
+            if (selectedYear && !occupation.forecasts.some((forecast) => forecast.year === selectedYear)) return false;
+
+            if (!term) return true;
+            const haystack = [
+                occupation.occupationTitle,
+                occupation.occupationType,
+                occupation.occupationCode || '',
+                occupation.industryCode || '',
+                occupation.qualificationLevel,
+                occupation.geography,
+                ...occupation.skills.map((skill) => skill.name)
+            ].join(' ').toLowerCase();
+            return haystack.includes(term);
+        });
+    }, [occupations, occupationSearch, occupationSourceFilter, occupationGeographyFilter, occupationYearFilter]);
+
+    const occupationLatestTable = useMemo(() => {
+        return filteredOccupations
+            .map((occupation) => {
+                const sortedForecasts = [...occupation.forecasts].sort((a, b) => a.year - b.year);
+                const latest = sortedForecasts[sortedForecasts.length - 1] || null;
+                const previous = sortedForecasts.length > 1 ? sortedForecasts[0] : null;
+
+                const variationAbsolute = latest && previous
+                    ? latest.employmentCount - previous.employmentCount
+                    : null;
+                const variationPercent = variationAbsolute !== null && previous && previous.employmentCount > 0
+                    ? (variationAbsolute / previous.employmentCount) * 100
+                    : null;
+
+                return {
+                    occupation,
+                    latest,
+                    previous,
+                    variationAbsolute,
+                    variationPercent
+                };
+            })
+            .filter((item) => item.latest !== null)
+            .sort((a, b) => (b.latest?.employmentCount || 0) - (a.latest?.employmentCount || 0));
+    }, [filteredOccupations]);
+
+    const yearlyTrendData = useMemo(() => {
+        const byYear = new Map<number, number>();
+        for (const occupation of filteredOccupations) {
+            for (const forecast of occupation.forecasts) {
+                byYear.set(
+                    forecast.year,
+                    (byYear.get(forecast.year) || 0) + forecast.employmentCount
+                );
+            }
+        }
+
+        return Array.from(byYear.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([year, employmentCount]) => ({
+                year,
+                employmentCount: Number(employmentCount.toFixed(2))
+            }));
+    }, [filteredOccupations]);
+
+    const topOccupationsChartData = useMemo(() => {
+        return occupationLatestTable
+            .slice(0, 12)
+            .map((item) => ({
+                occupationTitle: item.occupation.occupationTitle,
+                occupationShort: item.occupation.occupationTitle.length > 38
+                    ? `${item.occupation.occupationTitle.slice(0, 38)}…`
+                    : item.occupation.occupationTitle,
+                employmentCount: Number((item.latest?.employmentCount || 0).toFixed(2))
+            }))
+            .reverse();
+    }, [occupationLatestTable]);
+
+    const sourceDistributionData = useMemo(() => {
+        const bySource = new Map<string, number>();
+        for (const occupation of filteredOccupations) {
+            const key = formatOccupationSourceLabel(occupation.dataSource);
+            bySource.set(key, (bySource.get(key) || 0) + 1);
+        }
+
+        return Array.from(bySource.entries())
+            .map(([source, total]) => ({ source, total }))
+            .sort((a, b) => b.total - a.total);
+    }, [filteredOccupations]);
+
+    const geographyDistributionData = useMemo(() => {
+        const byGeography = new Map<string, number>();
+        for (const occupation of filteredOccupations) {
+            byGeography.set(occupation.geography, (byGeography.get(occupation.geography) || 0) + 1);
+        }
+
+        return Array.from(byGeography.entries())
+            .map(([geography, total]) => ({ geography, total }))
+            .sort((a, b) => b.total - a.total);
+    }, [filteredOccupations]);
+
     const activeCount = skills.filter((skill) => skill.isActive).length;
     const totalAssociations = skills.reduce((acc, skill) => acc + skill.projectCount, 0);
+    const totalForecasts = occupations.reduce((acc, occupation) => acc + occupation.forecasts.length, 0);
+    const linkedOccupations = occupations.filter((occupation) => occupation.skills.length > 0).length;
 
     const handleCreate = () => {
-        startTransition(async () => {
+        startSkillTransition(async () => {
             const result = await createTwentyFirstSkillAction(newSkill);
             if (!result.success) {
                 await showAlert('Error', result.error || 'No se pudo crear la habilidad.', 'error');
@@ -162,12 +412,96 @@ export default function Skills21Client({
     };
 
     const handleToggleStatus = (skill: Skill) => {
-        startTransition(async () => {
+        startSkillTransition(async () => {
             const result = await toggleTwentyFirstSkillStatusAction(skill.id, !skill.isActive);
             if (!result.success) {
                 await showAlert('Error', result.error || 'No se pudo actualizar el estado.', 'error');
                 return;
             }
+
+            router.refresh();
+        });
+    };
+
+    const handleSyncEsco = () => {
+        startEscoSyncTransition(async () => {
+            const result = await syncSkillsFromEscoAction({
+                language: escoLanguage,
+                maxSkills: escoMaxSkills,
+                deactivateMissing: escoDeactivateMissing
+            });
+
+            if (!result.success) {
+                await showAlert('Error de sincronización', result.error || 'No se pudo sincronizar ESCO.', 'error');
+                return;
+            }
+
+            const stats = result.stats;
+            if (!stats) {
+                await showAlert('Sincronización incompleta', 'La respuesta no incluyó estadísticas.', 'warning');
+                return;
+            }
+
+            await showAlert(
+                'Sincronización ESCO completada',
+                [
+                    `Idioma: ${stats.language}`,
+                    `Disponibles en ESCO: ${stats.totalAvailable}`,
+                    `Leídas: ${stats.fetched}`,
+                    `Sincronizadas: ${stats.synced}`,
+                    `Creadas: ${stats.created}`,
+                    `Actualizadas: ${stats.updated}`,
+                    `Renombradas por unicidad: ${stats.renamedForUniqueness}`,
+                    `Desactivadas: ${stats.deactivated}`
+                ].join('\n'),
+                'success'
+            );
+
+            router.refresh();
+        });
+    };
+
+    const handleSyncBlsOccupations = () => {
+        startBlsSyncTransition(async () => {
+            const result = await syncOccupationsFromBlsAction({
+                incremental: blsIncremental,
+                startYear: blsStartYear,
+                endYear: blsEndYear,
+                maxCodes: blsMaxCodes,
+                includePopular: blsIncludePopular,
+                codesText: blsCodesText,
+                deactivateMissing: blsDeactivateMissing
+            });
+
+            if (!result.success) {
+                await showAlert('Error de sincronización', result.error || 'No se pudo sincronizar ocupaciones desde BLS.', 'error');
+                return;
+            }
+
+            if (!result.stats) {
+                await showAlert('Sincronización incompleta', 'La respuesta no incluyó estadísticas.', 'warning');
+                return;
+            }
+
+            const stats = result.stats;
+            await showAlert(
+                'Sincronización BLS completada',
+                [
+                    `Modo: ${stats.mode === 'incremental' ? 'Incremental' : 'Completo'}`,
+                    `Rango anual aplicado: ${stats.startYear}-${stats.endYear}`,
+                    `SOC solicitados: ${stats.requestedSocCodes}`,
+                    `Series consultadas: ${stats.seriesRequested}`,
+                    `Series con datos: ${stats.seriesWithData}`,
+                    `Series sin datos: ${stats.seriesWithoutData}`,
+                    `Ocupaciones sincronizadas: ${stats.occupationsSynced}`,
+                    `Ocupaciones creadas: ${stats.occupationsCreated}`,
+                    `Ocupaciones actualizadas: ${stats.occupationsUpdated}`,
+                    `Proyecciones escritas: ${stats.forecastRowsWritten}`,
+                    `Vínculos ocupación-habilidad: ${stats.linkedOccupations}`,
+                    `Relaciones creadas/actualizadas: ${stats.updatedOccupationLinks ?? 0}`
+                ].join('\n'),
+                'success'
+            );
 
             router.refresh();
         });
@@ -179,287 +513,828 @@ export default function Skills21Client({
                 <div>
                     <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
                         <Sparkles className="w-8 h-8 text-indigo-600" />
-                        Habilidades del Siglo XXI
+                        Ocupaciones y habilidades del Siglo XXI
                     </h1>
                     <p className="text-slate-500 mt-2 max-w-3xl">
-                        Repositorio dinámico por industria con competencias en tendencia, ejemplos aplicados y fuentes externas.
+                        Repositorio integrado de ocupaciones proyectadas y habilidades en tendencia, conectado para diseño de proyectos, retos y problemas.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 w-full lg:w-auto">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 w-full lg:w-auto">
                     <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-center">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Habilidades</p>
                         <p className="text-lg font-black text-slate-900">{skills.length}</p>
                     </div>
                     <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-center">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Activas</p>
-                        <p className="text-lg font-black text-emerald-700">{activeCount}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ocupaciones</p>
+                        <p className="text-lg font-black text-slate-900">{occupationTotal}</p>
                     </div>
                     <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-center">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Asociaciones</p>
-                        <p className="text-lg font-black text-indigo-700">{totalAssociations}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Vinculadas</p>
+                        <p className="text-lg font-black text-emerald-700">{linkedOccupations}</p>
+                    </div>
+                    <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-center">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Proyecciones</p>
+                        <p className="text-lg font-black text-indigo-700">{totalForecasts}</p>
                     </div>
                 </div>
             </header>
 
-            <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <input
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Buscar habilidad o palabra clave..."
-                        className="md:col-span-2 w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-                    />
-
-                    <select
-                        value={industryFilter}
-                        onChange={(event) => setIndustryFilter(event.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+            <section className="bg-white border border-slate-200 rounded-2xl p-2">
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        onClick={() => setActiveTab('skills')}
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'skills'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                     >
-                        <option value="ALL">Todas las industrias</option>
-                        {industries.map((industry) => (
-                            <option key={industry} value={industry}>{industry}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        value={categoryFilter}
-                        onChange={(event) => setCategoryFilter(event.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                        Habilidades
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('occupations')}
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'occupations'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                     >
-                        <option value="ALL">Todas las categorías</option>
-                        {categories.map((category) => (
-                            <option key={category} value={category || ''}>{category}</option>
-                        ))}
-                    </select>
+                        Ocupaciones
+                    </button>
                 </div>
-
-                {canManage && (
-                    <div className="flex items-center justify-between flex-wrap gap-2 pt-2">
-                        <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                            <input
-                                type="checkbox"
-                                checked={showInactive}
-                                onChange={(event) => setShowInactive(event.target.checked)}
-                                className="w-4 h-4 rounded"
-                            />
-                            Mostrar habilidades inactivas
-                        </label>
-
-                        <button
-                            onClick={() => setFormOpen((prev) => !prev)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors"
-                        >
-                            <Lightbulb className="w-4 h-4" />
-                            {formOpen ? 'Cerrar carga' : 'Cargar nueva habilidad'}
-                        </button>
-                    </div>
-                )}
-
-                {canManage && formOpen && (
-                    <div className="mt-2 border border-slate-200 rounded-2xl p-4 bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                            value={newSkill.name}
-                            onChange={(event) => setNewSkill((prev) => ({ ...prev, name: event.target.value }))}
-                            placeholder="Nombre de la habilidad"
-                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-                        />
-                        <input
-                            value={newSkill.industry}
-                            onChange={(event) => setNewSkill((prev) => ({ ...prev, industry: event.target.value }))}
-                            placeholder="Industria (ej: Fintech, Salud)"
-                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-                        />
-                        <input
-                            value={newSkill.category}
-                            onChange={(event) => setNewSkill((prev) => ({ ...prev, category: event.target.value }))}
-                            placeholder="Categoría (ej: IA, Datos, Liderazgo)"
-                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-                        />
-                        <input
-                            value={newSkill.tagsText}
-                            onChange={(event) => setNewSkill((prev) => ({ ...prev, tagsText: event.target.value }))}
-                            placeholder="Tags (una por línea)"
-                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-                        />
-                        <textarea
-                            value={newSkill.description}
-                            onChange={(event) => setNewSkill((prev) => ({ ...prev, description: event.target.value }))}
-                            placeholder="Descripción y por qué es relevante"
-                            rows={3}
-                            className="md:col-span-2 w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
-                        />
-                        <textarea
-                            value={newSkill.trendSummary}
-                            onChange={(event) => setNewSkill((prev) => ({ ...prev, trendSummary: event.target.value }))}
-                            placeholder="Resumen de tendencia (qué está pasando en la industria)"
-                            rows={3}
-                            className="md:col-span-2 w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
-                        />
-                        <textarea
-                            value={newSkill.examplesText}
-                            onChange={(event) => setNewSkill((prev) => ({ ...prev, examplesText: event.target.value }))}
-                            placeholder="Ejemplos (uno por línea)"
-                            rows={4}
-                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
-                        />
-                        <textarea
-                            value={newSkill.sourcesText}
-                            onChange={(event) => setNewSkill((prev) => ({ ...prev, sourcesText: event.target.value }))}
-                            placeholder="Fuentes externas: Título|https://url (una por línea)"
-                            rows={4}
-                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
-                        />
-                        <div className="md:col-span-2 flex justify-end">
-                            <button
-                                onClick={handleCreate}
-                                disabled={isPending}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-black transition-colors disabled:opacity-70"
-                            >
-                                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                Guardar habilidad
-                            </button>
-                        </div>
-                    </div>
-                )}
             </section>
 
-            {filteredSkills.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-                    <p className="text-slate-500">No hay habilidades para los filtros seleccionados.</p>
-                </div>
-            ) : (
-                <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    {filteredSkills.map((skill) => {
-                        const badge = trendBadge(skill.projectCount);
-                        const sources = normalizeSources(skill.sources);
-                        const expanded = expandedId === skill.id;
-
-                        return (
-                            <article key={skill.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                                <div className="p-5">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-slate-100 text-slate-600">
-                                                    {skill.industry}
-                                                </span>
-                                                {skill.category && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">
-                                                        {skill.category}
-                                                    </span>
-                                                )}
-                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border ${badge.styles}`}>
-                                                    {badge.label}
-                                                </span>
-                                                {!skill.isActive && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
-                                                        Inactiva
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <h2 className="text-lg font-black text-slate-900 line-clamp-2">{skill.name}</h2>
-                                        </div>
-
-                                        {canManage && (
-                                            <button
-                                                onClick={() => handleToggleStatus(skill)}
-                                                disabled={isPending}
-                                                className="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600"
-                                            >
-                                                {skill.isActive ? 'Desactivar' : 'Activar'}
-                                            </button>
-                                        )}
+            {activeTab === 'skills' ? (
+                <>
+                    <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm space-y-4">
+                        {canUploadOccupations && (
+                            <div className="border border-indigo-200 rounded-2xl p-4 bg-indigo-50/60 space-y-3">
+                                <div className="flex items-start justify-between gap-3 flex-wrap">
+                                    <div>
+                                        <p className="text-xs font-black uppercase tracking-wider text-indigo-700">Fuente principal</p>
+                                        <h3 className="text-base font-black text-slate-900">ESCO API (Comisión Europea)</h3>
+                                        <p className="text-xs text-slate-600 mt-1">
+                                            Documentación oficial: https://ec.europa.eu/esco/api/doc/esco_api_doc.html
+                                        </p>
                                     </div>
-
-                                    <p className="text-sm text-slate-600 mt-3 line-clamp-3">{skill.description}</p>
-
-                                    <div className="mt-4 flex items-center gap-4 text-xs text-slate-500">
-                                        <span className="inline-flex items-center gap-1">
-                                            <Briefcase className="w-3.5 h-3.5" /> {skill.projectCount} proyecto(s) asociados
-                                        </span>
-                                        <span className="inline-flex items-center gap-1">
-                                            <TrendingUp className="w-3.5 h-3.5" /> Actualizado {new Date(skill.updatedAt).toLocaleDateString('es-ES')}
-                                        </span>
-                                    </div>
-
-                                    <button
-                                        onClick={() => setExpandedId(expanded ? null : skill.id)}
-                                        className="mt-4 text-sm font-bold text-indigo-600 hover:underline"
-                                    >
-                                        {expanded ? 'Ocultar detalles' : 'Ver detalles, ejemplos y fuentes'}
-                                    </button>
                                 </div>
 
-                                {expanded && (
-                                    <div className="border-t border-slate-200 bg-slate-50 p-5 space-y-4">
-                                        {skill.trendSummary && (
-                                            <div>
-                                                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                                    <BarChart3 className="w-4 h-4 text-indigo-600" /> Tendencia
-                                                </h3>
-                                                <p className="text-sm text-slate-600 mt-1">{skill.trendSummary}</p>
-                                            </div>
-                                        )}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                    <select
+                                        value={escoLanguage}
+                                        onChange={(event) => setEscoLanguage(event.target.value)}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                    >
+                                        <option value="es">Español (es)</option>
+                                        <option value="en">Inglés (en)</option>
+                                    </select>
 
-                                        {skill.examples.length > 0 && (
-                                            <div>
-                                                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                                    <BookOpen className="w-4 h-4 text-emerald-600" /> Ejemplos de aplicación
-                                                </h3>
-                                                <ul className="mt-2 space-y-1">
-                                                    {skill.examples.map((example, index) => (
-                                                        <li key={`${skill.id}-example-${index}`} className="text-sm text-slate-600">
-                                                            - {example}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
+                                    <input
+                                        type="number"
+                                        min={20}
+                                        max={3000}
+                                        value={escoMaxSkills}
+                                        onChange={(event) => setEscoMaxSkills(Number(event.target.value || 300))}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                        placeholder="Máximo de habilidades"
+                                    />
 
-                                        {sources.length > 0 && (
-                                            <div>
-                                                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                                    <ArrowUpRight className="w-4 h-4 text-blue-600" /> Fuentes externas
-                                                </h3>
-                                                <ul className="mt-2 space-y-1.5">
-                                                    {sources.map((source, index) => (
-                                                        <li key={`${skill.id}-source-${index}`}>
-                                                            <Link
-                                                                href={source.url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-sm text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
-                                                            >
-                                                                {source.title}
-                                                                <ArrowUpRight className="w-3.5 h-3.5" />
-                                                            </Link>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
+                                    <label className="md:col-span-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={escoDeactivateMissing}
+                                            onChange={(event) => setEscoDeactivateMissing(event.target.checked)}
+                                            className="w-4 h-4 rounded"
+                                        />
+                                        Desactivar habilidades ESCO no incluidas en esta sincronización
+                                    </label>
+                                </div>
 
-                                        {skill.tags.length > 0 && (
-                                            <div className="flex flex-wrap gap-1.5 pt-1">
-                                                {skill.tags.map((tag) => (
-                                                    <span key={`${skill.id}-tag-${tag}`} className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-slate-200 text-slate-700">
-                                                        {tag}
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={handleSyncEsco}
+                                        disabled={isEscoSyncPending}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                                    >
+                                        {isEscoSyncPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                                        Sincronizar habilidades desde ESCO
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <input
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                                placeholder="Buscar habilidad o palabra clave..."
+                                className="md:col-span-2 w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            />
+
+                            <select
+                                value={industryFilter}
+                                onChange={(event) => setIndustryFilter(event.target.value)}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todas las industrias</option>
+                                {industries.map((industry) => (
+                                    <option key={industry} value={industry}>{industry}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={categoryFilter}
+                                onChange={(event) => setCategoryFilter(event.target.value)}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todas las categorías</option>
+                                {categories.map((category) => (
+                                    <option key={category} value={category || ''}>{category}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {canManageSkills && (
+                            <div className="flex items-center justify-between flex-wrap gap-2 pt-2">
+                                <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                                    <input
+                                        type="checkbox"
+                                        checked={showInactive}
+                                        onChange={(event) => setShowInactive(event.target.checked)}
+                                        className="w-4 h-4 rounded"
+                                    />
+                                    Mostrar habilidades inactivas
+                                </label>
+
+                                <button
+                                    onClick={() => setFormOpen((prev) => !prev)}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors"
+                                >
+                                    <Lightbulb className="w-4 h-4" />
+                                    {formOpen ? 'Cerrar carga' : 'Cargar nueva habilidad'}
+                                </button>
+                            </div>
+                        )}
+
+                        {canManageSkills && formOpen && (
+                            <div className="mt-2 border border-slate-200 rounded-2xl p-4 bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input
+                                    value={newSkill.name}
+                                    onChange={(event) => setNewSkill((prev) => ({ ...prev, name: event.target.value }))}
+                                    placeholder="Nombre de la habilidad"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                />
+                                <input
+                                    value={newSkill.industry}
+                                    onChange={(event) => setNewSkill((prev) => ({ ...prev, industry: event.target.value }))}
+                                    placeholder="Industria (ej: Fintech, Salud)"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                />
+                                <input
+                                    value={newSkill.category}
+                                    onChange={(event) => setNewSkill((prev) => ({ ...prev, category: event.target.value }))}
+                                    placeholder="Categoría (ej: IA, Datos, Liderazgo)"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                />
+                                <input
+                                    value={newSkill.tagsText}
+                                    onChange={(event) => setNewSkill((prev) => ({ ...prev, tagsText: event.target.value }))}
+                                    placeholder="Tags (una por línea)"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                />
+                                <textarea
+                                    value={newSkill.description}
+                                    onChange={(event) => setNewSkill((prev) => ({ ...prev, description: event.target.value }))}
+                                    placeholder="Descripción y por qué es relevante"
+                                    rows={3}
+                                    className="md:col-span-2 w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+                                />
+                                <textarea
+                                    value={newSkill.trendSummary}
+                                    onChange={(event) => setNewSkill((prev) => ({ ...prev, trendSummary: event.target.value }))}
+                                    placeholder="Resumen de tendencia (qué está pasando en la industria)"
+                                    rows={3}
+                                    className="md:col-span-2 w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+                                />
+                                <textarea
+                                    value={newSkill.examplesText}
+                                    onChange={(event) => setNewSkill((prev) => ({ ...prev, examplesText: event.target.value }))}
+                                    placeholder="Ejemplos (uno por línea)"
+                                    rows={4}
+                                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+                                />
+                                <textarea
+                                    value={newSkill.sourcesText}
+                                    onChange={(event) => setNewSkill((prev) => ({ ...prev, sourcesText: event.target.value }))}
+                                    placeholder="Fuentes externas: Título|https://url (una por línea)"
+                                    rows={4}
+                                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+                                />
+                                <div className="md:col-span-2 flex justify-end">
+                                    <button
+                                        onClick={handleCreate}
+                                        disabled={isSkillPending}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-black transition-colors disabled:opacity-70"
+                                    >
+                                        {isSkillPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        Guardar habilidad
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </section>
+
+                    {filteredSkills.length === 0 ? (
+                        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
+                            <p className="text-slate-500">No hay habilidades para los filtros seleccionados.</p>
+                        </div>
+                    ) : (
+                        <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            {filteredSkills.map((skill) => {
+                                const badge = trendBadge(skill.projectCount);
+                                const sources = normalizeSources(skill.sources);
+                                const expanded = expandedId === skill.id;
+
+                                return (
+                                    <article key={skill.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                                        <div className="p-5">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                        {skill.sourceProvider === 'ESCO' && (
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-indigo-600 text-white">
+                                                                ESCO
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+                                                            {skill.industry}
+                                                        </span>
+                                                        {skill.category && (
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                                                                {skill.category}
+                                                            </span>
+                                                        )}
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border ${badge.styles}`}>
+                                                            {badge.label}
+                                                        </span>
+                                                        {!skill.isActive && (
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                                                Inactiva
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <h2 className="text-lg font-black text-slate-900 line-clamp-2">{skill.name}</h2>
+                                                </div>
+
+                                                {canManageSkills && (
+                                                    <button
+                                                        onClick={() => handleToggleStatus(skill)}
+                                                        disabled={isSkillPending}
+                                                        className="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600"
+                                                    >
+                                                        {skill.isActive ? 'Desactivar' : 'Activar'}
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <p className="text-sm text-slate-600 mt-3 line-clamp-3">{skill.description}</p>
+
+                                            <div className="mt-4 flex items-center gap-4 text-xs text-slate-500">
+                                                <span className="inline-flex items-center gap-1">
+                                                    <Briefcase className="w-3.5 h-3.5" /> {skill.projectCount} proyecto(s) asociados
+                                                </span>
+                                                <span className="inline-flex items-center gap-1">
+                                                    <TrendingUp className="w-3.5 h-3.5" /> Activas: {activeCount} de {skills.length}
+                                                </span>
+                                                {skill.sourceLastSyncedAt && (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        Sincronizado ESCO: {new Date(skill.sourceLastSyncedAt).toLocaleDateString('es-ES')}
                                                     </span>
+                                                )}
+                                            </div>
+
+                                            <button
+                                                onClick={() => setExpandedId(expanded ? null : skill.id)}
+                                                className="mt-4 text-sm font-bold text-indigo-600 hover:underline"
+                                            >
+                                                {expanded ? 'Ocultar detalles' : 'Ver detalles, ejemplos y fuentes'}
+                                            </button>
+                                        </div>
+
+                                        {expanded && (
+                                            <div className="border-t border-slate-200 bg-slate-50 p-5 space-y-4">
+                                                {skill.trendSummary && (
+                                                    <div>
+                                                        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                                            <BarChart3 className="w-4 h-4 text-indigo-600" /> Tendencia
+                                                        </h3>
+                                                        <p className="text-sm text-slate-600 mt-1">{skill.trendSummary}</p>
+                                                    </div>
+                                                )}
+
+                                                {skill.examples.length > 0 && (
+                                                    <div>
+                                                        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                                            <BookOpen className="w-4 h-4 text-emerald-600" /> Ejemplos de aplicación
+                                                        </h3>
+                                                        <ul className="mt-2 space-y-1">
+                                                            {skill.examples.map((example, index) => (
+                                                                <li key={`${skill.id}-example-${index}`} className="text-sm text-slate-600">
+                                                                    - {example}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+
+                                                {sources.length > 0 && (
+                                                    <div>
+                                                        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                                            <ArrowUpRight className="w-4 h-4 text-blue-600" /> Fuentes externas
+                                                        </h3>
+                                                        <ul className="mt-2 space-y-1.5">
+                                                            {sources.map((source, index) => (
+                                                                <li key={`${skill.id}-source-${index}`}>
+                                                                    <Link
+                                                                        href={source.url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-sm text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
+                                                                    >
+                                                                        {source.title}
+                                                                        <ArrowUpRight className="w-3.5 h-3.5" />
+                                                                    </Link>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+
+                                                {skill.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                                        {skill.tags.map((tag) => (
+                                                            <span key={`${skill.id}-tag-${tag}`} className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-slate-200 text-slate-700">
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </article>
+                                );
+                            })}
+                        </section>
+                    )}
+                </>
+            ) : (
+                <div className="space-y-5">
+                    <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                                    <Database className="w-5 h-5 text-indigo-600" />
+                                    Sincronización de ocupaciones (BLS API)
+                                </h2>
+                                <p className="text-sm text-slate-500 mt-1">
+                                    Fuente oficial: API pública de Bureau of Labor Statistics (v2), serie OE nacional. Employment_Count se guarda en miles de empleos.
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Documentación: https://www.bls.gov/developers/api_signature_v2.htm
+                                </p>
+                            </div>
+                        </div>
+
+                        {canUploadOccupations ? (
+                            <div className="mt-4 border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-4">
+                                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={blsIncremental}
+                                        onChange={(event) => setBlsIncremental(event.target.checked)}
+                                        className="w-4 h-4 rounded"
+                                    />
+                                    Sincronización incremental (recomendada)
+                                </label>
+
+                                {blsIncremental && (
+                                    <p className="text-xs text-slate-500">
+                                        Usa automáticamente el último año sincronizado en BLS API - 1 como inicio para traer solo novedades y revisiones recientes.
+                                    </p>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                    <input
+                                        type="number"
+                                        min={1999}
+                                        max={new Date().getFullYear()}
+                                        value={blsStartYear}
+                                        onChange={(event) => setBlsStartYear(Number(event.target.value || new Date().getFullYear() - 5))}
+                                        disabled={blsIncremental}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 disabled:bg-slate-100 disabled:text-slate-400"
+                                        placeholder="Año inicial"
+                                    />
+                                    <input
+                                        type="number"
+                                        min={1999}
+                                        max={new Date().getFullYear()}
+                                        value={blsEndYear}
+                                        onChange={(event) => setBlsEndYear(Number(event.target.value || new Date().getFullYear()))}
+                                        disabled={blsIncremental}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 disabled:bg-slate-100 disabled:text-slate-400"
+                                        placeholder="Año final"
+                                    />
+                                    <input
+                                        type="number"
+                                        min={20}
+                                        max={1200}
+                                        value={blsMaxCodes}
+                                        onChange={(event) => setBlsMaxCodes(Number(event.target.value || 120))}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                        placeholder="Máximo de códigos SOC"
+                                    />
+                                    <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={blsIncludePopular}
+                                            onChange={(event) => setBlsIncludePopular(event.target.checked)}
+                                            className="w-4 h-4 rounded"
+                                        />
+                                        Incluir series populares OE
+                                    </label>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                                        Códigos SOC adicionales (opcional, uno por línea)
+                                    </label>
+                                    <textarea
+                                        ref={blsSocCodesRef}
+                                        rows={4}
+                                        value={blsCodesText}
+                                        onChange={(event) => setBlsCodesText(event.target.value)}
+                                        placeholder={'15-1252\n15-1211\n11-3012'}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-y"
+                                    />
+                                </div>
+
+                                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={blsDeactivateMissing}
+                                        onChange={(event) => setBlsDeactivateMissing(event.target.checked)}
+                                        className="w-4 h-4 rounded"
+                                    />
+                                    Desactivar ocupaciones BLS no incluidas en esta sincronización
+                                </label>
+
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        onClick={handleSyncBlsOccupations}
+                                        disabled={isBlsSyncPending}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                                    >
+                                        {isBlsSyncPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                                        Sincronizar ocupaciones desde BLS API
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                Solo el rol ADMIN puede ejecutar sincronización de ocupaciones en BLS. Este panel está en modo consulta.
+                            </div>
+                        )}
+                    </section>
+
+                    <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div className="md:col-span-2 relative">
+                                <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                                <input
+                                    value={occupationSearch}
+                                    onChange={(event) => setOccupationSearch(event.target.value)}
+                                    placeholder="Buscar ocupación, código o habilidad relacionada..."
+                                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                />
+                            </div>
+
+                            <select
+                                value={occupationSourceFilter}
+                                onChange={(event) => setOccupationSourceFilter(event.target.value)}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todas las fuentes</option>
+                                {occupationSources.map((source) => (
+                                    <option key={source} value={source}>{formatOccupationSourceLabel(source)}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={occupationGeographyFilter}
+                                onChange={(event) => setOccupationGeographyFilter(event.target.value)}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todas las geografías</option>
+                                {occupationGeographies.map((geography) => (
+                                    <option key={geography} value={geography}>{geography}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <select
+                                value={occupationYearFilter}
+                                onChange={(event) => setOccupationYearFilter(event.target.value)}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="ALL">Todos los años</option>
+                                {occupationYears.map((year) => (
+                                    <option key={year} value={String(year)}>{year}</option>
+                                ))}
+                            </select>
+
+                            <div className="md:col-span-2 text-xs text-slate-500 flex items-center">
+                                Mostrando {filteredOccupations.length} de {occupationTotal} ocupaciones registradas.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                        <article className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4 text-indigo-600" />
+                                    Tendencia agregada de empleo (miles)
+                                </h3>
+                                <span className="text-xs text-slate-500">Suma de ocupaciones filtradas</span>
+                            </div>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={yearlyTrendData}>
+                                        <defs>
+                                            <linearGradient id="colorEmpleo" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.35} />
+                                                <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.02} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                        <XAxis dataKey="year" tick={{ fill: '#64748B', fontSize: 12 }} />
+                                        <YAxis tickFormatter={formatCompactThousands} tick={{ fill: '#64748B', fontSize: 12 }} />
+                                        <Tooltip
+                                            formatter={(value) => [formatEmploymentThousands(toNumeric(value)), 'Empleo']}
+                                            labelFormatter={(label) => `Año ${label}`}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="employmentCount"
+                                            stroke="#4F46E5"
+                                            fillOpacity={1}
+                                            fill="url(#colorEmpleo)"
+                                            strokeWidth={2}
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </article>
+
+                        <article className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
+                            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+                                <PieChart className="w-4 h-4 text-indigo-600" />
+                                Distribución por fuente
+                            </h3>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RechartsPieChart>
+                                        <Pie
+                                            data={sourceDistributionData}
+                                            dataKey="total"
+                                            nameKey="source"
+                                            innerRadius={60}
+                                            outerRadius={90}
+                                            paddingAngle={2}
+                                        >
+                                            {sourceDistributionData.map((entry, index) => (
+                                                <Cell key={entry.source} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(value) => [toNumeric(value), 'Ocupaciones']} />
+                                        <Legend />
+                                    </RechartsPieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        <article className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
+                            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+                                <BarChart3 className="w-4 h-4 text-indigo-600" />
+                                Top ocupaciones por empleo más reciente
+                            </h3>
+                            <div className="h-72">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={topOccupationsChartData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                        <XAxis dataKey="occupationShort" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                        <YAxis tickFormatter={formatCompactThousands} tick={{ fill: '#64748B', fontSize: 11 }} />
+                                        <Tooltip
+                                            formatter={(value) => [formatEmploymentThousands(toNumeric(value)), 'Empleo']}
+                                            labelFormatter={(label) => `Ocupación: ${label}`}
+                                        />
+                                        <Bar dataKey="employmentCount" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </article>
+
+                        <article className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
+                            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+                                <Database className="w-4 h-4 text-indigo-600" />
+                                Ocupaciones por geografía
+                            </h3>
+                            <div className="h-72">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={geographyDistributionData.map((item, index) => ({ ...item, color: CHART_PALETTE[index % CHART_PALETTE.length] }))}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                        <XAxis dataKey="geography" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                        <YAxis tick={{ fill: '#64748B', fontSize: 11 }} />
+                                        <Tooltip formatter={(value) => [toNumeric(value), 'Ocupaciones']} />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="total" stroke="#14B8A6" strokeWidth={3} dot={{ r: 4 }} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6">
+                        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                            <h3 className="text-sm font-black text-slate-900">
+                                Tabla analítica de ocupaciones (ordenada por empleo más reciente)
+                            </h3>
+                            <span className="text-xs text-slate-500">
+                                Filas: {Math.min(occupationLatestTable.length, 80)} de {occupationLatestTable.length}
+                            </span>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[980px] text-sm">
+                                <thead className="bg-slate-50 text-slate-600">
+                                    <tr>
+                                        <th className="text-left px-3 py-2.5 font-bold">Ocupación</th>
+                                        <th className="text-left px-3 py-2.5 font-bold">Código SOC</th>
+                                        <th className="text-left px-3 py-2.5 font-bold">Fuente</th>
+                                        <th className="text-left px-3 py-2.5 font-bold">Geografía</th>
+                                        <th className="text-right px-3 py-2.5 font-bold">Año</th>
+                                        <th className="text-right px-3 py-2.5 font-bold">Empleo (miles)</th>
+                                        <th className="text-right px-3 py-2.5 font-bold">Variación</th>
+                                        <th className="text-left px-3 py-2.5 font-bold">Habilidades</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {occupationLatestTable.slice(0, 80).map((item) => (
+                                        <tr key={item.occupation.id} className="border-t border-slate-100 hover:bg-slate-50/70">
+                                            <td className="px-3 py-2.5">
+                                                <p className="font-semibold text-slate-800">{item.occupation.occupationTitle}</p>
+                                                <p className="text-xs text-slate-500">{formatOccupationTypeLabel(item.occupation.occupationType)}</p>
+                                            </td>
+                                            <td className="px-3 py-2.5 text-slate-700">{item.occupation.occupationCode || 'N/D'}</td>
+                                            <td className="px-3 py-2.5 text-slate-700">{formatOccupationSourceLabel(item.occupation.dataSource)}</td>
+                                            <td className="px-3 py-2.5 text-slate-700">{item.occupation.geography}</td>
+                                            <td className="px-3 py-2.5 text-right text-slate-700">{item.latest?.year || 'N/D'}</td>
+                                            <td className="px-3 py-2.5 text-right font-semibold text-slate-800">
+                                                {item.latest ? formatEmploymentThousands(item.latest.employmentCount) : 'N/D'}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-right">
+                                                {item.variationAbsolute === null ? (
+                                                    <span className="text-slate-400">N/D</span>
+                                                ) : (
+                                                    <span className={item.variationAbsolute >= 0 ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold'}>
+                                                        {item.variationAbsolute >= 0 ? '+' : ''}{formatEmploymentThousands(item.variationAbsolute)}
+                                                        {' · '}
+                                                        {item.variationPercent === null
+                                                            ? 'N/D'
+                                                            : `${item.variationPercent >= 0 ? '+' : ''}${item.variationPercent.toFixed(1)}%`}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2.5">
+                                                {item.occupation.skills.length === 0 ? (
+                                                    <span className="text-slate-400">Sin vínculo</span>
+                                                ) : (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {item.occupation.skills.slice(0, 3).map((skill) => (
+                                                            <span key={skill.id} className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-fuchsia-100 text-fuchsia-700">
+                                                                {skill.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    {occupationTotal > occupations.length && (
+                        <p className="text-xs text-slate-500">
+                            Se muestran las 1000 ocupaciones más recientes para mantener rendimiento. Total en base de datos: {occupationTotal}.
+                        </p>
+                    )}
+
+                    {filteredOccupations.length === 0 ? (
+                        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
+                            <p className="text-slate-500">No hay ocupaciones para los filtros seleccionados.</p>
+                        </div>
+                    ) : (
+                        <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            {filteredOccupations.map((occupation) => {
+                                const sortedForecasts = [...occupation.forecasts].sort((a, b) => b.year - a.year);
+                                const latest = sortedForecasts[0];
+
+                                return (
+                                    <article key={occupation.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-slate-100 text-slate-700">
+                                                        {formatOccupationSourceLabel(occupation.dataSource)}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                                                        {occupation.geography}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                                                        {occupation.qualificationLevel}
+                                                    </span>
+                                                </div>
+                                                <h3 className="text-lg font-black text-slate-900">{occupation.occupationTitle}</h3>
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    Tipo: {formatOccupationTypeLabel(occupation.occupationType)}
+                                                    {occupation.occupationCode ? ` · Código ocupación: ${occupation.occupationCode}` : ''}
+                                                    {occupation.industryCode ? ` · Industria: ${occupation.industryCode}` : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                            <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                                                <p className="text-slate-500">Empleo último año</p>
+                                                <p className="font-bold text-slate-800">
+                                                    {latest ? formatEmploymentThousands(latest.employmentCount) : 'N/D'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                                                <p className="text-slate-500">Actualizado</p>
+                                                <p className="font-bold text-slate-800">{new Date(occupation.updatedAt).toLocaleDateString('es-ES')}</p>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Habilidades relacionadas</p>
+                                            {occupation.skills.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {occupation.skills.map((skill) => (
+                                                        <span key={`${occupation.id}-${skill.id}`} className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-fuchsia-100 text-fuchsia-700">
+                                                            {skill.name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-slate-400">Sin relación automática detectada en este registro.</p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Proyección por año</p>
+                                            <div className="space-y-2">
+                                                {sortedForecasts.map((forecast) => (
+                                                    <div key={`${occupation.id}-${forecast.year}`} className="grid grid-cols-4 gap-2 text-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                                                        <span className="font-bold text-slate-700">{forecast.year}</span>
+                                                        <span className="text-slate-700">{formatEmploymentThousands(forecast.employmentCount)}</span>
+                                                        <span className="text-slate-500">% Ind: {formatOptionalPercent(forecast.percentOfIndustry)}</span>
+                                                        <span className="text-slate-500">% Ocup: {formatOptionalPercent(forecast.percentOfOccupation)}</span>
+                                                    </div>
                                                 ))}
                                             </div>
-                                        )}
-                                    </div>
-                                )}
-                            </article>
-                        );
-                    })}
-                </section>
+                                        </div>
+                                    </article>
+                                );
+                            })}
+                        </section>
+                    )}
+                </div>
             )}
 
             {currentRole === 'STUDENT' && (
                 <p className="text-xs text-slate-400">
-                    Estas habilidades se conectan automáticamente con nuevos proyectos, retos y problemas definidos por tus profesores.
+                    Las habilidades y ocupaciones se conectan automáticamente con nuevos proyectos, retos y problemas definidos por tus profesores.
+                </p>
+            )}
+
+            {(canManageSkills || canUploadOccupations) && (
+                <p className="text-xs text-slate-400">
+                    Asociaciones activas: {totalAssociations}. Habilidades activas: {activeCount}/{skills.length}.
                 </p>
             )}
         </div>

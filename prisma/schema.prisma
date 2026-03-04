@@ -309,14 +309,56 @@ model TwentyFirstSkill {
   examples         String[]  @default([])
   sources          Json?
   tags             String[]  @default([])
+  sourceProvider   String    @default("MANUAL")
+  sourceUri        String?   @unique
+  sourceLanguage   String?
+  sourceLastSyncedAt DateTime?
   isActive         Boolean   @default(true)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   projects         Project[] @relation("ProjectToTwentyFirstSkill")
+  occupations      Occupation[] @relation("OccupationToTwentyFirstSkill")
 
   @@unique([name, industry])
   @@index([industry])
   @@index([isActive])
+  @@index([sourceProvider])
+}
+
+model Occupation {
+  id                 String              @id @default(uuid())
+  dataSource         String
+  geography          String
+  industryCode       String?
+  occupationCode     String?
+  occupationTitle    String
+  occupationType     String              @default("Summary")
+  qualificationLevel String              @default("Total")
+  canonicalKey       String              @unique
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  forecasts          OccupationForecast[]
+  skills             TwentyFirstSkill[]  @relation("OccupationToTwentyFirstSkill")
+
+  @@index([dataSource])
+  @@index([geography])
+  @@index([occupationTitle])
+}
+
+model OccupationForecast {
+  id                   String     @id @default(uuid())
+  occupationId         String
+  year                 Int
+  employmentCount      Float
+  percentOfIndustry    Float?
+  percentOfOccupation  Float?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  occupation           Occupation @relation(fields: [occupationId], references: [id], onDelete: Cascade)
+
+  @@unique([occupationId, year])
+  @@index([year])
 }
 
 model Assignment {

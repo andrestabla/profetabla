@@ -629,10 +629,10 @@ export default function CreateProjectForm({
                 {/* SECCIÓN 7: HABILIDADES DEL SIGLO XXI */}
                 <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                     <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <Search className="w-5 h-5 text-fuchsia-600" /> 7. Habilidades del Siglo XXI
+                        <Search className="w-5 h-5 text-fuchsia-600" /> 7. Habilidades del Siglo XXI (relacionadas con ocupaciones)
                     </h2>
                     <p className="text-sm text-slate-500 mb-5">
-                        Selecciona las habilidades en tendencia que este {currentConfig.label.toLowerCase()} desarrollará.
+                        Selecciona las habilidades en tendencia que este {currentConfig.label.toLowerCase()} desarrollará, vinculadas al módulo de ocupaciones y habilidades.
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
@@ -685,7 +685,7 @@ export default function CreateProjectForm({
                         </div>
                     ) : (
                         <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500">
-                            No hay habilidades cargadas para este filtro. Puedes crearlas en el módulo <strong>Habilidades Siglo XXI</strong>.
+                            No hay habilidades cargadas para este filtro. Puedes crearlas en el módulo <strong>Ocupaciones y Habilidades SXXI</strong>.
                         </div>
                     )}
                 </section>
