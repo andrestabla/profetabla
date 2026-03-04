@@ -8,14 +8,21 @@ import {
     BarChart3,
     BookOpen,
     Briefcase,
+    CalendarClock,
     Database,
+    Globe2,
+    GraduationCap,
     Lightbulb,
     Loader2,
+    Newspaper,
     PieChart,
     Search,
     Sparkles,
-    TrendingUp
+    TrendingUp,
+    Wand2
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
     Area,
     AreaChart,
@@ -35,6 +42,8 @@ import {
 } from 'recharts';
 import {
     createTwentyFirstSkillAction,
+    generateSkills21TrainingPlanAction,
+    refreshSkills21WorldSignalsAction,
     syncSkillsFromMindOntologyAction,
     syncOccupationsFromBlsAction,
     syncSkillsFromEscoAction,
@@ -96,6 +105,29 @@ type Occupation = {
     }>;
 };
 
+type WorldSignal = {
+    id: string;
+    title: string;
+    summary: string;
+    sourceName: string;
+    sourceType: string;
+    sourceUrl: string;
+    publishedAt: string;
+    capturedAt: string;
+    industry: string | null;
+    occupationFocus: string | null;
+    skillFocus: string | null;
+    tags: string[];
+    relevanceScore: number;
+};
+
+type WorldSyncState = {
+    status: string;
+    lastSyncAt: string | null;
+    nextSyncAt: string | null;
+    lastError: string | null;
+} | null;
+
 function normalizeSources(raw: unknown): SkillSource[] {
     if (!Array.isArray(raw)) return [];
 
@@ -149,6 +181,22 @@ function formatSkillSourceProvider(provider: string) {
     return provider;
 }
 
+function formatWorldSourceType(sourceType: string) {
+    const normalized = sourceType.trim().toUpperCase();
+    if (normalized === 'INVESTIGACION') return 'Investigación';
+    if (normalized === 'BLOG') return 'Blog';
+    return 'Noticia';
+}
+
+function formatIsoDateToSpanish(value: string | null) {
+    if (!value) return 'N/D';
+    return new Date(value).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
 function formatEmploymentThousands(value: number) {
     return `${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(value)} mil`;
 }
@@ -182,6 +230,9 @@ export default function Skills21Client({
     skills,
     occupations,
     occupationTotal,
+    worldSignals,
+    worldSyncState,
+    worldIsStale,
     canManageSkills,
     canUploadOccupations,
     currentRole
@@ -189,6 +240,9 @@ export default function Skills21Client({
     skills: Skill[];
     occupations: Occupation[];
     occupationTotal: number;
+    worldSignals: WorldSignal[];
+    worldSyncState: WorldSyncState;
+    worldIsStale: boolean;
     canManageSkills: boolean;
     canUploadOccupations: boolean;
     currentRole: string;
@@ -199,7 +253,9 @@ export default function Skills21Client({
     const [isBlsSyncPending, startBlsSyncTransition] = useTransition();
     const [isEscoSyncPending, startEscoSyncTransition] = useTransition();
     const [isMindSyncPending, startMindSyncTransition] = useTransition();
-    const [activeTab, setActiveTab] = useState<'skills' | 'occupations'>('skills');
+    const [isWorldRefreshPending, startWorldRefreshTransition] = useTransition();
+    const [isWorkspacePending, startWorkspaceTransition] = useTransition();
+    const [activeTab, setActiveTab] = useState<'home' | 'skills' | 'occupations' | 'workspace'>('home');
     const blsSocCodesRef = useRef<HTMLTextAreaElement | null>(null);
 
     const [expandedId, setExpandedId] = useState<string | null>(skills[0]?.id || null);
@@ -236,6 +292,14 @@ export default function Skills21Client({
     const [escoDeactivateMissing, setEscoDeactivateMissing] = useState(false);
     const [mindMaxSkills, setMindMaxSkills] = useState(1200);
     const [mindDeactivateMissing, setMindDeactivateMissing] = useState(false);
+
+    const [workspaceOccupationId, setWorkspaceOccupationId] = useState('');
+    const [workspaceSkillIds, setWorkspaceSkillIds] = useState<string[]>([]);
+    const [workspaceAudience, setWorkspaceAudience] = useState('Estudiantes de educación media y superior');
+    const [workspaceDurationWeeks, setWorkspaceDurationWeeks] = useState(8);
+    const [workspaceObjective, setWorkspaceObjective] = useState('Desarrollar competencias aplicadas para empleabilidad del siglo XXI');
+    const [workspaceContextNotes, setWorkspaceContextNotes] = useState('');
+    const [workspacePlanMarkdown, setWorkspacePlanMarkdown] = useState('');
 
     const industries = useMemo(() => {
         const set = new Set(skills.map((skill) => skill.industry).filter(Boolean));
@@ -392,6 +456,154 @@ export default function Skills21Client({
             .map(([geography, total]) => ({ geography, total }))
             .sort((a, b) => b.total - a.total);
     }, [filteredOccupations]);
+
+    const skillsByIndustryData = useMemo(() => {
+        const byIndustry = new Map<string, number>();
+        for (const skill of filteredSkills) {
+            byIndustry.set(skill.industry, (byIndustry.get(skill.industry) || 0) + 1);
+        }
+        return Array.from(byIndustry.entries())
+            .map(([industry, total]) => ({ industry, total }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 12);
+    }, [filteredSkills]);
+
+    const skillsBySourceData = useMemo(() => {
+        const bySource = new Map<string, number>();
+        for (const skill of filteredSkills) {
+            const key = formatSkillSourceProvider(skill.sourceProvider);
+            bySource.set(key, (bySource.get(key) || 0) + 1);
+        }
+        return Array.from(bySource.entries())
+            .map(([source, total]) => ({ source, total }))
+            .sort((a, b) => b.total - a.total);
+    }, [filteredSkills]);
+
+    const worldSourceTypeData = useMemo(() => {
+        const byType = new Map<string, number>();
+        for (const item of worldSignals) {
+            const key = formatWorldSourceType(item.sourceType);
+            byType.set(key, (byType.get(key) || 0) + 1);
+        }
+        return Array.from(byType.entries())
+            .map(([sourceType, total]) => ({ sourceType, total }))
+            .sort((a, b) => b.total - a.total);
+    }, [worldSignals]);
+
+    const topWorldTagsData = useMemo(() => {
+        const byTag = new Map<string, number>();
+        for (const signal of worldSignals) {
+            for (const tag of signal.tags || []) {
+                const normalized = tag.trim().toLowerCase();
+                if (!normalized) continue;
+                byTag.set(normalized, (byTag.get(normalized) || 0) + 1);
+            }
+        }
+        return Array.from(byTag.entries())
+            .map(([tag, total]) => ({ tag, total }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 10);
+    }, [worldSignals]);
+
+    const occupationGeoIndustryMap = useMemo(() => {
+        const bucket = new Map<string, number>();
+        for (const occupation of filteredOccupations) {
+            const industry = occupation.industryCode || occupation.dataSource;
+            const latest2035 = occupation.forecasts.find((forecast) => forecast.year === 2035);
+            const latest = latest2035 || [...occupation.forecasts].sort((a, b) => b.year - a.year)[0] || null;
+            if (!latest) continue;
+            const key = `${occupation.geography}|||${industry}`;
+            bucket.set(key, (bucket.get(key) || 0) + latest.employmentCount);
+        }
+
+        const geographyTotals = new Map<string, number>();
+        const industryTotals = new Map<string, number>();
+        for (const [key, value] of bucket.entries()) {
+            const [geography, industry] = key.split('|||');
+            geographyTotals.set(geography, (geographyTotals.get(geography) || 0) + value);
+            industryTotals.set(industry, (industryTotals.get(industry) || 0) + value);
+        }
+
+        const geographies = Array.from(geographyTotals.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 12)
+            .map(([name]) => name);
+        const industries = Array.from(industryTotals.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8)
+            .map(([name]) => name);
+
+        const rows = geographies.map((geography) => {
+            const values = industries.map((industry) => {
+                const value = bucket.get(`${geography}|||${industry}`) || 0;
+                return {
+                    industry,
+                    value
+                };
+            });
+            return {
+                geography,
+                values,
+                total: values.reduce((acc, item) => acc + item.value, 0)
+            };
+        });
+
+        const maxValue = Math.max(
+            0,
+            ...rows.flatMap((row) => row.values.map((value) => value.value))
+        );
+
+        return {
+            geographies,
+            industries,
+            rows,
+            maxValue
+        };
+    }, [filteredOccupations]);
+
+    const workspaceOccupationOptions = useMemo(() => {
+        return occupationLatestTable
+            .slice(0, 180)
+            .map((item) => ({
+                id: item.occupation.id,
+                label: `${item.occupation.occupationTitle} (${item.occupation.geography})`,
+                occupation: item.occupation
+            }));
+    }, [occupationLatestTable]);
+
+    const workspaceSelectedOccupation = useMemo(
+        () => workspaceOccupationOptions.find((option) => option.id === workspaceOccupationId)?.occupation || null,
+        [workspaceOccupationOptions, workspaceOccupationId]
+    );
+
+    const workspaceCandidateSkills = useMemo(() => {
+        const byId = new Map(skills.map((skill) => [skill.id, skill]));
+        const candidates: Skill[] = [];
+        const seen = new Set<string>();
+
+        if (workspaceSelectedOccupation) {
+            for (const linked of workspaceSelectedOccupation.skills) {
+                const found = byId.get(linked.id);
+                if (found && !seen.has(found.id) && found.isActive) {
+                    candidates.push(found);
+                    seen.add(found.id);
+                }
+            }
+        }
+
+        const topByTrend = [...skills]
+            .filter((skill) => skill.isActive)
+            .sort((a, b) => b.projectCount - a.projectCount)
+            .slice(0, 24);
+        for (const skill of topByTrend) {
+            if (seen.has(skill.id)) continue;
+            candidates.push(skill);
+            seen.add(skill.id);
+            if (candidates.length >= 28) break;
+        }
+
+        return candidates;
+    }, [skills, workspaceSelectedOccupation]);
 
     const activeCount = skills.filter((skill) => skill.isActive).length;
     const totalAssociations = skills.reduce((acc, skill) => acc + skill.projectCount, 0);
@@ -554,6 +766,63 @@ export default function Skills21Client({
         });
     };
 
+    const handleRefreshWorldSignals = () => {
+        startWorldRefreshTransition(async () => {
+            const result = await refreshSkills21WorldSignalsAction({ force: true });
+            if (!result.success) {
+                await showAlert('Error de actualización', result.error || 'No se pudo actualizar la sección Esto está pasando en el mundo.', 'error');
+                return;
+            }
+
+            await showAlert(
+                'Novedades actualizadas',
+                [
+                    `Refresco ejecutado: ${result.stats?.refreshed ? 'Sí' : 'No'}`,
+                    `Señales sincronizadas: ${result.stats?.synced ?? 0}`,
+                    `Señales visibles: ${result.stats?.visibleSignals ?? 0}`,
+                    `Última sincronización: ${result.stats?.lastSyncAt ? formatIsoDateToSpanish(result.stats.lastSyncAt) : 'N/D'}`,
+                    `Próxima actualización automática: ${result.stats?.nextSyncAt ? formatIsoDateToSpanish(result.stats.nextSyncAt) : 'N/D'}`
+                ].join('\n'),
+                'success'
+            );
+
+            router.refresh();
+        });
+    };
+
+    const handleToggleWorkspaceSkill = (skillId: string) => {
+        setWorkspaceSkillIds((prev) => {
+            if (prev.includes(skillId)) return prev.filter((id) => id !== skillId);
+            if (prev.length >= 12) return prev;
+            return [...prev, skillId];
+        });
+    };
+
+    const handleGenerateWorkspacePlan = () => {
+        startWorkspaceTransition(async () => {
+            const result = await generateSkills21TrainingPlanAction({
+                occupationId: workspaceOccupationId || undefined,
+                skillIds: workspaceSkillIds,
+                audience: workspaceAudience,
+                durationWeeks: workspaceDurationWeeks,
+                objective: workspaceObjective,
+                contextNotes: workspaceContextNotes
+            });
+
+            if (!result.success || !result.planMarkdown) {
+                await showAlert('Error en generación', result.error || 'No se pudo construir el plan con IA.', 'error');
+                return;
+            }
+
+            setWorkspacePlanMarkdown(result.planMarkdown);
+            await showAlert(
+                'Plan generado',
+                `Se generó el plan con ${result.meta?.usedSkills || workspaceSkillIds.length} habilidad(es).`,
+                'success'
+            );
+        });
+    };
+
     return (
         <div className="space-y-8">
             <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
@@ -588,15 +857,15 @@ export default function Skills21Client({
             </header>
 
             <section className="bg-white border border-slate-200 rounded-2xl p-2">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                     <button
-                        onClick={() => setActiveTab('skills')}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'skills'
+                        onClick={() => setActiveTab('home')}
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'home'
                             ? 'bg-indigo-600 text-white'
                             : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                             }`}
                     >
-                        Habilidades
+                        Inicio
                     </button>
                     <button
                         onClick={() => setActiveTab('occupations')}
@@ -607,11 +876,359 @@ export default function Skills21Client({
                     >
                         Ocupaciones
                     </button>
+                    <button
+                        onClick={() => setActiveTab('skills')}
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'skills'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                    >
+                        Habilidades
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('workspace')}
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'workspace'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                    >
+                        Área de trabajo
+                    </button>
                 </div>
             </section>
 
-            {activeTab === 'skills' ? (
+            {activeTab === 'home' && (
+                <div className="space-y-5">
+                    <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                        <article className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4 text-indigo-600" />
+                                    Tendencia agregada de empleo (miles)
+                                </h2>
+                                <span className="text-xs text-slate-500">Proyección consolidada hasta 2035</span>
+                            </div>
+                            <div className="h-72">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={yearlyTrendData}>
+                                        <defs>
+                                            <linearGradient id="colorInicioEmpleo" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.35} />
+                                                <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.02} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                        <XAxis dataKey="year" tick={{ fill: '#64748B', fontSize: 12 }} />
+                                        <YAxis tickFormatter={formatCompactThousands} tick={{ fill: '#64748B', fontSize: 12 }} />
+                                        <Tooltip
+                                            formatter={(value) => [formatEmploymentThousands(toNumeric(value)), 'Empleo']}
+                                            labelFormatter={(label) => `Año ${label}`}
+                                        />
+                                        <Area type="monotone" dataKey="employmentCount" stroke="#4F46E5" fillOpacity={1} fill="url(#colorInicioEmpleo)" strokeWidth={2} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </article>
+
+                        <article className="bg-white border border-slate-200 rounded-2xl p-5">
+                            <h2 className="text-base font-black text-slate-900 flex items-center gap-2 mb-3">
+                                <BarChart3 className="w-4 h-4 text-indigo-600" />
+                                Habilidades por industria
+                            </h2>
+                            <div className="h-72">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={skillsByIndustryData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                        <XAxis dataKey="industry" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                        <YAxis tick={{ fill: '#64748B', fontSize: 11 }} />
+                                        <Tooltip formatter={(value) => [toNumeric(value), 'Habilidades']} />
+                                        <Bar dataKey="total" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                        <article className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+                            <div className="flex items-start justify-between gap-3 flex-wrap">
+                                <div>
+                                    <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                                        <Newspaper className="w-4 h-4 text-indigo-600" />
+                                        Esto está pasando en el mundo
+                                    </h2>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Señales de tendencias (último mes) sobre ocupaciones, competencias y habilidades con fuentes referenciadas.
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Última actualización: {formatIsoDateToSpanish(worldSyncState?.lastSyncAt || null)} ·
+                                        Próxima automática: {formatIsoDateToSpanish(worldSyncState?.nextSyncAt || null)}
+                                    </p>
+                                </div>
+
+                                {canUploadOccupations && (
+                                    <button
+                                        onClick={handleRefreshWorldSignals}
+                                        disabled={isWorldRefreshPending}
+                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                                    >
+                                        {isWorldRefreshPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe2 className="w-4 h-4" />}
+                                        Actualizar ahora
+                                    </button>
+                                )}
+                            </div>
+
+                            {worldSyncState?.lastError && (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                    Último error de sincronización: {worldSyncState.lastError}
+                                </div>
+                            )}
+
+                            {worldIsStale && (
+                                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
+                                    La sección está marcada para actualización automática quincenal.
+                                </div>
+                            )}
+
+                            {worldSignals.length === 0 ? (
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                                    No hay señales recientes disponibles todavía.
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {worldSignals.slice(0, 10).map((signal) => (
+                                        <article key={signal.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-slate-100 text-slate-700">
+                                                    {formatWorldSourceType(signal.sourceType)}
+                                                </span>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                                                    {signal.sourceName}
+                                                </span>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                                                    {new Date(signal.publishedAt).toLocaleDateString('es-ES')}
+                                                </span>
+                                            </div>
+                                            <h3 className="font-bold text-slate-900">
+                                                <Link href={signal.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center gap-1">
+                                                    {signal.title}
+                                                    <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
+                                                </Link>
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mt-2">{signal.summary}</p>
+                                            {(signal.industry || signal.occupationFocus || signal.skillFocus) && (
+                                                <p className="text-xs text-slate-500 mt-2">
+                                                    {signal.industry ? `Industria: ${signal.industry}` : ''}
+                                                    {signal.occupationFocus ? ` · Ocupación: ${signal.occupationFocus}` : ''}
+                                                    {signal.skillFocus ? ` · Habilidad: ${signal.skillFocus}` : ''}
+                                                </p>
+                                            )}
+                                        </article>
+                                    ))}
+                                </div>
+                            )}
+                        </article>
+
+                        <article className="bg-white border border-slate-200 rounded-2xl p-5">
+                            <h2 className="text-base font-black text-slate-900 flex items-center gap-2 mb-3">
+                                <PieChart className="w-4 h-4 text-indigo-600" />
+                                Señales por tipo
+                            </h2>
+                            <div className="h-56">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RechartsPieChart>
+                                        <Pie data={worldSourceTypeData} dataKey="total" nameKey="sourceType" innerRadius={48} outerRadius={82}>
+                                            {worldSourceTypeData.map((entry, index) => (
+                                                <Cell key={entry.sourceType} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(value) => [toNumeric(value), 'Señales']} />
+                                        <Legend />
+                                    </RechartsPieChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 mt-4 mb-2">Etiquetas destacadas</h3>
+                            <div className="flex flex-wrap gap-1.5">
+                                {topWorldTagsData.length > 0 ? topWorldTagsData.map((item) => (
+                                    <span key={item.tag} className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-slate-200 text-slate-700">
+                                        {item.tag} ({item.total})
+                                    </span>
+                                )) : (
+                                    <span className="text-xs text-slate-400">Sin etiquetas recientes.</span>
+                                )}
+                            </div>
+                        </article>
+                    </section>
+                </div>
+            )}
+
+            {activeTab === 'workspace' && (
+                <div className="space-y-5">
+                    <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 space-y-4">
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                                <GraduationCap className="w-5 h-5 text-indigo-600" />
+                                Área de trabajo pedagógica asistida por IA
+                            </h2>
+                            <p className="text-sm text-slate-500 mt-1">
+                                Construye planes de formación y estrategias pedagógicas seleccionando ocupaciones y habilidades del repositorio.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <select
+                                value={workspaceOccupationId}
+                                onChange={(event) => setWorkspaceOccupationId(event.target.value)}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="">Ocupación transversal (sin seleccionar)</option>
+                                {workspaceOccupationOptions.map((option) => (
+                                    <option key={option.id} value={option.id}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <input
+                                value={workspaceAudience}
+                                onChange={(event) => setWorkspaceAudience(event.target.value)}
+                                placeholder="Audiencia objetivo"
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            />
+                            <input
+                                type="number"
+                                min={2}
+                                max={32}
+                                value={workspaceDurationWeeks}
+                                onChange={(event) => setWorkspaceDurationWeeks(Number(event.target.value || 8))}
+                                placeholder="Duración en semanas"
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            />
+                            <input
+                                value={workspaceObjective}
+                                onChange={(event) => setWorkspaceObjective(event.target.value)}
+                                placeholder="Objetivo general"
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                            />
+                        </div>
+
+                        <textarea
+                            value={workspaceContextNotes}
+                            onChange={(event) => setWorkspaceContextNotes(event.target.value)}
+                            placeholder="Contexto adicional (recursos disponibles, restricciones, perfil del grupo, etc.)"
+                            rows={3}
+                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+                        />
+
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                Habilidades para el plan (máximo 12)
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                                {workspaceCandidateSkills.map((skill) => {
+                                    const selected = workspaceSkillIds.includes(skill.id);
+                                    return (
+                                        <label key={skill.id} className={`rounded-lg border px-3 py-2 text-sm cursor-pointer ${selected ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 bg-white'}`}>
+                                            <input
+                                                type="checkbox"
+                                                className="mr-2"
+                                                checked={selected}
+                                                onChange={() => handleToggleWorkspaceSkill(skill.id)}
+                                            />
+                                            {skill.name}
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-2">
+                                Seleccionadas: {workspaceSkillIds.length}/12
+                            </p>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <button
+                                onClick={handleGenerateWorkspacePlan}
+                                disabled={isWorkspacePending || workspaceSkillIds.length === 0}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                            >
+                                {isWorkspacePending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                                Generar plan con IA
+                            </button>
+                        </div>
+                    </section>
+
+                    {workspacePlanMarkdown ? (
+                        <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6">
+                            <h3 className="text-base font-black text-slate-900 flex items-center gap-2 mb-3">
+                                <CalendarClock className="w-4 h-4 text-indigo-600" />
+                                Plan de formación y estrategia pedagógica
+                            </h3>
+                            <article className="prose prose-slate max-w-none prose-headings:font-black prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {workspacePlanMarkdown}
+                                </ReactMarkdown>
+                            </article>
+                        </section>
+                    ) : (
+                        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
+                            <p className="text-slate-500">
+                                Selecciona habilidades y genera tu plan. La IA estructurará ruta formativa, estrategias y evaluación.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {(activeTab === 'skills' || activeTab === 'occupations') && (activeTab === 'skills' ? (
                 <>
+                    <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                        <article className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
+                            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+                                <BarChart3 className="w-4 h-4 text-indigo-600" />
+                                Distribución de habilidades por industria
+                            </h3>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={skillsByIndustryData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                        <XAxis dataKey="industry" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                        <YAxis tick={{ fill: '#64748B', fontSize: 11 }} />
+                                        <Tooltip formatter={(value) => [toNumeric(value), 'Habilidades']} />
+                                        <Bar dataKey="total" fill="#4F46E5" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </article>
+
+                        <article className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
+                            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+                                <PieChart className="w-4 h-4 text-indigo-600" />
+                                Habilidades por fuente
+                            </h3>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RechartsPieChart>
+                                        <Pie
+                                            data={skillsBySourceData}
+                                            dataKey="total"
+                                            nameKey="source"
+                                            innerRadius={54}
+                                            outerRadius={88}
+                                            paddingAngle={2}
+                                        >
+                                            {skillsBySourceData.map((entry, index) => (
+                                                <Cell key={entry.source} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(value) => [toNumeric(value), 'Habilidades']} />
+                                        <Legend />
+                                    </RechartsPieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </article>
+                    </section>
+
                     <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm space-y-4">
                         {canUploadOccupations && (
                             <div className="space-y-3">
@@ -1150,6 +1767,58 @@ export default function Skills21Client({
                         </div>
                     </section>
 
+                    <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6">
+                        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                                <Globe2 className="w-4 h-4 text-indigo-600" />
+                                Mapa analítico de ocupaciones por geografía e industria (2035 o último año)
+                            </h3>
+                            <span className="text-xs text-slate-500">
+                                Geografías: {occupationGeoIndustryMap.geographies.length} · Industrias: {occupationGeoIndustryMap.industries.length}
+                            </span>
+                        </div>
+
+                        {occupationGeoIndustryMap.rows.length === 0 || occupationGeoIndustryMap.industries.length === 0 ? (
+                            <p className="text-sm text-slate-500">No hay datos suficientes para construir el mapa geográfico-industrial.</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[920px] text-xs">
+                                    <thead className="bg-slate-50 text-slate-600">
+                                        <tr>
+                                            <th className="text-left px-3 py-2.5 font-bold">Geografía</th>
+                                            {occupationGeoIndustryMap.industries.map((industry) => (
+                                                <th key={industry} className="text-right px-3 py-2.5 font-bold">{industry}</th>
+                                            ))}
+                                            <th className="text-right px-3 py-2.5 font-bold">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {occupationGeoIndustryMap.rows.map((row) => (
+                                            <tr key={row.geography} className="border-t border-slate-100">
+                                                <td className="px-3 py-2.5 font-semibold text-slate-800">{row.geography}</td>
+                                                {row.values.map((value) => {
+                                                    const intensity = occupationGeoIndustryMap.maxValue > 0
+                                                        ? Math.max(0.08, value.value / occupationGeoIndustryMap.maxValue)
+                                                        : 0;
+                                                    return (
+                                                        <td
+                                                            key={`${row.geography}-${value.industry}`}
+                                                            className="px-3 py-2.5 text-right font-medium text-slate-700"
+                                                            style={{ backgroundColor: `rgba(79, 70, 229, ${intensity})` }}
+                                                        >
+                                                            {value.value > 0 ? formatCompactThousands(value.value) : '—'}
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="px-3 py-2.5 text-right font-bold text-slate-900">{formatCompactThousands(row.total)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+
                     <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                         <article className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
                             <div className="flex items-center justify-between mb-3">
@@ -1416,7 +2085,7 @@ export default function Skills21Client({
                         </section>
                     )}
                 </div>
-            )}
+            ))}
 
             {currentRole === 'STUDENT' && (
                 <p className="text-xs text-slate-400">

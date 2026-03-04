@@ -361,6 +361,39 @@ model OccupationForecast {
   @@index([year])
 }
 
+model Skills21WorldSignal {
+  id               String   @id @default(uuid())
+  title            String
+  summary          String
+  sourceName       String
+  sourceType       String   @default("NOTICIA")
+  sourceUrl        String   @unique
+  publishedAt      DateTime
+  capturedAt       DateTime @default(now())
+  industry         String?
+  occupationFocus  String?
+  skillFocus       String?
+  tags             String[] @default([])
+  relevanceScore   Float    @default(0.5)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([publishedAt])
+  @@index([capturedAt])
+  @@index([sourceType])
+}
+
+model Skills21WorldSignalSyncState {
+  id           String   @id @default("skills21-world-sync")
+  status       String   @default("IDLE")
+  lastSyncAt   DateTime?
+  lastAttemptAt DateTime?
+  nextSyncAt   DateTime?
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 model Assignment {
   id                 String       @id @default(uuid())
   title              String

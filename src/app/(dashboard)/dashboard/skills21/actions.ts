@@ -11,6 +11,8 @@ import { generateOccupationUploadAnalysis } from '@/lib/occupation-ai';
 import { fetchEscoSkillsPage } from '@/lib/esco';
 import { suggestSkillIdsForOccupation } from '@/lib/occupation-skill-matching';
 import { fetchMindOntologySkills } from '@/lib/mind-ontology';
+import { getSkills21WorldSignalsForDashboard, refreshSkills21WorldSignals } from '@/lib/skills21-world-watch';
+import { generateAiTextWithConfiguredProvider } from '@/lib/ai-text';
 import {
     extractSocCodeFromBlsOeSeriesId,
     fetchBlsOeEmploymentSeriesBySocCodes,
@@ -27,6 +29,15 @@ type CreateSkillPayload = {
     examplesText?: string;
     sourcesText?: string;
     tagsText?: string;
+};
+
+type GenerateTrainingPlanPayload = {
+    occupationId?: string;
+    skillIds?: string[];
+    audience?: string;
+    durationWeeks?: number;
+    objective?: string;
+    contextNotes?: string;
 };
 
 type GroupedOccupation = {
@@ -1148,6 +1159,212 @@ export async function syncSkillsFromMindOntologyAction(payload?: {
     } catch (error) {
         console.error('[syncSkillsFromMindOntologyAction] error:', error);
         return { success: false, error: 'No se pudo sincronizar habilidades desde MIND Tech Ontology.' };
+    }
+}
+
+export async function refreshSkills21WorldSignalsAction(payload?: {
+    force?: boolean;
+}) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || session.user.role !== 'ADMIN') {
+            return { success: false, error: 'Solo el rol ADMIN puede actualizar novedades del mundo.' };
+        }
+
+        const result = await refreshSkills21WorldSignals({
+            force: Boolean(payload?.force)
+        });
+
+        const dashboard = await getSkills21WorldSignalsForDashboard({
+            limit: 18,
+            autoRefreshIfStale: false
+        });
+
+        await logActivity(
+            session.user.id,
+            'SYNC_21C_WORLD_SIGNALS',
+            `Actualizó novedades globales de Ocupaciones y Habilidades SXXI. Señales sincronizadas: ${result.synced}.`,
+            'INFO',
+            {
+                ...result,
+                visibleSignals: dashboard.signals.length,
+                lastSyncAt: dashboard.syncState?.lastSyncAt || null,
+                nextSyncAt: dashboard.syncState?.nextSyncAt || null
+            }
+        );
+
+        revalidatePath('/dashboard/skills21');
+
+        return {
+            success: true,
+            stats: {
+                ...result,
+                visibleSignals: dashboard.signals.length,
+                lastSyncAt: dashboard.syncState?.lastSyncAt ? dashboard.syncState.lastSyncAt.toISOString() : null,
+                nextSyncAt: dashboard.syncState?.nextSyncAt ? dashboard.syncState.nextSyncAt.toISOString() : null
+            }
+        };
+    } catch (error) {
+        console.error('[refreshSkills21WorldSignalsAction] error:', error);
+        return { success: false, error: 'No se pudo actualizar la sección Esto está pasando en el mundo.' };
+    }
+}
+
+export async function generateSkills21TrainingPlanAction(payload: GenerateTrainingPlanPayload) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session) {
+            return { success: false, error: 'No autorizado.' };
+        }
+
+        const skillIds = Array.from(new Set(payload.skillIds || []))
+            .filter(Boolean)
+            .slice(0, 12);
+        if (skillIds.length === 0) {
+            return { success: false, error: 'Selecciona al menos una habilidad para construir el plan.' };
+        }
+
+        const durationWeeks = Math.max(2, Math.min(32, payload.durationWeeks || 8));
+        const audience = (payload.audience || '').trim() || 'Estudiantes de educación media y superior';
+        const objective = (payload.objective || '').trim() || 'Desarrollar competencias aplicadas para empleabilidad del siglo XXI';
+        const contextNotes = (payload.contextNotes || '').trim();
+
+        const [occupation, skills] = await Promise.all([
+            payload.occupationId
+                ? prisma.occupation.findUnique({
+                    where: { id: payload.occupationId },
+                    select: {
+                        id: true,
+                        occupationTitle: true,
+                        geography: true,
+                        occupationType: true,
+                        qualificationLevel: true,
+                        forecasts: {
+                            orderBy: { year: 'desc' },
+                            take: 1,
+                            select: {
+                                year: true,
+                                employmentCount: true
+                            }
+                        }
+                    }
+                })
+                : Promise.resolve(null),
+            prisma.twentyFirstSkill.findMany({
+                where: {
+                    id: { in: skillIds },
+                    isActive: true
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    industry: true,
+                    category: true,
+                    description: true,
+                    trendSummary: true
+                },
+                orderBy: [
+                    { industry: 'asc' },
+                    { name: 'asc' }
+                ]
+            })
+        ]);
+
+        if (skills.length === 0) {
+            return { success: false, error: 'Las habilidades seleccionadas no están disponibles o están inactivas.' };
+        }
+
+        const selectedSkillIds = new Set(skills.map((skill) => skill.id));
+        const missingSkillIds = skillIds.filter((id) => !selectedSkillIds.has(id));
+
+        const occupationSummary = occupation
+            ? [
+                `Ocupación objetivo: ${occupation.occupationTitle}`,
+                `Geografía: ${occupation.geography}`,
+                `Tipo de ocupación: ${occupation.occupationType}`,
+                `Nivel de cualificación: ${occupation.qualificationLevel}`,
+                occupation.forecasts[0]
+                    ? `Última proyección disponible: ${occupation.forecasts[0].year} (${occupation.forecasts[0].employmentCount.toFixed(1)} miles de empleos)`
+                    : 'Última proyección disponible: N/D'
+            ].join('\n')
+            : 'Ocupación objetivo: no seleccionada (enfoque transversal).';
+
+        const skillsSummary = skills
+            .map((skill, index) => {
+                const category = skill.category ? ` | categoría: ${skill.category}` : '';
+                const trend = skill.trendSummary ? ` | tendencia: ${skill.trendSummary}` : '';
+                return `${index + 1}. ${skill.name} | industria: ${skill.industry}${category}${trend}`;
+            })
+            .join('\n');
+
+        const systemPrompt = 'Eres un diseñador instruccional experto en formación por competencias, empleabilidad y estrategias pedagógicas activas.';
+        const userPrompt = `
+Construye una propuesta de plan de formación y estrategia pedagógica en español, lista para aplicarse en aula.
+
+Contexto:
+- Duración: ${durationWeeks} semanas
+- Audiencia: ${audience}
+- Objetivo general: ${objective}
+- Notas de contexto: ${contextNotes || 'Sin notas adicionales'}
+- ${occupationSummary}
+
+Habilidades priorizadas:
+${skillsSummary}
+
+Devuelve Markdown con estas secciones:
+1. Perfil de salida esperado
+2. Resultados de aprendizaje medibles
+3. Ruta formativa por semanas (tabla: semana, foco, actividad, evidencia, evaluación)
+4. Estrategias pedagógicas recomendadas (ABP, retos, laboratorios, evaluación auténtica)
+5. Recursos sugeridos y criterios de evaluación
+6. Indicadores de seguimiento (KPIs académicos y de empleabilidad)
+
+Reglas:
+- Todo en español.
+- Enfoque práctico y accionable.
+- Incluye mínimo 2 actividades basadas en proyectos.
+- Máximo 850 palabras.
+`;
+
+        const planMarkdown = await generateAiTextWithConfiguredProvider({
+            systemPrompt,
+            userPrompt,
+            temperature: 0.35
+        });
+
+        if (!planMarkdown) {
+            return { success: false, error: 'No fue posible generar el plan con IA. Verifica la configuración del proveedor IA.' };
+        }
+
+        await logActivity(
+            session.user.id,
+            'GENERATE_21C_TRAINING_PLAN',
+            `Generó plan de formación SXXI con ${skills.length} habilidades${occupation ? ` para la ocupación ${occupation.occupationTitle}` : ''}.`,
+            'INFO',
+            {
+                occupationId: occupation?.id || null,
+                occupationTitle: occupation?.occupationTitle || null,
+                skillIds: skills.map((skill) => skill.id),
+                skillNames: skills.map((skill) => skill.name),
+                durationWeeks,
+                audience,
+                objective,
+                missingSkillIds
+            }
+        );
+
+        return {
+            success: true,
+            planMarkdown,
+            meta: {
+                usedOccupation: occupation?.occupationTitle || null,
+                usedSkills: skills.length,
+                missingSkillIds
+            }
+        };
+    } catch (error) {
+        console.error('[generateSkills21TrainingPlanAction] error:', error);
+        return { success: false, error: 'No se pudo generar el plan de formación con IA.' };
     }
 }
 
