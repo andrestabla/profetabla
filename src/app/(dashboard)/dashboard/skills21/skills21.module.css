@@ -1,0 +1,139 @@
+.canvas {
+  --sxxi-ink: #102a43;
+  --sxxi-ink-soft: #36506a;
+  --sxxi-surface: #f8fbff;
+  --sxxi-aqua: #00a7a0;
+  --sxxi-cobalt: #1f5fa8;
+  --sxxi-amber: #f7b267;
+  position: relative;
+  isolation: isolate;
+  padding: 0.25rem 0.1rem 0.5rem;
+}
+
+.canvas::before,
+.canvas::after {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.canvas::before {
+  inset: -20px -16px auto -16px;
+  height: 460px;
+  background:
+    radial-gradient(900px 350px at 8% 0%, rgba(31, 95, 168, 0.18), transparent 65%),
+    radial-gradient(700px 260px at 90% 6%, rgba(0, 167, 160, 0.15), transparent 70%),
+    linear-gradient(180deg, #eef6ff 0%, #f8fbff 72%, transparent 100%);
+}
+
+.canvas::after {
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(16, 42, 67, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 42, 67, 0.04) 1px, transparent 1px);
+  background-size: 36px 36px;
+  opacity: 0.45;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.36), transparent 65%);
+}
+
+.heroHeader {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(244, 251, 255, 0.9));
+  border: 1px solid rgba(21, 72, 121, 0.14);
+  border-radius: 1.4rem;
+  padding: 1.2rem;
+  box-shadow:
+    0 12px 30px -24px rgba(16, 42, 67, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+.heroTitle {
+  color: var(--sxxi-ink);
+  letter-spacing: -0.02em;
+}
+
+.heroTitle :global(svg) {
+  color: var(--sxxi-cobalt) !important;
+}
+
+.heroSubtitle {
+  color: var(--sxxi-ink-soft) !important;
+}
+
+.statCard {
+  border-color: rgba(21, 72, 121, 0.16) !important;
+  background: linear-gradient(165deg, #ffffff, #f4f9ff) !important;
+  box-shadow: 0 12px 22px -26px rgba(16, 42, 67, 0.65);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.statCard:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 30px -24px rgba(16, 42, 67, 0.58);
+}
+
+.tabDock {
+  border-color: rgba(21, 72, 121, 0.17) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(241, 248, 255, 0.92));
+  box-shadow: 0 12px 24px -24px rgba(16, 42, 67, 0.55);
+}
+
+.tabButton {
+  border: 1px solid transparent;
+}
+
+.tabButtonActive {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--sxxi-cobalt), #2786c7);
+  box-shadow: 0 10px 20px -12px rgba(31, 95, 168, 0.72);
+}
+
+.tabButtonIdle {
+  color: #34506b;
+  background: linear-gradient(135deg, #f5f9fe, #eaf2fb);
+  border-color: rgba(21, 72, 121, 0.12);
+}
+
+.canvas :global(.bg-white.border.border-slate-200.rounded-2xl) {
+  border-color: rgba(21, 72, 121, 0.15) !important;
+  box-shadow: 0 16px 30px -28px rgba(16, 42, 67, 0.6);
+}
+
+.canvas > * {
+  animation: revealUp 460ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+}
+
+.canvas > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.canvas > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.canvas > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .canvas {
+    padding-inline: 0;
+  }
+
+  .canvas::after {
+    opacity: 0.28;
+  }
+}

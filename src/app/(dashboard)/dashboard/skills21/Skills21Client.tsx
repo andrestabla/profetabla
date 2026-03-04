@@ -50,6 +50,7 @@ import {
     toggleTwentyFirstSkillStatusAction
 } from './actions';
 import { useModals } from '@/components/ModalProvider';
+import styles from './skills21.module.css';
 
 type SkillSource = {
     title: string;
@@ -157,7 +158,7 @@ function trendBadge(projectCount: number) {
     return { label: 'Emergente', styles: 'bg-blue-100 text-blue-700 border-blue-200' };
 }
 
-const CHART_PALETTE = ['#4F46E5', '#0EA5E9', '#14B8A6', '#22C55E', '#F59E0B', '#F97316', '#EF4444', '#A855F7'];
+const CHART_PALETTE = ['#006D77', '#2A9D8F', '#8AB17D', '#E9C46A', '#F4A261', '#E76F51', '#264653', '#B56576'];
 
 function formatOccupationSourceLabel(source: string) {
     if (source === 'US_BLS_Matrix') return 'BLS Matriz (CSV)';
@@ -824,72 +825,72 @@ export default function Skills21Client({
     };
 
     return (
-        <div className="space-y-8">
-            <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <div className={`space-y-8 ${styles.canvas}`}>
+            <header className={`flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 ${styles.heroHeader}`}>
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
+                    <h1 className={`text-3xl font-black text-slate-900 flex items-center gap-3 ${styles.heroTitle}`}>
                         <Sparkles className="w-8 h-8 text-indigo-600" />
                         Ocupaciones y habilidades del Siglo XXI
                     </h1>
-                    <p className="text-slate-500 mt-2 max-w-3xl">
+                    <p className={`text-slate-500 mt-2 max-w-3xl ${styles.heroSubtitle}`}>
                         Repositorio integrado de ocupaciones proyectadas y habilidades en tendencia, conectado para diseño de proyectos, retos y problemas.
                     </p>
                 </div>
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 w-full lg:w-auto">
-                    <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-center">
+                    <div className={`bg-white border border-slate-200 rounded-xl px-4 py-3 text-center ${styles.statCard}`}>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Habilidades</p>
                         <p className="text-lg font-black text-slate-900">{skills.length}</p>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-center">
+                    <div className={`bg-white border border-slate-200 rounded-xl px-4 py-3 text-center ${styles.statCard}`}>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ocupaciones</p>
                         <p className="text-lg font-black text-slate-900">{occupationTotal}</p>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-center">
+                    <div className={`bg-white border border-slate-200 rounded-xl px-4 py-3 text-center ${styles.statCard}`}>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Vinculadas</p>
                         <p className="text-lg font-black text-emerald-700">{linkedOccupations}</p>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-center">
+                    <div className={`bg-white border border-slate-200 rounded-xl px-4 py-3 text-center ${styles.statCard}`}>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Proyecciones</p>
                         <p className="text-lg font-black text-indigo-700">{totalForecasts}</p>
                     </div>
                 </div>
             </header>
 
-            <section className="bg-white border border-slate-200 rounded-2xl p-2">
+            <section className={`bg-white border border-slate-200 rounded-2xl p-2 ${styles.tabDock}`}>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                     <button
                         onClick={() => setActiveTab('home')}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'home'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${styles.tabButton} ${activeTab === 'home'
+                            ? styles.tabButtonActive
+                            : styles.tabButtonIdle
                             }`}
                     >
                         Inicio
                     </button>
                     <button
                         onClick={() => setActiveTab('occupations')}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'occupations'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${styles.tabButton} ${activeTab === 'occupations'
+                            ? styles.tabButtonActive
+                            : styles.tabButtonIdle
                             }`}
                     >
                         Ocupaciones
                     </button>
                     <button
                         onClick={() => setActiveTab('skills')}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'skills'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${styles.tabButton} ${activeTab === 'skills'
+                            ? styles.tabButtonActive
+                            : styles.tabButtonIdle
                             }`}
                     >
                         Habilidades
                     </button>
                     <button
                         onClick={() => setActiveTab('workspace')}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${activeTab === 'workspace'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${styles.tabButton} ${activeTab === 'workspace'
+                            ? styles.tabButtonActive
+                            : styles.tabButtonIdle
                             }`}
                     >
                         Área de trabajo
