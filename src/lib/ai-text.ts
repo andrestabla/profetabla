@@ -8,12 +8,42 @@ type GenerateAiTextParams = {
     temperature?: number;
 };
 
+type CachedAiConfig = {
+    aiProvider: string | null;
+    openaiApiKey: string | null;
+    openaiModel: string | null;
+    geminiApiKey: string | null;
+    geminiModel: string | null;
+    expiresAt: number;
+};
+
+const AI_CONFIG_CACHE_TTL_MS = 90_000;
+let cachedAiConfig: CachedAiConfig | null = null;
+
+async function getCachedAiConfig() {
+    const now = Date.now();
+    if (cachedAiConfig && cachedAiConfig.expiresAt > now) {
+        return cachedAiConfig;
+    }
+
+    const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
+    cachedAiConfig = {
+        aiProvider: config?.aiProvider || null,
+        openaiApiKey: config?.openaiApiKey || null,
+        openaiModel: config?.openaiModel || null,
+        geminiApiKey: config?.geminiApiKey || null,
+        geminiModel: config?.geminiModel || null,
+        expiresAt: now + AI_CONFIG_CACHE_TTL_MS
+    };
+    return cachedAiConfig;
+}
+
 export async function generateAiTextWithConfiguredProvider({
     systemPrompt,
     userPrompt,
     temperature = 0.35
 }: GenerateAiTextParams): Promise<string | null> {
-    const config = await prisma.platformConfig.findUnique({ where: { id: 'global-config' } });
+    const config = await getCachedAiConfig();
     const provider = config?.aiProvider || 'GEMINI';
 
     if (provider === 'OPENAI') {
