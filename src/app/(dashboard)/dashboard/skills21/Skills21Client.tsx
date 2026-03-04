@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useMemo, useRef, useState, useTransition } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
     ArrowUpRight,
@@ -129,6 +129,15 @@ type WorldSyncState = {
     lastError: string | null;
 } | null;
 
+type TabKey = 'home' | 'skills' | 'occupations' | 'workspace';
+
+const TAB_KEYS: TabKey[] = ['home', 'occupations', 'skills', 'workspace'];
+
+function parseTabKey(value: string | null): TabKey | null {
+    if (!value) return null;
+    return TAB_KEYS.includes(value as TabKey) ? (value as TabKey) : null;
+}
+
 function normalizeSources(raw: unknown): SkillSource[] {
     if (!Array.isArray(raw)) return [];
 
@@ -249,6 +258,8 @@ export default function Skills21Client({
     currentRole: string;
 }) {
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { showAlert } = useModals();
     const [isSkillPending, startSkillTransition] = useTransition();
     const [isBlsSyncPending, startBlsSyncTransition] = useTransition();
@@ -256,7 +267,7 @@ export default function Skills21Client({
     const [isMindSyncPending, startMindSyncTransition] = useTransition();
     const [isWorldRefreshPending, startWorldRefreshTransition] = useTransition();
     const [isWorkspacePending, startWorkspaceTransition] = useTransition();
-    const [activeTab, setActiveTab] = useState<'home' | 'skills' | 'occupations' | 'workspace'>('home');
+    const activeTab = parseTabKey(searchParams.get('tab')) || 'home';
     const blsSocCodesRef = useRef<HTMLTextAreaElement | null>(null);
 
     const [expandedId, setExpandedId] = useState<string | null>(skills[0]?.id || null);
@@ -301,6 +312,14 @@ export default function Skills21Client({
     const [workspaceObjective, setWorkspaceObjective] = useState('Desarrollar competencias aplicadas para empleabilidad del siglo XXI');
     const [workspaceContextNotes, setWorkspaceContextNotes] = useState('');
     const [workspacePlanMarkdown, setWorkspacePlanMarkdown] = useState('');
+
+    const handleTabChange = useCallback((tab: TabKey) => {
+        if (tab === activeTab) return;
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', tab);
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    }, [activeTab, pathname, router, searchParams]);
 
     const industries = useMemo(() => {
         const set = new Set(skills.map((skill) => skill.industry).filter(Boolean));
@@ -606,6 +625,14 @@ export default function Skills21Client({
         return candidates;
     }, [skills, workspaceSelectedOccupation]);
 
+    const workspaceTopTrendSkillIds = useMemo(() => {
+        return [...skills]
+            .filter((skill) => skill.isActive)
+            .sort((a, b) => b.projectCount - a.projectCount)
+            .slice(0, 12)
+            .map((skill) => skill.id);
+    }, [skills]);
+
     const activeCount = skills.filter((skill) => skill.isActive).length;
     const totalAssociations = skills.reduce((acc, skill) => acc + skill.projectCount, 0);
     const totalForecasts = occupations.reduce((acc, occupation) => acc + occupation.forecasts.length, 0);
@@ -799,6 +826,39 @@ export default function Skills21Client({
         });
     };
 
+    const handleSuggestSkillsByOccupation = () => {
+        if (!workspaceSelectedOccupation) {
+            void showAlert('Selecciona ocupación', 'Elige una ocupación para sugerir habilidades relacionadas.', 'warning');
+            return;
+        }
+
+        const suggestedIds: string[] = [];
+        for (const linked of workspaceSelectedOccupation.skills) {
+            if (!workspaceCandidateSkills.some((candidate) => candidate.id === linked.id)) continue;
+            if (suggestedIds.includes(linked.id)) continue;
+            suggestedIds.push(linked.id);
+            if (suggestedIds.length >= 12) break;
+        }
+
+        if (suggestedIds.length < 12) {
+            for (const candidate of workspaceCandidateSkills) {
+                if (suggestedIds.includes(candidate.id)) continue;
+                suggestedIds.push(candidate.id);
+                if (suggestedIds.length >= 12) break;
+            }
+        }
+
+        setWorkspaceSkillIds(suggestedIds);
+    };
+
+    const handleSelectTopTrendSkills = () => {
+        setWorkspaceSkillIds(workspaceTopTrendSkillIds);
+    };
+
+    const handleClearWorkspaceSelection = () => {
+        setWorkspaceSkillIds([]);
+    };
+
     const handleGenerateWorkspacePlan = () => {
         startWorkspaceTransition(async () => {
             const result = await generateSkills21TrainingPlanAction({
@@ -822,6 +882,65 @@ export default function Skills21Client({
                 'success'
             );
         });
+    };
+
+    const handleResetSkillFilters = () => {
+        setSearch('');
+        setIndustryFilter('ALL');
+        setCategoryFilter('ALL');
+        setShowInactive(false);
+    };
+
+    const handleResetOccupationFilters = () => {
+        setOccupationSearch('');
+        setOccupationSourceFilter('ALL');
+        setOccupationGeographyFilter('ALL');
+        setOccupationYearFilter('ALL');
+    };
+
+    const handleCopyWorkspacePlan = async () => {
+        if (!workspacePlanMarkdown.trim()) {
+            await showAlert('Sin contenido', 'Primero genera un plan para poder copiarlo.', 'warning');
+            return;
+        }
+        if (typeof navigator === 'undefined' || !navigator.clipboard) {
+            await showAlert('Copia no disponible', 'El navegador no permite acceso al portapapeles en este contexto.', 'warning');
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(workspacePlanMarkdown);
+            await showAlert('Plan copiado', 'El plan fue copiado al portapapeles.', 'success');
+        } catch {
+            await showAlert('No se pudo copiar', 'Ocurrió un error al copiar el plan.', 'error');
+        }
+    };
+
+    const handleDownloadWorkspacePlan = () => {
+        if (!workspacePlanMarkdown.trim()) {
+            void showAlert('Sin contenido', 'Primero genera un plan para descargarlo.', 'warning');
+            return;
+        }
+
+        const occupationLabel = workspaceSelectedOccupation?.occupationTitle || 'formacion';
+        const normalized = occupationLabel
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 40);
+        const fileName = `plan-${normalized || 'formacion'}-sxxi.md`;
+
+        const blob = new Blob([workspacePlanMarkdown], { type: 'text/markdown;charset=utf-8' });
+        const downloadUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = downloadUrl;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(downloadUrl);
     };
 
     return (
@@ -860,7 +979,7 @@ export default function Skills21Client({
             <section className={`bg-white border border-slate-200 rounded-2xl p-2 ${styles.tabDock}`}>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                     <button
-                        onClick={() => setActiveTab('home')}
+                        onClick={() => handleTabChange('home')}
                         className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${styles.tabButton} ${activeTab === 'home'
                             ? styles.tabButtonActive
                             : styles.tabButtonIdle
@@ -869,7 +988,7 @@ export default function Skills21Client({
                         Inicio
                     </button>
                     <button
-                        onClick={() => setActiveTab('occupations')}
+                        onClick={() => handleTabChange('occupations')}
                         className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${styles.tabButton} ${activeTab === 'occupations'
                             ? styles.tabButtonActive
                             : styles.tabButtonIdle
@@ -878,7 +997,7 @@ export default function Skills21Client({
                         Ocupaciones
                     </button>
                     <button
-                        onClick={() => setActiveTab('skills')}
+                        onClick={() => handleTabChange('skills')}
                         className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${styles.tabButton} ${activeTab === 'skills'
                             ? styles.tabButtonActive
                             : styles.tabButtonIdle
@@ -887,7 +1006,7 @@ export default function Skills21Client({
                         Habilidades
                     </button>
                     <button
-                        onClick={() => setActiveTab('workspace')}
+                        onClick={() => handleTabChange('workspace')}
                         className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${styles.tabButton} ${activeTab === 'workspace'
                             ? styles.tabButtonActive
                             : styles.tabButtonIdle
@@ -948,6 +1067,42 @@ export default function Skills21Client({
                                 </ResponsiveContainer>
                             </div>
                         </article>
+                    </section>
+
+                    <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <button
+                            onClick={() => handleTabChange('occupations')}
+                            className="text-left rounded-2xl border border-slate-200 bg-white px-4 py-4 hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                        >
+                            <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600">Análisis</p>
+                            <h3 className="mt-1 text-sm font-black text-slate-900 flex items-center gap-2">
+                                <Briefcase className="w-4 h-4 text-indigo-600" />
+                                Ir a Ocupaciones
+                            </h3>
+                            <p className="mt-2 text-xs text-slate-600">Explora mapa geográfico-industrial, proyecciones y fichas técnicas.</p>
+                        </button>
+                        <button
+                            onClick={() => handleTabChange('skills')}
+                            className="text-left rounded-2xl border border-slate-200 bg-white px-4 py-4 hover:border-cyan-300 hover:bg-cyan-50 transition-colors"
+                        >
+                            <p className="text-[10px] font-black uppercase tracking-wider text-cyan-600">Competencias</p>
+                            <h3 className="mt-1 text-sm font-black text-slate-900 flex items-center gap-2">
+                                <BookOpen className="w-4 h-4 text-cyan-600" />
+                                Ir a Habilidades
+                            </h3>
+                            <p className="mt-2 text-xs text-slate-600">Filtra por industria u ocupación y revisa tablas con fuentes.</p>
+                        </button>
+                        <button
+                            onClick={() => handleTabChange('workspace')}
+                            className="text-left rounded-2xl border border-slate-200 bg-white px-4 py-4 hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
+                        >
+                            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Planeación IA</p>
+                            <h3 className="mt-1 text-sm font-black text-slate-900 flex items-center gap-2">
+                                <GraduationCap className="w-4 h-4 text-emerald-700" />
+                                Ir al Área de trabajo
+                            </h3>
+                            <p className="mt-2 text-xs text-slate-600">Crea y exporta planes formativos con apoyo de IA.</p>
+                        </button>
                     </section>
 
                     <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -1122,6 +1277,27 @@ export default function Skills21Client({
                             className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
                         />
 
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                onClick={handleSuggestSkillsByOccupation}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition-colors"
+                            >
+                                Sugerir por ocupación
+                            </button>
+                            <button
+                                onClick={handleSelectTopTrendSkills}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors"
+                            >
+                                Seleccionar top tendencia
+                            </button>
+                            <button
+                                onClick={handleClearWorkspaceSelection}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                            >
+                                Limpiar selección
+                            </button>
+                        </div>
+
                         <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
                                 Habilidades para el plan (máximo 12)
@@ -1161,10 +1337,26 @@ export default function Skills21Client({
 
                     {workspacePlanMarkdown ? (
                         <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6">
-                            <h3 className="text-base font-black text-slate-900 flex items-center gap-2 mb-3">
-                                <CalendarClock className="w-4 h-4 text-indigo-600" />
-                                Plan de formación y estrategia pedagógica
-                            </h3>
+                            <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                                    <CalendarClock className="w-4 h-4 text-indigo-600" />
+                                    Plan de formación y estrategia pedagógica
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => { void handleCopyWorkspacePlan(); }}
+                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                                    >
+                                        Copiar plan
+                                    </button>
+                                    <button
+                                        onClick={handleDownloadWorkspacePlan}
+                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition-colors"
+                                    >
+                                        Descargar .md
+                                    </button>
+                                </div>
+                            </div>
                             <article className="prose prose-slate max-w-none prose-headings:font-black prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                     {workspacePlanMarkdown}
@@ -1333,6 +1525,16 @@ export default function Skills21Client({
                                 </div>
                             </div>
                         )}
+
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Filtros de habilidades</p>
+                            <button
+                                onClick={handleResetSkillFilters}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                            >
+                                Limpiar filtros
+                            </button>
+                        </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <input
@@ -1716,6 +1918,16 @@ export default function Skills21Client({
                     </section>
 
                     <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm space-y-4">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Filtros de ocupaciones</p>
+                            <button
+                                onClick={handleResetOccupationFilters}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
+                            >
+                                Limpiar filtros
+                            </button>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <div className="md:col-span-2 relative">
                                 <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
