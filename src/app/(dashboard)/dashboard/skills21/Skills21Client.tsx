@@ -43,6 +43,7 @@ import {
 import {
     createTwentyFirstSkillAction,
     generateSkills21TrainingPlanAction,
+    reclassifySkills21IndustriesAction,
     refreshSkills21WorldSignalsAction,
     syncSkillsFromMindOntologyAction,
     syncOccupationsFromBlsAction,
@@ -236,6 +237,16 @@ function formatOptionalPercent(value: number | null) {
     return `${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(value)}%`;
 }
 
+function formatIndustryBreakdownText(breakdown: unknown) {
+    if (!breakdown || typeof breakdown !== 'object') return 'N/D';
+    const entries = Object.entries(breakdown as Record<string, number>)
+        .filter((entry) => typeof entry[0] === 'string' && typeof entry[1] === 'number')
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+    if (entries.length === 0) return 'N/D';
+    return entries.map(([industry, total]) => `${industry}: ${total}`).join(', ');
+}
+
 export default function Skills21Client({
     skills,
     occupations,
@@ -265,8 +276,10 @@ export default function Skills21Client({
     const [isBlsSyncPending, startBlsSyncTransition] = useTransition();
     const [isEscoSyncPending, startEscoSyncTransition] = useTransition();
     const [isMindSyncPending, startMindSyncTransition] = useTransition();
+    const [isIndustrySegmentationPending, startIndustrySegmentationTransition] = useTransition();
     const [isWorldRefreshPending, startWorldRefreshTransition] = useTransition();
     const [isWorkspacePending, startWorkspaceTransition] = useTransition();
+    const [isTabPending, startTabTransition] = useTransition();
     const activeTab = parseTabKey(searchParams.get('tab')) || 'home';
     const blsSocCodesRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -318,8 +331,10 @@ export default function Skills21Client({
         const params = new URLSearchParams(searchParams.toString());
         params.set('tab', tab);
         const query = params.toString();
-        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    }, [activeTab, pathname, router, searchParams]);
+        startTabTransition(() => {
+            router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+        });
+    }, [activeTab, pathname, router, searchParams, startTabTransition]);
 
     const industries = useMemo(() => {
         const set = new Set(skills.map((skill) => skill.industry).filter(Boolean));
@@ -703,7 +718,10 @@ export default function Skills21Client({
                     `Creadas: ${stats.created}`,
                     `Actualizadas: ${stats.updated}`,
                     `Renombradas por unicidad: ${stats.renamedForUniqueness}`,
-                    `Desactivadas: ${stats.deactivated}`
+                    `Desactivadas: ${stats.deactivated}`,
+                    `Clasificadas con IA: ${stats.industryClassifiedWithAi ?? 0}`,
+                    `Clasificadas por heurística: ${stats.industryClassifiedWithHeuristic ?? 0}`,
+                    `Industrias detectadas: ${formatIndustryBreakdownText(stats.industryBreakdown)}`
                 ].join('\n'),
                 'success'
             );
@@ -739,7 +757,52 @@ export default function Skills21Client({
                     `Creadas: ${stats.created}`,
                     `Actualizadas: ${stats.updated}`,
                     `Renombradas por unicidad: ${stats.renamedForUniqueness}`,
-                    `Desactivadas: ${stats.deactivated}`
+                    `Desactivadas: ${stats.deactivated}`,
+                    `Clasificadas con IA: ${stats.industryClassifiedWithAi ?? 0}`,
+                    `Clasificadas por heurística: ${stats.industryClassifiedWithHeuristic ?? 0}`,
+                    `Industrias detectadas: ${formatIndustryBreakdownText(stats.industryBreakdown)}`
+                ].join('\n'),
+                'success'
+            );
+
+            router.refresh();
+        });
+    };
+
+    const handleReclassifyIndustries = () => {
+        startIndustrySegmentationTransition(async () => {
+            const result = await reclassifySkills21IndustriesAction({
+                maxSkills: 2400,
+                onlyPlaceholders: false,
+                includeInactive: true,
+                providers: ['ESCO', 'MIND_ONTOLOGY', 'MANUAL']
+            });
+
+            if (!result.success) {
+                await showAlert('Error de segmentación', result.error || 'No se pudo reclasificar industrias con IA.', 'error');
+                return;
+            }
+
+            const stats = result.stats;
+            if (!stats) {
+                await showAlert('Segmentación incompleta', 'La respuesta no incluyó estadísticas.', 'warning');
+                return;
+            }
+
+            const topIndustries = Object.entries(stats.industryBreakdown || {})
+                .slice(0, 6)
+                .map(([industry, total]) => `${industry}: ${total}`)
+                .join('\n');
+
+            await showAlert(
+                'Segmentación por industria completada',
+                [
+                    `Habilidades analizadas: ${stats.targeted}`,
+                    `Actualizadas: ${stats.updated}`,
+                    `Sin cambios: ${stats.unchanged}`,
+                    `Clasificadas con IA: ${stats.industryClassifiedWithAi}`,
+                    `Clasificadas por heurística: ${stats.industryClassifiedWithHeuristic}`,
+                    topIndustries ? `Distribución principal:\n${topIndustries}` : 'Distribución principal: N/D'
                 ].join('\n'),
                 'success'
             );
@@ -1016,6 +1079,13 @@ export default function Skills21Client({
                     </button>
                 </div>
             </section>
+
+            {isTabPending && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 text-xs text-indigo-700 font-semibold inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Cargando sección...
+                </div>
+            )}
 
             {activeTab === 'home' && (
                 <div className="space-y-5">
@@ -1520,6 +1590,28 @@ export default function Skills21Client({
                                         >
                                             {isMindSyncPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
                                             Sincronizar habilidades desde MIND
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="border border-emerald-200 rounded-2xl p-4 bg-emerald-50/60 space-y-3">
+                                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-wider text-emerald-700">Segmentación IA</p>
+                                            <h3 className="text-base font-black text-slate-900">Reclasificar industrias de habilidades</h3>
+                                            <p className="text-xs text-slate-600 mt-1">
+                                                Normaliza industrias a categorías como Tecnología, Salud, Educación y Servicios.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <button
+                                            onClick={handleReclassifyIndustries}
+                                            disabled={isIndustrySegmentationPending}
+                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors disabled:opacity-60"
+                                        >
+                                            {isIndustrySegmentationPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                            Analizar y reclasificar con IA
                                         </button>
                                     </div>
                                 </div>

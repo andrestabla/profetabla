@@ -14,7 +14,7 @@ export default async function Skills21Page() {
     const canManageSkills = session.user.role === 'TEACHER' || session.user.role === 'ADMIN';
     const canUploadOccupations = session.user.role === 'ADMIN';
 
-    const skills = await prisma.twentyFirstSkill.findMany({
+    const skillsPromise = prisma.twentyFirstSkill.findMany({
         orderBy: [
             { industry: 'asc' },
             { name: 'asc' }
@@ -28,27 +28,7 @@ export default async function Skills21Page() {
         }
     });
 
-    const safeSkills = skills.map((skill) => ({
-        id: skill.id,
-        name: skill.name,
-        industry: skill.industry,
-        category: skill.category,
-        description: skill.description,
-        trendSummary: skill.trendSummary,
-        examples: skill.examples || [],
-        tags: skill.tags || [],
-        isActive: skill.isActive,
-        sources: skill.sources ?? [],
-        sourceProvider: skill.sourceProvider,
-        sourceUri: skill.sourceUri,
-        sourceLanguage: skill.sourceLanguage,
-        sourceLastSyncedAt: skill.sourceLastSyncedAt ? skill.sourceLastSyncedAt.toISOString() : null,
-        createdAt: skill.createdAt.toISOString(),
-        updatedAt: skill.updatedAt.toISOString(),
-        projectCount: skill._count.projects
-    }));
-
-    const occupations = await prisma.occupation.findMany({
+    const occupationsPromise = prisma.occupation.findMany({
         orderBy: [
             { updatedAt: 'desc' },
             { occupationTitle: 'asc' }
@@ -73,11 +53,38 @@ export default async function Skills21Page() {
         }
     });
 
-    const occupationTotal = await prisma.occupation.count();
-    const worldWatch = await getSkills21WorldSignalsForDashboard({
+    const occupationTotalPromise = prisma.occupation.count();
+    const worldWatchPromise = getSkills21WorldSignalsForDashboard({
         limit: 16,
-        autoRefreshIfStale: true
+        autoRefreshIfStale: false
     });
+
+    const [skills, occupations, occupationTotal, worldWatch] = await Promise.all([
+        skillsPromise,
+        occupationsPromise,
+        occupationTotalPromise,
+        worldWatchPromise
+    ]);
+
+    const safeSkills = skills.map((skill) => ({
+        id: skill.id,
+        name: skill.name,
+        industry: skill.industry,
+        category: skill.category,
+        description: skill.description,
+        trendSummary: skill.trendSummary,
+        examples: skill.examples || [],
+        tags: skill.tags || [],
+        isActive: skill.isActive,
+        sources: skill.sources ?? [],
+        sourceProvider: skill.sourceProvider,
+        sourceUri: skill.sourceUri,
+        sourceLanguage: skill.sourceLanguage,
+        sourceLastSyncedAt: skill.sourceLastSyncedAt ? skill.sourceLastSyncedAt.toISOString() : null,
+        createdAt: skill.createdAt.toISOString(),
+        updatedAt: skill.updatedAt.toISOString(),
+        projectCount: skill._count.projects
+    }));
 
     const safeOccupations = occupations.map((occupation) => ({
         id: occupation.id,

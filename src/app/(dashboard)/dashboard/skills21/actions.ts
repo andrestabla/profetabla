@@ -13,6 +13,7 @@ import { suggestSkillIdsForOccupation } from '@/lib/occupation-skill-matching';
 import { fetchMindOntologySkills } from '@/lib/mind-ontology';
 import { getSkills21WorldSignalsForDashboard, refreshSkills21WorldSignals } from '@/lib/skills21-world-watch';
 import { generateAiTextWithConfiguredProvider } from '@/lib/ai-text';
+import { classifySkillIndustries, isPlaceholderIndustry } from '@/lib/skills21-industry';
 import {
     extractSocCodeFromBlsOeSeriesId,
     fetchBlsOeEmploymentSeriesBySocCodes,
@@ -848,10 +849,31 @@ export async function syncSkillsFromEscoAction(payload?: {
                 sourceUri: { in: uris }
             },
             select: {
-                sourceUri: true
+                sourceUri: true,
+                industry: true
             }
         });
-        const existingUris = new Set(existing.map((row) => row.sourceUri).filter(Boolean) as string[]);
+        const existingByUri = new Map(
+            existing
+                .filter((row): row is { sourceUri: string; industry: string } => Boolean(row.sourceUri))
+                .map((row) => [row.sourceUri, row.industry])
+        );
+        const existingUris = new Set(existingByUri.keys());
+
+        const industrySegmentation = await classifySkillIndustries(
+            skills.map((skill) => ({
+                id: skill.uri,
+                name: skill.title,
+                description: skill.description,
+                tags: skill.tags,
+                categoryHint: 'Habilidades UE',
+                provider: 'ESCO',
+                language: skill.language
+            })),
+            true
+        );
+        const segmentedIndustries = industrySegmentation.industriesById;
+        const industryBreakdown = new Map<string, number>();
 
         let created = 0;
         let updated = 0;
@@ -864,6 +886,10 @@ export async function syncSkillsFromEscoAction(payload?: {
 
             const description = skill.description?.trim()
                 || `Habilidad importada desde ESCO (${skill.language.toUpperCase()}).`;
+            const existingIndustry = existingByUri.get(skill.uri);
+            const industry = existingIndustry && !isPlaceholderIndustry(existingIndustry)
+                ? existingIndustry
+                : (segmentedIndustries.get(skill.uri) || 'Servicios');
             const tags = Array.from(
                 new Set([
                     ...skill.tags.map(normalizeTag).filter(Boolean),
@@ -881,7 +907,7 @@ export async function syncSkillsFromEscoAction(payload?: {
                 where: { sourceUri: skill.uri },
                 create: {
                     name,
-                    industry: 'ESCO',
+                    industry,
                     category: 'Habilidades UE',
                     description,
                     trendSummary: 'Sincronizada desde ESCO API',
@@ -895,6 +921,7 @@ export async function syncSkillsFromEscoAction(payload?: {
                 },
                 update: {
                     name,
+                    industry,
                     description,
                     trendSummary: 'Sincronizada desde ESCO API',
                     tags,
@@ -925,6 +952,7 @@ export async function syncSkillsFromEscoAction(payload?: {
             } else {
                 created += 1;
             }
+            industryBreakdown.set(industry, (industryBreakdown.get(industry) || 0) + 1);
         }
 
         let deactivated = 0;
@@ -957,7 +985,11 @@ export async function syncSkillsFromEscoAction(payload?: {
                 created,
                 updated,
                 renamedForUniqueness,
-                deactivated
+                deactivated,
+                industryClassifiedWithAi: industrySegmentation.usedAi,
+                industryClassifiedWithHeuristic: industrySegmentation.usedHeuristic,
+                industryUnresolved: industrySegmentation.unresolved,
+                industryBreakdown: Object.fromEntries(Array.from(industryBreakdown.entries()).sort((a, b) => b[1] - a[1]))
             }
         );
 
@@ -976,7 +1008,11 @@ export async function syncSkillsFromEscoAction(payload?: {
                 created,
                 updated,
                 renamedForUniqueness,
-                deactivated
+                deactivated,
+                industryClassifiedWithAi: industrySegmentation.usedAi,
+                industryClassifiedWithHeuristic: industrySegmentation.usedHeuristic,
+                industryUnresolved: industrySegmentation.unresolved,
+                industryBreakdown: Object.fromEntries(Array.from(industryBreakdown.entries()).sort((a, b) => b[1] - a[1]))
             }
         };
     } catch (error) {
@@ -1018,10 +1054,36 @@ export async function syncSkillsFromMindOntologyAction(payload?: {
                 sourceUri: { in: uris }
             },
             select: {
-                sourceUri: true
+                sourceUri: true,
+                industry: true
             }
         });
-        const existingUris = new Set(existing.map((row) => row.sourceUri).filter(Boolean) as string[]);
+        const existingByUri = new Map(
+            existing
+                .filter((row): row is { sourceUri: string; industry: string } => Boolean(row.sourceUri))
+                .map((row) => [row.sourceUri, row.industry])
+        );
+        const existingUris = new Set(existingByUri.keys());
+
+        const industrySegmentation = await classifySkillIndustries(
+            fetched.skills.map((skill) => ({
+                id: skill.sourceUri,
+                name: skill.name,
+                description: skill.description,
+                tags: [
+                    ...skill.type,
+                    ...skill.technicalDomains,
+                    ...skill.conceptualAspects
+                ],
+                industryHint: skill.technicalDomains[0] || null,
+                categoryHint: skill.type[0] || null,
+                provider: 'MIND_ONTOLOGY',
+                language: 'en'
+            })),
+            true
+        );
+        const segmentedIndustries = industrySegmentation.industriesById;
+        const industryBreakdown = new Map<string, number>();
 
         let created = 0;
         let updated = 0;
@@ -1043,7 +1105,10 @@ export async function syncSkillsFromMindOntologyAction(payload?: {
 
             const examples = skill.synonyms.slice(0, 8);
             const category = skill.type[0] || 'Habilidad MIND';
-            const industry = skill.technicalDomains[0] || 'MIND Tech Ontology';
+            const existingIndustry = existingByUri.get(skill.sourceUri);
+            const industry = existingIndustry && !isPlaceholderIndustry(existingIndustry)
+                ? existingIndustry
+                : (segmentedIndustries.get(skill.sourceUri) || 'Servicios');
 
             const sources = [
                 { title: 'MIND Tech Ontology (GitHub)', url: 'https://github.com/MIND-TechAI/MIND-tech-ontology' },
@@ -1103,6 +1168,7 @@ export async function syncSkillsFromMindOntologyAction(payload?: {
             } else {
                 created += 1;
             }
+            industryBreakdown.set(industry, (industryBreakdown.get(industry) || 0) + 1);
         }
 
         let deactivated = 0;
@@ -1134,7 +1200,11 @@ export async function syncSkillsFromMindOntologyAction(payload?: {
                 created,
                 updated,
                 renamedForUniqueness,
-                deactivated
+                deactivated,
+                industryClassifiedWithAi: industrySegmentation.usedAi,
+                industryClassifiedWithHeuristic: industrySegmentation.usedHeuristic,
+                industryUnresolved: industrySegmentation.unresolved,
+                industryBreakdown: Object.fromEntries(Array.from(industryBreakdown.entries()).sort((a, b) => b[1] - a[1]))
             }
         );
 
@@ -1153,12 +1223,165 @@ export async function syncSkillsFromMindOntologyAction(payload?: {
                 created,
                 updated,
                 renamedForUniqueness,
-                deactivated
+                deactivated,
+                industryClassifiedWithAi: industrySegmentation.usedAi,
+                industryClassifiedWithHeuristic: industrySegmentation.usedHeuristic,
+                industryUnresolved: industrySegmentation.unresolved,
+                industryBreakdown: Object.fromEntries(Array.from(industryBreakdown.entries()).sort((a, b) => b[1] - a[1]))
             }
         };
     } catch (error) {
         console.error('[syncSkillsFromMindOntologyAction] error:', error);
         return { success: false, error: 'No se pudo sincronizar habilidades desde MIND Tech Ontology.' };
+    }
+}
+
+export async function reclassifySkills21IndustriesAction(payload?: {
+    maxSkills?: number;
+    onlyPlaceholders?: boolean;
+    includeInactive?: boolean;
+    providers?: string[];
+}) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || session.user.role !== 'ADMIN') {
+            return { success: false, error: 'Solo el rol ADMIN puede reclasificar industrias de habilidades.' };
+        }
+
+        const maxSkills = Math.max(50, Math.min(6000, payload?.maxSkills || 1800));
+        const onlyPlaceholders = payload?.onlyPlaceholders !== false;
+        const includeInactive = payload?.includeInactive !== false;
+        const providers = (payload?.providers?.length
+            ? payload.providers
+            : ['ESCO', 'MIND_ONTOLOGY', 'MANUAL']
+        )
+            .map((item) => item.trim().toUpperCase())
+            .filter(Boolean);
+
+        const allCandidates = await prisma.twentyFirstSkill.findMany({
+            where: {
+                sourceProvider: { in: providers },
+                ...(includeInactive ? {} : { isActive: true })
+            },
+            select: {
+                id: true,
+                name: true,
+                industry: true,
+                category: true,
+                description: true,
+                tags: true,
+                sourceProvider: true,
+                sourceLanguage: true
+            },
+            orderBy: [
+                { updatedAt: 'desc' }
+            ],
+            take: maxSkills
+        });
+
+        const targetSkills = (onlyPlaceholders
+            ? allCandidates.filter((skill) => isPlaceholderIndustry(skill.industry))
+            : allCandidates
+        ).slice(0, maxSkills);
+
+        if (targetSkills.length === 0) {
+            return {
+                success: true,
+                stats: {
+                    scanned: allCandidates.length,
+                    targeted: 0,
+                    updated: 0,
+                    unchanged: 0,
+                    industryClassifiedWithAi: 0,
+                    industryClassifiedWithHeuristic: 0,
+                    industryUnresolved: 0,
+                    industryBreakdown: {}
+                }
+            };
+        }
+
+        const segmentation = await classifySkillIndustries(
+            targetSkills.map((skill) => ({
+                id: skill.id,
+                name: skill.name,
+                description: skill.description,
+                tags: skill.tags || [],
+                industryHint: skill.industry,
+                categoryHint: skill.category,
+                provider: skill.sourceProvider,
+                language: skill.sourceLanguage
+            })),
+            true
+        );
+
+        const updates: Array<{ id: string; industry: string }> = [];
+        const breakdown = new Map<string, number>();
+        let unchanged = 0;
+        for (const skill of targetSkills) {
+            const predictedIndustry = segmentation.industriesById.get(skill.id) || skill.industry;
+            breakdown.set(predictedIndustry, (breakdown.get(predictedIndustry) || 0) + 1);
+
+            if (predictedIndustry === skill.industry) {
+                unchanged += 1;
+                continue;
+            }
+            updates.push({ id: skill.id, industry: predictedIndustry });
+        }
+
+        const batchSize = 120;
+        for (let i = 0; i < updates.length; i += batchSize) {
+            const batch = updates.slice(i, i + batchSize);
+            await prisma.$transaction(
+                batch.map((item) =>
+                    prisma.twentyFirstSkill.update({
+                        where: { id: item.id },
+                        data: { industry: item.industry }
+                    })
+                )
+            );
+        }
+
+        await logActivity(
+            session.user.id,
+            'RECLASSIFY_21C_SKILL_INDUSTRIES',
+            `Reclasificó industrias de ${updates.length} habilidades (analizadas: ${targetSkills.length}).`,
+            'INFO',
+            {
+                scanned: allCandidates.length,
+                targeted: targetSkills.length,
+                updated: updates.length,
+                unchanged,
+                onlyPlaceholders,
+                includeInactive,
+                providers,
+                industryClassifiedWithAi: segmentation.usedAi,
+                industryClassifiedWithHeuristic: segmentation.usedHeuristic,
+                industryUnresolved: segmentation.unresolved,
+                industryBreakdown: Object.fromEntries(Array.from(breakdown.entries()).sort((a, b) => b[1] - a[1]))
+            }
+        );
+
+        revalidatePath('/dashboard/skills21');
+        revalidatePath('/dashboard/professor/projects/new');
+        revalidatePath('/dashboard/professor/challenges/new');
+        revalidatePath('/dashboard/professor/problems/new');
+
+        return {
+            success: true,
+            stats: {
+                scanned: allCandidates.length,
+                targeted: targetSkills.length,
+                updated: updates.length,
+                unchanged,
+                industryClassifiedWithAi: segmentation.usedAi,
+                industryClassifiedWithHeuristic: segmentation.usedHeuristic,
+                industryUnresolved: segmentation.unresolved,
+                industryBreakdown: Object.fromEntries(Array.from(breakdown.entries()).sort((a, b) => b[1] - a[1]))
+            }
+        };
+    } catch (error) {
+        console.error('[reclassifySkills21IndustriesAction] error:', error);
+        return { success: false, error: 'No se pudo reclasificar industrias de habilidades.' };
     }
 }
 
