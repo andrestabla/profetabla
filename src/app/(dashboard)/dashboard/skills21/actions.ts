@@ -10,6 +10,7 @@ import { buildOccupationCanonicalKey, compileOccupationRowsFromFiles, type Compi
 import { generateOccupationUploadAnalysis } from '@/lib/occupation-ai';
 import { fetchEscoSkillsPage } from '@/lib/esco';
 import { suggestSkillIdsForOccupation } from '@/lib/occupation-skill-matching';
+import { fetchMindOntologySkills } from '@/lib/mind-ontology';
 import {
     extractSocCodeFromBlsOeSeriesId,
     fetchBlsOeEmploymentSeriesBySocCodes,
@@ -860,9 +861,9 @@ export async function syncSkillsFromEscoAction(payload?: {
             ).slice(0, 16);
 
             const sources = [
-                { title: 'ESCO API', url: skill.sourceUrl },
-                { title: 'ESCO URI', url: skill.uri },
-                { title: 'ESCO API documentación', url: 'https://ec.europa.eu/esco/api/doc/esco_api_doc.html' }
+                { title: 'API de ESCO', url: skill.sourceUrl },
+                { title: 'URI de ESCO', url: skill.uri },
+                { title: 'Documentación de la API de ESCO', url: 'https://ec.europa.eu/esco/api/doc/esco_api_doc.html' }
             ];
 
             const upsert = async (name: string) => prisma.twentyFirstSkill.upsert({
@@ -870,7 +871,7 @@ export async function syncSkillsFromEscoAction(payload?: {
                 create: {
                     name,
                     industry: 'ESCO',
-                    category: 'EU Skills',
+                    category: 'Habilidades UE',
                     description,
                     trendSummary: 'Sincronizada desde ESCO API',
                     tags,
@@ -970,6 +971,183 @@ export async function syncSkillsFromEscoAction(payload?: {
     } catch (error) {
         console.error('[syncSkillsFromEscoAction] error:', error);
         return { success: false, error: 'No se pudo sincronizar habilidades desde ESCO.' };
+    }
+}
+
+export async function syncSkillsFromMindOntologyAction(payload?: {
+    maxSkills?: number;
+    deactivateMissing?: boolean;
+    sourceUrl?: string;
+}) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || session.user.role !== 'ADMIN') {
+            return { success: false, error: 'Solo el rol ADMIN puede sincronizar habilidades desde MIND Tech Ontology.' };
+        }
+
+        const maxSkills = Math.max(50, Math.min(6000, payload?.maxSkills || 1200));
+        const deactivateMissing = Boolean(payload?.deactivateMissing);
+        const sourceUrl = (payload?.sourceUrl || '').trim() || undefined;
+
+        const fetched = await fetchMindOntologySkills({
+            maxSkills,
+            url: sourceUrl
+        });
+
+        if (fetched.skills.length === 0) {
+            return {
+                success: false,
+                error: 'MIND Tech Ontology no devolvió habilidades para los parámetros solicitados.'
+            };
+        }
+
+        const uris = fetched.skills.map((skill) => skill.sourceUri);
+        const existing = await prisma.twentyFirstSkill.findMany({
+            where: {
+                sourceUri: { in: uris }
+            },
+            select: {
+                sourceUri: true
+            }
+        });
+        const existingUris = new Set(existing.map((row) => row.sourceUri).filter(Boolean) as string[]);
+
+        let created = 0;
+        let updated = 0;
+        let renamedForUniqueness = 0;
+
+        for (const skill of fetched.skills) {
+            const baseName = skill.name.trim().slice(0, 180);
+            const shortId = skill.sourceUri.split('/').pop()?.slice(0, 10) || 'mind';
+            const fallbackName = `${baseName} [${shortId}]`.slice(0, 190);
+
+            const tags = Array.from(
+                new Set([
+                    ...skill.type.map(normalizeTag),
+                    ...skill.technicalDomains.map(normalizeTag),
+                    ...skill.conceptualAspects.map(normalizeTag),
+                    'mind-tech-ontology'
+                ])
+            ).filter(Boolean).slice(0, 24);
+
+            const examples = skill.synonyms.slice(0, 8);
+            const category = skill.type[0] || 'Habilidad MIND';
+            const industry = skill.technicalDomains[0] || 'MIND Tech Ontology';
+
+            const sources = [
+                { title: 'MIND Tech Ontology (GitHub)', url: 'https://github.com/MIND-TechAI/MIND-tech-ontology' },
+                { title: 'Habilidades agregadas de MIND', url: fetched.sourceUrl },
+                { title: 'Referencia MIND de la habilidad', url: `https://github.com/MIND-TechAI/MIND-tech-ontology#${encodeURIComponent(skill.name)}` }
+            ];
+
+            const upsert = async (name: string) => prisma.twentyFirstSkill.upsert({
+                where: { sourceUri: skill.sourceUri },
+                create: {
+                    name,
+                    industry,
+                    category,
+                    description: skill.description,
+                    trendSummary: 'Sincronizada desde MIND Tech Ontology',
+                    examples,
+                    tags,
+                    sources,
+                    isActive: true,
+                    sourceProvider: 'MIND_ONTOLOGY',
+                    sourceUri: skill.sourceUri,
+                    sourceLanguage: 'en',
+                    sourceLastSyncedAt: new Date()
+                },
+                update: {
+                    name,
+                    industry,
+                    category,
+                    description: skill.description,
+                    trendSummary: 'Sincronizada desde MIND Tech Ontology',
+                    examples,
+                    tags,
+                    sources,
+                    isActive: true,
+                    sourceProvider: 'MIND_ONTOLOGY',
+                    sourceLanguage: 'en',
+                    sourceLastSyncedAt: new Date()
+                }
+            });
+
+            try {
+                await upsert(baseName);
+            } catch (error) {
+                if (
+                    error instanceof Prisma.PrismaClientKnownRequestError
+                    && error.code === 'P2002'
+                ) {
+                    await upsert(fallbackName);
+                    renamedForUniqueness += 1;
+                } else {
+                    throw error;
+                }
+            }
+
+            if (existingUris.has(skill.sourceUri)) {
+                updated += 1;
+            } else {
+                created += 1;
+            }
+        }
+
+        let deactivated = 0;
+        if (deactivateMissing) {
+            const result = await prisma.twentyFirstSkill.updateMany({
+                where: {
+                    sourceProvider: 'MIND_ONTOLOGY',
+                    sourceUri: {
+                        notIn: uris
+                    }
+                },
+                data: {
+                    isActive: false
+                }
+            });
+            deactivated = result.count;
+        }
+
+        await logActivity(
+            session.user.id,
+            'SYNC_21C_SKILLS_MIND',
+            `Sincronizó ${fetched.skills.length} habilidades desde MIND Tech Ontology. Creadas: ${created}, actualizadas: ${updated}.`,
+            'INFO',
+            {
+                maxSkills,
+                sourceUrl: fetched.sourceUrl,
+                totalAvailable: fetched.totalAvailable,
+                synced: fetched.skills.length,
+                created,
+                updated,
+                renamedForUniqueness,
+                deactivated
+            }
+        );
+
+        revalidatePath('/dashboard/skills21');
+        revalidatePath('/dashboard/professor/projects/new');
+        revalidatePath('/dashboard/professor/challenges/new');
+        revalidatePath('/dashboard/professor/problems/new');
+
+        return {
+            success: true,
+            stats: {
+                maxSkills,
+                sourceUrl: fetched.sourceUrl,
+                totalAvailable: fetched.totalAvailable,
+                synced: fetched.skills.length,
+                created,
+                updated,
+                renamedForUniqueness,
+                deactivated
+            }
+        };
+    } catch (error) {
+        console.error('[syncSkillsFromMindOntologyAction] error:', error);
+        return { success: false, error: 'No se pudo sincronizar habilidades desde MIND Tech Ontology.' };
     }
 }
 

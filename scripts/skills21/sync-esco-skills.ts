@@ -105,9 +105,9 @@ async function main() {
             ).slice(0, 16);
 
             const sources = [
-                { title: 'ESCO API', url: skill.sourceUrl },
-                { title: 'ESCO URI', url: skill.uri },
-                { title: 'ESCO API documentación', url: 'https://ec.europa.eu/esco/api/doc/esco_api_doc.html' }
+                { title: 'API de ESCO', url: skill.sourceUrl },
+                { title: 'URI de ESCO', url: skill.uri },
+                { title: 'Documentación de la API de ESCO', url: 'https://ec.europa.eu/esco/api/doc/esco_api_doc.html' }
             ];
 
             const upsert = async (name: string) => prisma.twentyFirstSkill.upsert({
@@ -115,7 +115,7 @@ async function main() {
                 create: {
                     name,
                     industry: 'ESCO',
-                    category: 'EU Skills',
+                    category: 'Habilidades UE',
                     description,
                     trendSummary: 'Sincronizada desde ESCO API',
                     tags,

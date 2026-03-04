@@ -35,6 +35,7 @@ import {
 } from 'recharts';
 import {
     createTwentyFirstSkillAction,
+    syncSkillsFromMindOntologyAction,
     syncOccupationsFromBlsAction,
     syncSkillsFromEscoAction,
     toggleTwentyFirstSkillStatusAction
@@ -141,6 +142,13 @@ function formatOccupationTypeLabel(type: string) {
     return type;
 }
 
+function formatSkillSourceProvider(provider: string) {
+    if (provider === 'ESCO') return 'ESCO';
+    if (provider === 'MIND_ONTOLOGY') return 'MIND';
+    if (provider === 'MANUAL') return 'MANUAL';
+    return provider;
+}
+
 function formatEmploymentThousands(value: number) {
     return `${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(value)} mil`;
 }
@@ -190,6 +198,7 @@ export default function Skills21Client({
     const [isSkillPending, startSkillTransition] = useTransition();
     const [isBlsSyncPending, startBlsSyncTransition] = useTransition();
     const [isEscoSyncPending, startEscoSyncTransition] = useTransition();
+    const [isMindSyncPending, startMindSyncTransition] = useTransition();
     const [activeTab, setActiveTab] = useState<'skills' | 'occupations'>('skills');
     const blsSocCodesRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -225,6 +234,8 @@ export default function Skills21Client({
     const [escoLanguage, setEscoLanguage] = useState('es');
     const [escoMaxSkills, setEscoMaxSkills] = useState(300);
     const [escoDeactivateMissing, setEscoDeactivateMissing] = useState(false);
+    const [mindMaxSkills, setMindMaxSkills] = useState(1200);
+    const [mindDeactivateMissing, setMindDeactivateMissing] = useState(false);
 
     const industries = useMemo(() => {
         const set = new Set(skills.map((skill) => skill.industry).filter(Boolean));
@@ -461,6 +472,42 @@ export default function Skills21Client({
         });
     };
 
+    const handleSyncMind = () => {
+        startMindSyncTransition(async () => {
+            const result = await syncSkillsFromMindOntologyAction({
+                maxSkills: mindMaxSkills,
+                deactivateMissing: mindDeactivateMissing
+            });
+
+            if (!result.success) {
+                await showAlert('Error de sincronización', result.error || 'No se pudo sincronizar MIND Tech Ontology.', 'error');
+                return;
+            }
+
+            const stats = result.stats;
+            if (!stats) {
+                await showAlert('Sincronización incompleta', 'La respuesta no incluyó estadísticas.', 'warning');
+                return;
+            }
+
+            await showAlert(
+                'Sincronización MIND completada',
+                [
+                    `Fuente: ${stats.sourceUrl}`,
+                    `Disponibles en ontología: ${stats.totalAvailable}`,
+                    `Sincronizadas: ${stats.synced}`,
+                    `Creadas: ${stats.created}`,
+                    `Actualizadas: ${stats.updated}`,
+                    `Renombradas por unicidad: ${stats.renamedForUniqueness}`,
+                    `Desactivadas: ${stats.deactivated}`
+                ].join('\n'),
+                'success'
+            );
+
+            router.refresh();
+        });
+    };
+
     const handleSyncBlsOccupations = () => {
         startBlsSyncTransition(async () => {
             const result = await syncOccupationsFromBlsAction({
@@ -567,57 +614,104 @@ export default function Skills21Client({
                 <>
                     <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm space-y-4">
                         {canUploadOccupations && (
-                            <div className="border border-indigo-200 rounded-2xl p-4 bg-indigo-50/60 space-y-3">
-                                <div className="flex items-start justify-between gap-3 flex-wrap">
-                                    <div>
-                                        <p className="text-xs font-black uppercase tracking-wider text-indigo-700">Fuente principal</p>
-                                        <h3 className="text-base font-black text-slate-900">ESCO API (Comisión Europea)</h3>
-                                        <p className="text-xs text-slate-600 mt-1">
-                                            Documentación oficial: https://ec.europa.eu/esco/api/doc/esco_api_doc.html
-                                        </p>
+                            <div className="space-y-3">
+                                <div className="border border-indigo-200 rounded-2xl p-4 bg-indigo-50/60 space-y-3">
+                                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-wider text-indigo-700">Fuente principal</p>
+                                            <h3 className="text-base font-black text-slate-900">ESCO API (Comisión Europea)</h3>
+                                            <p className="text-xs text-slate-600 mt-1">
+                                                Documentación oficial: https://ec.europa.eu/esco/api/doc/esco_api_doc.html
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                        <select
+                                            value={escoLanguage}
+                                            onChange={(event) => setEscoLanguage(event.target.value)}
+                                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                        >
+                                            <option value="es">Español (es)</option>
+                                            <option value="en">Inglés (en)</option>
+                                        </select>
+
+                                        <input
+                                            type="number"
+                                            min={20}
+                                            max={3000}
+                                            value={escoMaxSkills}
+                                            onChange={(event) => setEscoMaxSkills(Number(event.target.value || 300))}
+                                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                            placeholder="Máximo de habilidades"
+                                        />
+
+                                        <label className="md:col-span-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={escoDeactivateMissing}
+                                                onChange={(event) => setEscoDeactivateMissing(event.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            Desactivar habilidades ESCO no incluidas en esta sincronización
+                                        </label>
+                                    </div>
+
+                                    <div className="flex justify-end">
+                                        <button
+                                            onClick={handleSyncEsco}
+                                            disabled={isEscoSyncPending}
+                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                                        >
+                                            {isEscoSyncPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                                            Sincronizar habilidades desde ESCO
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                    <select
-                                        value={escoLanguage}
-                                        onChange={(event) => setEscoLanguage(event.target.value)}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-                                    >
-                                        <option value="es">Español (es)</option>
-                                        <option value="en">Inglés (en)</option>
-                                    </select>
+                                <div className="border border-cyan-200 rounded-2xl p-4 bg-cyan-50/60 space-y-3">
+                                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-wider text-cyan-700">Fuente adicional</p>
+                                            <h3 className="text-base font-black text-slate-900">MIND Tech Ontology (GitHub)</h3>
+                                            <p className="text-xs text-slate-600 mt-1">
+                                                Repositorio: https://github.com/MIND-TechAI/MIND-tech-ontology
+                                            </p>
+                                        </div>
+                                    </div>
 
-                                    <input
-                                        type="number"
-                                        min={20}
-                                        max={3000}
-                                        value={escoMaxSkills}
-                                        onChange={(event) => setEscoMaxSkills(Number(event.target.value || 300))}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-                                        placeholder="Máximo de habilidades"
-                                    />
-
-                                    <label className="md:col-span-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <input
-                                            type="checkbox"
-                                            checked={escoDeactivateMissing}
-                                            onChange={(event) => setEscoDeactivateMissing(event.target.checked)}
-                                            className="w-4 h-4 rounded"
+                                            type="number"
+                                            min={50}
+                                            max={6000}
+                                            value={mindMaxSkills}
+                                            onChange={(event) => setMindMaxSkills(Number(event.target.value || 1200))}
+                                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-cyan-100"
+                                            placeholder="Máximo de habilidades"
                                         />
-                                        Desactivar habilidades ESCO no incluidas en esta sincronización
-                                    </label>
-                                </div>
 
-                                <div className="flex justify-end">
-                                    <button
-                                        onClick={handleSyncEsco}
-                                        disabled={isEscoSyncPending}
-                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-60"
-                                    >
-                                        {isEscoSyncPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-                                        Sincronizar habilidades desde ESCO
-                                    </button>
+                                        <label className="md:col-span-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={mindDeactivateMissing}
+                                                onChange={(event) => setMindDeactivateMissing(event.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            Desactivar habilidades MIND no incluidas en esta sincronización
+                                        </label>
+                                    </div>
+
+                                    <div className="flex justify-end">
+                                        <button
+                                            onClick={handleSyncMind}
+                                            disabled={isMindSyncPending}
+                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-600 text-white font-bold text-sm hover:bg-cyan-700 transition-colors disabled:opacity-60"
+                                        >
+                                            {isMindSyncPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                                            Sincronizar habilidades desde MIND
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -760,11 +854,9 @@ export default function Skills21Client({
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="min-w-0">
                                                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                        {skill.sourceProvider === 'ESCO' && (
-                                                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-indigo-600 text-white">
-                                                                ESCO
-                                                            </span>
-                                                        )}
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-indigo-600 text-white">
+                                                            {formatSkillSourceProvider(skill.sourceProvider)}
+                                                        </span>
                                                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-slate-100 text-slate-600">
                                                             {skill.industry}
                                                         </span>
@@ -807,7 +899,7 @@ export default function Skills21Client({
                                                 </span>
                                                 {skill.sourceLastSyncedAt && (
                                                     <span className="inline-flex items-center gap-1">
-                                                        Sincronizado ESCO: {new Date(skill.sourceLastSyncedAt).toLocaleDateString('es-ES')}
+                                                        Sincronizado {formatSkillSourceProvider(skill.sourceProvider)}: {new Date(skill.sourceLastSyncedAt).toLocaleDateString('es-ES')}
                                                     </span>
                                                 )}
                                             </div>
