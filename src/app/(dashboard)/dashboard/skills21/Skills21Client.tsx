@@ -19,6 +19,7 @@ import {
     Search,
     Sparkles,
     TrendingUp,
+    TrendingDown,
     Wand2
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -273,6 +274,41 @@ function formatIndustryBreakdownText(breakdown: unknown) {
     if (entries.length === 0) return 'N/D';
     return entries.map(([industry, total]) => `${industry}: ${total}`).join(', ');
 }
+
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<{ value: number; name?: string }>;
+    label?: string;
+    valueLabel?: string;
+    total?: number;
+}
+
+const CustomTooltip = ({ active, payload, label, valueLabel = 'Valor', total }: CustomTooltipProps) => {
+    if (active && payload && payload.length) {
+        const val = payload[0].value;
+        const numericVal = typeof val === 'number' ? val : 0;
+        const percent = total && total > 0 ? (numericVal / total) * 100 : null;
+        
+        return (
+            <div className="bg-slate-900 border border-slate-700 p-2.5 rounded-xl shadow-xl space-y-1">
+                <p className="text-xs font-bold text-slate-200 leading-tight">{label}</p>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-black text-white">
+                        {numericVal.toLocaleString('es-ES', { maximumFractionDigits: 1 })}
+                    </span>
+                    <span className="text-xs text-slate-400">{valueLabel}</span>
+                </div>
+                {percent !== null && (
+                    <div className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                        <span className="inline-block w-1 h-1 rounded-full bg-emerald-400" />
+                        {percent.toFixed(1)}% del total graficado
+                    </div>
+                )}
+            </div>
+        );
+    }
+    return null;
+};
 
 export default function Skills21Client({
     skills,
@@ -1260,10 +1296,12 @@ export default function Skills21Client({
                                         <div className="h-52">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <BarChart data={homeDemandChartData}>
-                                                    <CartesianGrid strokeDasharray="3 3" stroke="#D1FAE5" />
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#D1FAE5" opacity={0.5} />
                                                     <XAxis dataKey="occupationShort" tick={{ fill: '#065F46', fontSize: 10 }} />
                                                     <YAxis tick={{ fill: '#065F46', fontSize: 11 }} tickFormatter={formatCompactThousands} />
-                                                    <Tooltip formatter={(value) => [formatEmploymentThousands(toNumeric(value)), 'Demanda']} />
+                                                    <Tooltip 
+                                                        content={<CustomTooltip valueLabel="Demanda" total={homeDemandChartData.reduce((acc, curr) => acc + (curr.employmentCount || 0), 0)} />} 
+                                                    />
                                                     <Bar dataKey="employmentCount" fill="#10B981" radius={[6, 6, 0, 0]} />
                                                 </BarChart>
                                             </ResponsiveContainer>
@@ -1415,7 +1453,9 @@ export default function Skills21Client({
                                             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                                             <XAxis dataKey="skillShort" tick={{ fill: '#64748B', fontSize: 11 }} />
                                             <YAxis tick={{ fill: '#64748B', fontSize: 11 }} tickFormatter={formatCompactThousands} />
-                                            <Tooltip formatter={(value) => [formatEmploymentThousands(toNumeric(value)), 'Demanda agregada']} />
+                                            <Tooltip 
+                                                content={<CustomTooltip valueLabel="Demanda" total={homeTopSkillsChartData.reduce((acc, curr) => acc + (curr.demand || 0), 0)} />} 
+                                            />
                                             <Bar dataKey="demand" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
@@ -1766,7 +1806,9 @@ export default function Skills21Client({
                                         <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                                         <XAxis dataKey="industry" tick={{ fill: '#64748B', fontSize: 11 }} />
                                         <YAxis tick={{ fill: '#64748B', fontSize: 11 }} />
-                                        <Tooltip formatter={(value) => [toNumeric(value), 'Habilidades']} />
+                                        <Tooltip 
+                                            content={<CustomTooltip valueLabel="Habilidades" total={skillsByIndustryData.reduce((acc, curr) => acc + curr.total, 0)} />} 
+                                        />
                                         <Bar dataKey="total" fill="#4F46E5" radius={[6, 6, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -1793,7 +1835,9 @@ export default function Skills21Client({
                                                 <Cell key={entry.source} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value) => [toNumeric(value), 'Habilidades']} />
+                                        <Tooltip 
+                                            content={<CustomTooltip valueLabel="Habilidades" total={skillsBySourceData.reduce((acc, curr) => acc + curr.total, 0)} />} 
+                                        />
                                         <Legend />
                                     </RechartsPieChart>
                                 </ResponsiveContainer>
@@ -2511,9 +2555,8 @@ export default function Skills21Client({
                                         <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                                         <XAxis dataKey="occupationShort" tick={{ fill: '#64748B', fontSize: 11 }} />
                                         <YAxis tickFormatter={formatCompactThousands} tick={{ fill: '#64748B', fontSize: 11 }} />
-                                        <Tooltip
-                                            formatter={(value) => [formatEmploymentThousands(toNumeric(value)), 'Empleo']}
-                                            labelFormatter={(label) => `Ocupación: ${label}`}
+                                        <Tooltip 
+                                            content={<CustomTooltip valueLabel="Empleo" total={topOccupationsChartData.reduce((acc, curr) => acc + (curr.employmentCount || 0), 0)} />} 
                                         />
                                         <Bar dataKey="employmentCount" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
                                     </BarChart>
@@ -2583,12 +2626,18 @@ export default function Skills21Client({
                                                 {item.variationAbsolute === null ? (
                                                     <span className="text-slate-400">N/D</span>
                                                 ) : (
-                                                    <span className={item.variationAbsolute >= 0 ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold'}>
-                                                        {item.variationAbsolute >= 0 ? '+' : ''}{formatEmploymentThousands(item.variationAbsolute)}
-                                                        {' · '}
-                                                        {item.variationPercent === null
-                                                            ? 'N/D'
-                                                            : `${item.variationPercent >= 0 ? '+' : ''}${item.variationPercent.toFixed(1)}%`}
+                                                    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold ${
+                                                        item.variationAbsolute >= 0 
+                                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
+                                                            : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                                                    }`}>
+                                                        {item.variationAbsolute >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                                                        <span>
+                                                            {item.variationAbsolute >= 0 ? '+' : ''}{formatEmploymentThousands(item.variationAbsolute)}
+                                                        </span>
+                                                        <span className="opacity-60 text-[10px]">
+                                                            ({item.variationPercent === null ? 'N/D' : `${item.variationPercent >= 0 ? '+' : ''}${item.variationPercent.toFixed(1)}%`})
+                                                        </span>
                                                     </span>
                                                 )}
                                             </td>
