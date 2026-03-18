@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getSkills21HomeInsights } from '@/lib/skills21-home-insights';
 import type { Skills21HomeInsightsResult } from '@/lib/skills21-home-insights-types';
+import { getSkills21OccupationsInsights } from '@/lib/skills21-occupations-insights';
+import type { Skills21OccupationsInsightsResult } from '@/lib/skills21-occupations-insights-types';
+import { getSkills21SkillsInsights } from '@/lib/skills21-skills-insights';
+import type { Skills21SkillsInsightsResult } from '@/lib/skills21-skills-insights-types';
 import { getSkills21WorldSignalsForDashboard } from '@/lib/skills21-world-watch';
 import Skills21Client from './Skills21Client';
 
@@ -37,6 +41,51 @@ function buildEmptyHomeInsightsResult(): Skills21HomeInsightsResult {
     };
 }
 
+function buildEmptyOccupationsInsightsResult(): Skills21OccupationsInsightsResult {
+    return {
+        meta: {
+            availableYears: [],
+            availableGeographies: [],
+            availableSources: [],
+            usedPythonSnapshot: false,
+            compilerMessage: 'Carga inicial diferida.',
+            generatedAt: ''
+        },
+        data: {
+            filteredCount: 0,
+            yearlyTrendData: [],
+            topOccupationsChartData: [],
+            sourceDistributionData: [],
+            geographyDistributionData: [],
+            latestTableItems: [],
+            geoIndustryMap: {
+                geographies: [],
+                industries: [],
+                rows: [],
+                maxValue: 0
+            }
+        }
+    };
+}
+
+function buildEmptySkillsInsightsResult(): Skills21SkillsInsightsResult {
+    return {
+        meta: {
+            availableIndustries: [],
+            availableCategories: [],
+            usedPythonSnapshot: false,
+            compilerMessage: 'Carga inicial diferida.',
+            generatedAt: ''
+        },
+        data: {
+            filteredCount: 0,
+            skillsList: [],
+            industryDistribution: [],
+            sourceDistribution: []
+        }
+    };
+}
+
 export default async function Skills21Page() {
     const session = await getServerSession(authOptions);
     if (!session) redirect('/login');
@@ -50,11 +99,7 @@ export default async function Skills21Page() {
             { name: 'asc' }
         ],
         include: {
-            _count: {
-                select: {
-                    projects: true
-                }
-            }
+            _count: { select: { projects: true } }
         }
     });
 
@@ -65,39 +110,49 @@ export default async function Skills21Page() {
         ],
         take: 1000,
         include: {
-            forecasts: {
-                orderBy: { year: 'asc' }
-            },
+            forecasts: { orderBy: { year: 'asc' } },
             skills: {
-                select: {
-                    id: true,
-                    name: true,
-                    industry: true,
-                    category: true
-                },
-                orderBy: [
-                    { industry: 'asc' },
-                    { name: 'asc' }
-                ]
+                select: { id: true, name: true, industry: true, category: true },
+                orderBy: [{ industry: 'asc' }, { name: 'asc' }]
             }
         }
     });
 
     const occupationTotalPromise = prisma.occupation.count();
+    
     const homeInsightsPromise = getSkills21HomeInsights().catch((error) => {
         console.error('[Skills21Page] No se pudo precargar Inicio:', error);
         return buildEmptyHomeInsightsResult();
     });
+    const occupationsInsightsPromise = getSkills21OccupationsInsights().catch((error) => {
+        console.error('[Skills21Page] No se pudo precargar Ocupaciones:', error);
+        return buildEmptyOccupationsInsightsResult();
+    });
+    const skillsInsightsPromise = getSkills21SkillsInsights().catch((error) => {
+        console.error('[Skills21Page] No se pudo precargar Habilidades:', error);
+        return buildEmptySkillsInsightsResult();
+    });
+    
     const worldWatchPromise = getSkills21WorldSignalsForDashboard({
         limit: 16,
         autoRefreshIfStale: false
     });
 
-    const [skills, occupations, occupationTotal, homeInsights, worldWatch] = await Promise.all([
+    const [
+        skills, 
+        occupations, 
+        occupationTotal, 
+        homeInsights, 
+        occupationsInsights,
+        skillsInsights,
+        worldWatch
+    ] = await Promise.all([
         skillsPromise,
         occupationsPromise,
         occupationTotalPromise,
         homeInsightsPromise,
+        occupationsInsightsPromise,
+        skillsInsightsPromise,
         worldWatchPromise
     ]);
 
@@ -173,6 +228,8 @@ export default async function Skills21Page() {
             occupations={safeOccupations}
             occupationTotal={occupationTotal}
             initialHomeInsights={homeInsights}
+            initialOccupationsInsights={occupationsInsights}
+            initialSkillsInsights={skillsInsights}
             worldSignals={safeWorldSignals}
             worldSyncState={safeWorldSyncState}
             worldIsStale={worldWatch.isStale}
