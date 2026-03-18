@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -51,6 +51,7 @@ import {
     toggleTwentyFirstSkillStatusAction
 } from './actions';
 import { useModals } from '@/components/ModalProvider';
+import type { Skills21HomeInsightsResult } from '@/lib/skills21-home-insights-types';
 import styles from './skills21.module.css';
 
 type SkillSource = {
@@ -237,12 +238,28 @@ function formatOptionalPercent(value: number | null) {
     return `${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(value)}%`;
 }
 
-function getOccupationIndustryLabel(occupation: Occupation) {
-    return occupation.industryCode?.trim() || 'Sin industria';
-}
-
 function truncateLabel(value: string, size = 44) {
     return value.length > size ? `${value.slice(0, size)}…` : value;
+}
+
+function buildHomeInsightsQueryString(input: {
+    demandYear: string;
+    demandIndustry: string;
+    demandGeography: string;
+    skillsYear: string;
+    skillsIndustry: string;
+    skillsGeography: string;
+    skillsOccupationId: string;
+}) {
+    const params = new URLSearchParams();
+    params.set('demandYear', input.demandYear);
+    params.set('demandIndustry', input.demandIndustry);
+    params.set('demandGeography', input.demandGeography);
+    params.set('skillsYear', input.skillsYear);
+    params.set('skillsIndustry', input.skillsIndustry);
+    params.set('skillsGeography', input.skillsGeography);
+    params.set('skillsOccupationId', input.skillsOccupationId);
+    return params.toString();
 }
 
 function formatIndustryBreakdownText(breakdown: unknown) {
@@ -259,6 +276,7 @@ export default function Skills21Client({
     skills,
     occupations,
     occupationTotal,
+    initialHomeInsights,
     worldSignals,
     worldSyncState,
     worldIsStale,
@@ -269,6 +287,7 @@ export default function Skills21Client({
     skills: Skill[];
     occupations: Occupation[];
     occupationTotal: number;
+    initialHomeInsights: Skills21HomeInsightsResult;
     worldSignals: WorldSignal[];
     worldSyncState: WorldSyncState;
     worldIsStale: boolean;
@@ -334,6 +353,18 @@ export default function Skills21Client({
     const [homeSkillsIndustryFilter, setHomeSkillsIndustryFilter] = useState('ALL');
     const [homeSkillsGeographyFilter, setHomeSkillsGeographyFilter] = useState('ALL');
     const [homeSkillsOccupationFilter, setHomeSkillsOccupationFilter] = useState('ALL');
+    const [homeInsights, setHomeInsights] = useState<Skills21HomeInsightsResult>(initialHomeInsights);
+    const [isHomeInsightsLoading, setIsHomeInsightsLoading] = useState(false);
+    const initialHomeInsightsRef = useRef(initialHomeInsights);
+    const initialHomeInsightsQueryRef = useRef(buildHomeInsightsQueryString({
+        demandYear: 'AUTO',
+        demandIndustry: 'ALL',
+        demandGeography: 'ALL',
+        skillsYear: 'AUTO',
+        skillsIndustry: 'ALL',
+        skillsGeography: 'ALL',
+        skillsOccupationId: 'ALL'
+    }));
 
     const [workspaceOccupationId, setWorkspaceOccupationId] = useState('');
     const [workspaceSkillIds, setWorkspaceSkillIds] = useState<string[]>([]);
@@ -352,6 +383,77 @@ export default function Skills21Client({
             router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
         });
     }, [activeTab, pathname, router, searchParams, startTabTransition]);
+
+    const homeInsightsQuery = useMemo(() => buildHomeInsightsQueryString({
+        demandYear: homeDemandYearFilter,
+        demandIndustry: homeDemandIndustryFilter,
+        demandGeography: homeDemandGeographyFilter,
+        skillsYear: homeSkillsYearFilter,
+        skillsIndustry: homeSkillsIndustryFilter,
+        skillsGeography: homeSkillsGeographyFilter,
+        skillsOccupationId: homeSkillsOccupationFilter
+    }), [
+        homeDemandGeographyFilter,
+        homeDemandIndustryFilter,
+        homeDemandYearFilter,
+        homeSkillsGeographyFilter,
+        homeSkillsIndustryFilter,
+        homeSkillsOccupationFilter,
+        homeSkillsYearFilter
+    ]);
+
+    useEffect(() => {
+        initialHomeInsightsRef.current = initialHomeInsights;
+        if (homeInsightsQuery === initialHomeInsightsQueryRef.current) {
+            setHomeInsights(initialHomeInsights);
+        }
+    }, [homeInsightsQuery, initialHomeInsights]);
+
+    useEffect(() => {
+        if (homeInsightsQuery === initialHomeInsightsQueryRef.current) {
+            setHomeInsights(initialHomeInsightsRef.current);
+            setIsHomeInsightsLoading(false);
+            return;
+        }
+
+        const controller = new AbortController();
+        setIsHomeInsightsLoading(true);
+
+        const load = async () => {
+            try {
+                const response = await fetch(`/api/skills21/home-insights?${homeInsightsQuery}`, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    signal: controller.signal
+                });
+                if (!response.ok) {
+                    throw new Error(`status=${response.status}`);
+                }
+
+                const data = await response.json() as Skills21HomeInsightsResult;
+                if (controller.signal.aborted) return;
+                setHomeInsights(data);
+            } catch (error) {
+                if (controller.signal.aborted) return;
+                console.error('[Skills21Client] No se pudo actualizar Inicio:', error);
+                void showAlert(
+                    'Analítica no disponible',
+                    'No se pudo actualizar la analítica de Inicio. Conservamos los datos más recientes cargados.',
+                    'warning'
+                );
+            } finally {
+                if (!controller.signal.aborted) {
+                    setIsHomeInsightsLoading(false);
+                }
+            }
+        };
+
+        void load();
+
+        return () => {
+            controller.abort();
+        };
+    }, [homeInsightsQuery, showAlert]);
 
     const industries = useMemo(() => {
         const set = new Set(skills.map((skill) => skill.industry).filter(Boolean));
@@ -403,16 +505,6 @@ export default function Skills21Client({
                 occupations.flatMap((occupation) => occupation.forecasts.map((forecast) => forecast.year))
             )
         ).sort((a, b) => a - b);
-    }, [occupations]);
-
-    const latestOccupationYear = useMemo(
-        () => occupationYears[occupationYears.length - 1] || null,
-        [occupationYears]
-    );
-
-    const occupationIndustryOptions = useMemo(() => {
-        return Array.from(new Set(occupations.map((occupation) => getOccupationIndustryLabel(occupation))))
-            .sort((a, b) => a.localeCompare(b));
     }, [occupations]);
 
     const filteredOccupations = useMemo(() => {
@@ -519,157 +611,15 @@ export default function Skills21Client({
             .sort((a, b) => b.total - a.total);
     }, [filteredOccupations]);
 
-    const selectedHomeDemandYear = homeDemandYearFilter === 'AUTO'
-        ? latestOccupationYear
-        : Number(homeDemandYearFilter);
-
-    const homeDemandRows = useMemo(() => {
-        if (!selectedHomeDemandYear) return [];
-
-        const rows: Array<{
-            id: string;
-            occupationTitle: string;
-            occupationCode: string | null;
-            geography: string;
-            industry: string;
-            employmentCount: number;
-            skillCount: number;
-        }> = [];
-
-        for (const occupation of occupations) {
-            const industry = getOccupationIndustryLabel(occupation);
-            if (homeDemandIndustryFilter !== 'ALL' && industry !== homeDemandIndustryFilter) continue;
-            if (homeDemandGeographyFilter !== 'ALL' && occupation.geography !== homeDemandGeographyFilter) continue;
-
-            const forecast = occupation.forecasts.find((item) => item.year === selectedHomeDemandYear);
-            if (!forecast || !Number.isFinite(forecast.employmentCount)) continue;
-
-            rows.push({
-                id: occupation.id,
-                occupationTitle: occupation.occupationTitle,
-                occupationCode: occupation.occupationCode,
-                geography: occupation.geography,
-                industry,
-                employmentCount: forecast.employmentCount,
-                skillCount: occupation.skills.length
-            });
-        }
-
-        return rows;
-    }, [occupations, selectedHomeDemandYear, homeDemandIndustryFilter, homeDemandGeographyFilter]);
-
-    const homeTopDemandedOccupations = useMemo(() => {
-        return [...homeDemandRows]
-            .sort((a, b) => b.employmentCount - a.employmentCount)
-            .slice(0, 15);
-    }, [homeDemandRows]);
-
-    const homeLowestSupplyOccupations = useMemo(() => {
-        return homeDemandRows
-            .filter((row) => row.employmentCount > 0)
-            .sort((a, b) => a.employmentCount - b.employmentCount)
-            .slice(0, 15);
-    }, [homeDemandRows]);
-
-    const homeDemandChartData = useMemo(() => {
-        return homeTopDemandedOccupations
-            .slice(0, 10)
-            .map((row) => ({
-                occupationShort: truncateLabel(row.occupationTitle, 34),
-                employmentCount: Number(row.employmentCount.toFixed(2))
-            }))
-            .reverse();
-    }, [homeTopDemandedOccupations]);
-
-    const selectedHomeSkillsYear = homeSkillsYearFilter === 'AUTO'
-        ? latestOccupationYear
-        : Number(homeSkillsYearFilter);
-
-    const homeSkillScopeOccupations = useMemo(() => {
-        if (!selectedHomeSkillsYear) return [];
-
-        return occupations
-            .map((occupation) => {
-                const industry = getOccupationIndustryLabel(occupation);
-                if (homeSkillsIndustryFilter !== 'ALL' && industry !== homeSkillsIndustryFilter) return null;
-                if (homeSkillsGeographyFilter !== 'ALL' && occupation.geography !== homeSkillsGeographyFilter) return null;
-
-                const forecast = occupation.forecasts.find((item) => item.year === selectedHomeSkillsYear);
-                if (!forecast || !Number.isFinite(forecast.employmentCount)) return null;
-
-                return {
-                    occupation,
-                    industry,
-                    employmentCount: forecast.employmentCount
-                };
-            })
-            .filter(Boolean) as Array<{
-                occupation: Occupation;
-                industry: string;
-                employmentCount: number;
-            }>;
-    }, [occupations, selectedHomeSkillsYear, homeSkillsIndustryFilter, homeSkillsGeographyFilter]);
-
-    const homeSkillsOccupationOptions = useMemo(() => {
-        return homeSkillScopeOccupations
-            .filter((item) => item.occupation.skills.length > 0)
-            .sort((a, b) => a.occupation.occupationTitle.localeCompare(b.occupation.occupationTitle))
-            .slice(0, 300)
-            .map((item) => ({
-                id: item.occupation.id,
-                label: `${item.occupation.occupationTitle} (${item.occupation.geography})`
-            }));
-    }, [homeSkillScopeOccupations]);
-
-    const homeTopSkillsDemand = useMemo(() => {
-        const bySkill = new Map<string, {
-            id: string;
-            name: string;
-            industry: string;
-            category: string | null;
-            demand: number;
-            occupationCount: number;
-        }>();
-
-        for (const item of homeSkillScopeOccupations) {
-            if (homeSkillsOccupationFilter !== 'ALL' && item.occupation.id !== homeSkillsOccupationFilter) continue;
-
-            for (const skill of item.occupation.skills) {
-                const current = bySkill.get(skill.id);
-                if (!current) {
-                    bySkill.set(skill.id, {
-                        id: skill.id,
-                        name: skill.name,
-                        industry: skill.industry,
-                        category: skill.category,
-                        demand: item.employmentCount,
-                        occupationCount: 1
-                    });
-                } else {
-                    current.demand += item.employmentCount;
-                    current.occupationCount += 1;
-                }
-            }
-        }
-
-        return Array.from(bySkill.values())
-            .sort((a, b) => b.demand - a.demand)
-            .slice(0, 50)
-            .map((row) => ({
-                ...row,
-                demand: Number(row.demand.toFixed(2))
-            }));
-    }, [homeSkillScopeOccupations, homeSkillsOccupationFilter]);
-
-    const homeTopSkillsChartData = useMemo(() => {
-        return homeTopSkillsDemand
-            .slice(0, 12)
-            .map((row) => ({
-                skillShort: truncateLabel(row.name, 32),
-                demand: row.demand
-            }))
-            .reverse();
-    }, [homeTopSkillsDemand]);
+    const homeSelectedDemandYear = homeInsights.demand.selectedYear;
+    const homeDemandRowCount = homeInsights.demand.rowCount;
+    const homeTopDemandedOccupations = homeInsights.demand.topOccupations;
+    const homeLowestSupplyOccupations = homeInsights.demand.lowestSupply;
+    const homeDemandChartData = homeInsights.demand.chartData;
+    const homeSkillScopeOccupationCount = homeInsights.skills.scopeOccupationCount;
+    const homeSkillsOccupationOptions = homeInsights.skills.occupationOptions;
+    const homeTopSkillsDemand = homeInsights.skills.topSkills;
+    const homeTopSkillsChartData = homeInsights.skills.chartData;
 
     const skillsByIndustryData = useMemo(() => {
         const byIndustry = new Map<string, number>();
@@ -1285,7 +1235,7 @@ export default function Skills21Client({
 
             {activeTab === 'home' && (
                 <div className="space-y-5">
-                    {isHomeInsightsPending && (
+                    {(isHomeInsightsPending || isHomeInsightsLoading) && (
                         <div className="bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-xs text-sky-700 font-semibold inline-flex items-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             Actualizando analítica de Inicio...
@@ -1317,8 +1267,8 @@ export default function Skills21Client({
                                 onChange={(event) => startHomeInsightsTransition(() => setHomeDemandYearFilter(event.target.value))}
                                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
                             >
-                                <option value="AUTO">Año más reciente ({latestOccupationYear || 'N/D'})</option>
-                                {occupationYears.map((year) => (
+                                <option value="AUTO">Año más reciente ({homeInsights.meta.latestOccupationYear || 'N/D'})</option>
+                                {homeInsights.meta.occupationYears.map((year) => (
                                     <option key={`home-demand-year-${year}`} value={String(year)}>{year}</option>
                                 ))}
                             </select>
@@ -1329,7 +1279,7 @@ export default function Skills21Client({
                                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
                             >
                                 <option value="ALL">Todas las industrias</option>
-                                {occupationIndustryOptions.map((industry) => (
+                                {homeInsights.meta.occupationIndustries.map((industry) => (
                                     <option key={`home-demand-industry-${industry}`} value={industry}>{industry}</option>
                                 ))}
                             </select>
@@ -1340,14 +1290,14 @@ export default function Skills21Client({
                                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
                             >
                                 <option value="ALL">Todas las regiones</option>
-                                {occupationGeographies.map((geography) => (
+                                {homeInsights.meta.occupationGeographies.map((geography) => (
                                     <option key={`home-demand-geo-${geography}`} value={geography}>{geography}</option>
                                 ))}
                             </select>
                         </div>
 
                         <div className="text-xs text-slate-500">
-                            Registros analizados: {homeDemandRows.length} · Año activo: {selectedHomeDemandYear || 'N/D'}
+                            Registros analizados: {homeDemandRowCount} · Año activo: {homeSelectedDemandYear || 'N/D'}
                         </div>
 
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -1453,8 +1403,8 @@ export default function Skills21Client({
                                 onChange={(event) => startHomeInsightsTransition(() => setHomeSkillsYearFilter(event.target.value))}
                                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
                             >
-                                <option value="AUTO">Año más reciente ({latestOccupationYear || 'N/D'})</option>
-                                {occupationYears.map((year) => (
+                                <option value="AUTO">Año más reciente ({homeInsights.meta.latestOccupationYear || 'N/D'})</option>
+                                {homeInsights.meta.occupationYears.map((year) => (
                                     <option key={`home-skills-year-${year}`} value={String(year)}>{year}</option>
                                 ))}
                             </select>
@@ -1468,7 +1418,7 @@ export default function Skills21Client({
                                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
                             >
                                 <option value="ALL">Todas las industrias</option>
-                                {occupationIndustryOptions.map((industry) => (
+                                {homeInsights.meta.occupationIndustries.map((industry) => (
                                     <option key={`home-skills-industry-${industry}`} value={industry}>{industry}</option>
                                 ))}
                             </select>
@@ -1482,7 +1432,7 @@ export default function Skills21Client({
                                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
                             >
                                 <option value="ALL">Todas las regiones</option>
-                                {occupationGeographies.map((geography) => (
+                                {homeInsights.meta.occupationGeographies.map((geography) => (
                                     <option key={`home-skills-geo-${geography}`} value={geography}>{geography}</option>
                                 ))}
                             </select>
@@ -1500,7 +1450,7 @@ export default function Skills21Client({
                         </div>
 
                         <div className="text-xs text-slate-500">
-                            Ocupaciones en alcance: {homeSkillScopeOccupations.length} · Habilidades listadas: {homeTopSkillsDemand.length}
+                            Ocupaciones en alcance: {homeSkillScopeOccupationCount} · Habilidades listadas: {homeTopSkillsDemand.length}
                         </div>
 
                         {homeTopSkillsDemand.length === 0 ? (

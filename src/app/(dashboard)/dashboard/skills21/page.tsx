@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getSkills21HomeInsights } from '@/lib/skills21-home-insights';
 import { getSkills21WorldSignalsForDashboard } from '@/lib/skills21-world-watch';
 import Skills21Client from './Skills21Client';
 
@@ -54,15 +55,17 @@ export default async function Skills21Page() {
     });
 
     const occupationTotalPromise = prisma.occupation.count();
+    const homeInsightsPromise = getSkills21HomeInsights();
     const worldWatchPromise = getSkills21WorldSignalsForDashboard({
         limit: 16,
         autoRefreshIfStale: false
     });
 
-    const [skills, occupations, occupationTotal, worldWatch] = await Promise.all([
+    const [skills, occupations, occupationTotal, homeInsights, worldWatch] = await Promise.all([
         skillsPromise,
         occupationsPromise,
         occupationTotalPromise,
+        homeInsightsPromise,
         worldWatchPromise
     ]);
 
@@ -137,6 +140,7 @@ export default async function Skills21Page() {
             skills={safeSkills}
             occupations={safeOccupations}
             occupationTotal={occupationTotal}
+            initialHomeInsights={homeInsights}
             worldSignals={safeWorldSignals}
             worldSyncState={safeWorldSyncState}
             worldIsStale={worldWatch.isStale}

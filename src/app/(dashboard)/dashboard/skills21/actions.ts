@@ -14,6 +14,7 @@ import { fetchMindOntologySkills } from '@/lib/mind-ontology';
 import { getSkills21WorldSignalsForDashboard, refreshSkills21WorldSignals } from '@/lib/skills21-world-watch';
 import { generateAiTextWithConfiguredProvider } from '@/lib/ai-text';
 import { classifySkillIndustries, isPlaceholderIndustry } from '@/lib/skills21-industry';
+import { resetSkills21HomeInsightsCache } from '@/lib/skills21-home-insights';
 import {
     extractSocCodeFromBlsOeSeriesId,
     fetchBlsOeEmploymentSeriesBySocCodes,
@@ -432,6 +433,7 @@ export async function ingestOccupationsCsvAction(formData: FormData) {
             }
         );
 
+        resetSkills21HomeInsightsCache();
         revalidatePath('/dashboard/skills21');
         revalidatePath('/dashboard/professor/projects/new');
         revalidatePath('/dashboard/professor/challenges/new');
@@ -751,6 +753,7 @@ export async function syncOccupationsFromBlsAction(payload?: {
             stats
         );
 
+        resetSkills21HomeInsightsCache();
         revalidatePath('/dashboard/skills21');
         revalidatePath('/dashboard/professor/projects/new');
         revalidatePath('/dashboard/professor/challenges/new');
@@ -993,6 +996,7 @@ export async function syncSkillsFromEscoAction(payload?: {
             }
         );
 
+        resetSkills21HomeInsightsCache();
         revalidatePath('/dashboard/skills21');
         revalidatePath('/dashboard/professor/projects/new');
         revalidatePath('/dashboard/professor/challenges/new');
@@ -1208,6 +1212,7 @@ export async function syncSkillsFromMindOntologyAction(payload?: {
             }
         );
 
+        resetSkills21HomeInsightsCache();
         revalidatePath('/dashboard/skills21');
         revalidatePath('/dashboard/professor/projects/new');
         revalidatePath('/dashboard/professor/challenges/new');
@@ -1361,6 +1366,7 @@ export async function reclassifySkills21IndustriesAction(payload?: {
             }
         );
 
+        resetSkills21HomeInsightsCache();
         revalidatePath('/dashboard/skills21');
         revalidatePath('/dashboard/professor/projects/new');
         revalidatePath('/dashboard/professor/challenges/new');
@@ -1416,6 +1422,7 @@ export async function refreshSkills21WorldSignalsAction(payload?: {
             }
         );
 
+        resetSkills21HomeInsightsCache();
         revalidatePath('/dashboard/skills21');
 
         return {
@@ -1638,6 +1645,7 @@ export async function createTwentyFirstSkillAction(payload: CreateSkillPayload) 
             }
         );
 
+        resetSkills21HomeInsightsCache();
         revalidatePath('/dashboard/skills21');
         revalidatePath('/dashboard/professor/projects/new');
         revalidatePath('/dashboard/professor/challenges/new');
@@ -1670,6 +1678,7 @@ export async function toggleTwentyFirstSkillStatusAction(skillId: string, nextSt
             { skillId: updated.id, isActive: updated.isActive }
         );
 
+        resetSkills21HomeInsightsCache();
         revalidatePath('/dashboard/skills21');
         revalidatePath('/dashboard/professor/projects/new');
         revalidatePath('/dashboard/professor/challenges/new');

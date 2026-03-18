@@ -1,0 +1,23 @@
+# Stack Python para analítica e insights del módulo Skills21.
+# Compatibilidad prioritaria con Python 3.13.
+
+# Base tabular y compatibilidad con scripts existentes
+numpy==2.4.3
+pandas==3.0.1
+openpyxl==3.1.5
+pyarrow==23.0.1
+xlsxwriter==3.2.9
+
+# Procesamiento y consulta de alto rendimiento
+polars==1.39.0
+duckdb==1.5.0
+
+# Matching, modelado y análisis estadístico
+rapidfuzz==3.14.3
+scipy==1.17.1
+scikit-learn==1.8.0
+statsmodels==0.14.6
+
+# Exploración y visualización analítica fuera de la UI web
+plotly==6.6.0
+networkx==3.6.1
