@@ -103,9 +103,11 @@ function stripDemandRow(row: SnapshotDemandRow): Skills21HomeDemandRow {
 
 async function loadSnapshotOccupations(): Promise<SnapshotOccupation[]> {
     const occupations = await prisma.occupation.findMany({
-        where: {
-            isActive: true
-        },
+        orderBy: [
+            { updatedAt: 'desc' },
+            { occupationTitle: 'asc' }
+        ],
+        take: 1000,
         select: {
             id: true,
             occupationTitle: true,
@@ -120,7 +122,6 @@ async function loadSnapshotOccupations(): Promise<SnapshotOccupation[]> {
                 }
             },
             skills: {
-                where: { isActive: true },
                 select: {
                     id: true,
                     name: true,
