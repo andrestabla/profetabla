@@ -29,6 +29,7 @@ export type Skills21OccupationRow = {
     latestEmployment: number;
     latestYear: number | null;
     previousEmployment: number | null;
+    cagr: number | null;
 };
 
 export type Skills21OccupationLatestTableItem = {
@@ -61,5 +62,13 @@ export type Skills21OccupationsInsightsResult = {
             rows: Array<{ geography: string; values: Array<{ industry: string; value: number }>; total: number }>;
             maxValue: number;
         };
+        quadrantItems: Array<{
+            occupation: string;
+            geography: string;
+            year: number;
+            replacement: number;
+            openings: number;
+            ratio: number;
+        }>;
     };
 };

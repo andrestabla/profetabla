@@ -39,7 +39,11 @@ import {
     ResponsiveContainer,
     Tooltip,
     XAxis,
-    YAxis
+    YAxis,
+    Treemap,
+    ScatterChart,
+    Scatter,
+    ZAxis
 } from 'recharts';
 import {
     createTwentyFirstSkillAction,
@@ -1845,6 +1849,26 @@ export default function Skills21Client({
                         </article>
                     </section>
 
+                    <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
+                        <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+                            <Sparkles className="w-4 h-4 text-indigo-600" />
+                            Densidad y Clústeres de Habilidades por Industria (Treemap)
+                        </h3>
+                        <div className="h-96">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <Treemap
+                                    data={skillsInsights?.data?.treemapData || []}
+                                    dataKey="value"
+                                    aspectRatio={4 / 3}
+                                    stroke="#fff"
+                                    fill="#4F46E5"
+                                >
+                                    <Tooltip content={<CustomTooltip valueLabel="Habilidades" />} />
+                                </Treemap>
+                            </ResponsiveContainer>
+                        </div>
+                    </section>
+
                     <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm space-y-4">
                         {canUploadOccupations && (
                             <div className="space-y-3">
@@ -2582,6 +2606,48 @@ export default function Skills21Client({
                                 </ResponsiveContainer>
                             </div>
                         </article>
+                    </section>
+
+                    <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
+                        <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+                            <TrendingUp className="w-4 h-4 text-indigo-600" />
+                            Matriz de Vacantes vs Reemplazo (Cuadrantes de Relevancia)
+                        </h3>
+                        <div className="h-96">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                                    <XAxis type="number" dataKey="replacement" name="Reemplazo" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                    <YAxis type="number" dataKey="openings" name="Vacantes" tick={{ fill: '#64748B', fontSize: 11 }} />
+                                    <ZAxis type="number" dataKey="ratio" range={[64, 400]} />
+                                    <Tooltip 
+                                        cursor={{ strokeDasharray: '3 3' }} 
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const d = payload[0].payload;
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-xl rounded-xl text-xs space-y-1">
+                                                        <p className="font-black text-slate-900">{d.occupation}</p>
+                                                        <p className="text-slate-500">{d.geography} ({d.year})</p>
+                                                        <hr className="my-1" />
+                                                        <p className="text-emerald-600 font-bold">Vacantes: {toNumeric(d.openings)}</p>
+                                                        <p className="text-amber-600 font-bold">Reemplazo: {toNumeric(d.replacement)}</p>
+                                                        <p className="text-indigo-600 font-bold">Ratio (Vacantes/Reemplazo): {d.ratio.toFixed(2)}</p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                    <Scatter
+                                        name="Ocupaciones"
+                                        data={occupationsInsights?.data?.quadrantItems || []}
+                                        fill="#4F46E5"
+                                        opacity={0.8}
+                                    />
+                                </ScatterChart>
+                            </ResponsiveContainer>
+                        </div>
                     </section>
 
                     <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6">

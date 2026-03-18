@@ -40,6 +40,14 @@ type OccupationsSnapshot = {
         year: number;
         employmentCount: number;
     }>;
+    quadrantItems?: Array<{
+        occupation: string;
+        geography: string;
+        year: number;
+        replacement: number;
+        openings: number;
+        ratio: number;
+    }>;
     usedPythonSnapshot: boolean;
     compilerMessage: string;
     generatedAt: string;
@@ -136,7 +144,8 @@ function compileSnapshotFallback(occupations: SnapshotOccupation[]): Occupations
             searchTokens,
             latestEmployment: latest ? latest.employmentCount : 0,
             latestYear: latest ? latest.year : null,
-            previousEmployment: previous ? previous.employmentCount : null
+            previousEmployment: previous ? previous.employmentCount : null,
+            cagr: null
         });
     }
 
@@ -146,6 +155,7 @@ function compileSnapshotFallback(occupations: SnapshotOccupation[]): Occupations
         availableSources: Array.from(sources).sort((a, b) => a.localeCompare(b)),
         occupations: baseRows,
         forecasts: forecastRows,
+        quadrantItems: [],
         usedPythonSnapshot: false,
         compilerMessage: 'Fallback TypeScript aplicado.',
         generatedAt: new Date().toISOString()
@@ -192,6 +202,7 @@ async function runPythonSnapshotCompiler(occupations: SnapshotOccupation[]): Pro
                         availableSources: Array.isArray(parsed.availableSources) ? parsed.availableSources : [],
                         occupations: Array.isArray(parsed.occupations) ? parsed.occupations : [],
                         forecasts: Array.isArray(parsed.forecasts) ? parsed.forecasts : [],
+                        quadrantItems: Array.isArray(parsed.quadrantItems) ? parsed.quadrantItems : [],
                         usedPythonSnapshot: true,
                         compilerMessage: result.stdout.trim(),
                         generatedAt: new Date().toISOString()
@@ -373,7 +384,8 @@ export async function getSkills21OccupationsInsights(filters: Skills21Occupation
                 industries: industriesLimit,
                 rows: geoIndustryRows,
                 maxValue: geoIndustryMaxValue
-            }
+            },
+            quadrantItems: snapshot.quadrantItems || []
         }
     };
 }

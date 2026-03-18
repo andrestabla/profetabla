@@ -63,7 +63,8 @@ function buildEmptyOccupationsInsightsResult(): Skills21OccupationsInsightsResul
                 industries: [],
                 rows: [],
                 maxValue: 0
-            }
+            },
+            quadrantItems: []
         }
     };
 }
@@ -81,7 +82,8 @@ function buildEmptySkillsInsightsResult(): Skills21SkillsInsightsResult {
             filteredCount: 0,
             skillsList: [],
             industryDistribution: [],
-            sourceDistribution: []
+            sourceDistribution: [],
+            treemapData: []
         }
     };
 }

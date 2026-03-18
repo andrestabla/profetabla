@@ -51,13 +51,49 @@ def build_skills_snapshot(skills):
         }
     )
 
+    def get_cluster(name_str):
+        n = str(name_str or "").lower()
+        if any(w in n for w in ["inteligencia artificial", "machine learning", " ia", "ai ", " ia ", "aprendizaje"]): return "IA y ML"
+        if any(w in n for w in ["datos", "data", "sql", "analitim", "dashboard", "analytics"]): return "Datos y Analítica"
+        if any(w in n for w in ["desarrollo", "software", "web", "frontend", "backend", "programaci", "javascript", "python"]): return "Desarrollo de Software"
+        if any(w in n for w in ["seguridad", "security", "cyber", "ciber"]): return "Ciberseguridad"
+        if any(w in n for w in ["cloud", "nube", "aws", "azure", "devops", "docker"]): return "Cloud y DevOps"
+        return "Otras Tecnologías"
+
+    treemap_data = []
+    if df.height > 0:
+        # Append cluster column
+        df = df.with_columns(
+            pl.col("name").map_elements(get_cluster, return_dtype=pl.String).alias("cluster")
+        )
+        
+        # Group by highly hierarchical structures
+        try:
+            grouped = df.group_by(["industry", "cluster"]).count()
+            for ind in grouped.select("industry").unique().to_series().to_list():
+                if not ind: continue
+                ind_df = grouped.filter(pl.col("industry") == ind)
+                children = []
+                for row in ind_df.to_dicts():
+                    children.append({
+                        "name": row["cluster"] or "Otras",
+                        "value": int(row["count"])
+                    })
+                treemap_data.append({
+                    "name": str(ind),
+                    "children": children
+                })
+        except Exception:
+            treemap_data = []
+
     industries = df.filter(pl.col("isActive")).select("industry").unique().sort("industry").to_series().to_list() if df.height > 0 else []
     categories = df.filter(pl.col("isActive")).drop_nulls("category").select("category").unique().sort("category").to_series().to_list() if df.height > 0 else []
 
     return {
         "availableIndustries": [str(i) for i in industries],
         "availableCategories": [str(c) for c in categories],
-        "skills": df.to_dicts()
+        "skills": df.to_dicts(),
+        "treemapData": treemap_data
     }
 
 

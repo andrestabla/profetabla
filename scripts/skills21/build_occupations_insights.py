@@ -40,10 +40,23 @@ def build_occupations_snapshot(occupations):
                 })
 
         # Calculate latest and previous
+        # Calculate latest and previous
         valid_forecasts.sort(key=lambda x: x["year"])
         latest_emp = valid_forecasts[-1]["employmentCount"] if valid_forecasts else 0
         latest_year = valid_forecasts[-1]["year"] if valid_forecasts else None
         prev_emp = valid_forecasts[0]["employmentCount"] if len(valid_forecasts) > 1 else None
+
+        # Calculate CAGR
+        cagr = None
+        if len(valid_forecasts) > 1:
+            start_f = valid_forecasts[0]
+            end_f = valid_forecasts[-1]
+            years_diff = end_f["year"] - start_f["year"]
+            if years_diff > 0 and start_f["employmentCount"] > 0:
+                try:
+                    cagr = (end_f["employmentCount"] / start_f["employmentCount"]) ** (1 / years_diff) - 1
+                except Exception:
+                    cagr = None
 
         base_rows.append({
             "id": occ_id,
@@ -58,7 +71,8 @@ def build_occupations_snapshot(occupations):
             "searchTokens": f"{title} {occ_type} {code or ''} {industry} {qual_level} {geo} {' '.join(skill_names)}".lower(),
             "latestEmployment": latest_emp,
             "latestYear": latest_year,
-            "previousEmployment": prev_emp
+            "previousEmployment": prev_emp,
+            "cagr": cagr
         })
 
     occ_df = pl.DataFrame(base_rows) if base_rows else pl.DataFrame(
@@ -91,12 +105,48 @@ def build_occupations_snapshot(occupations):
     geographies = occ_df.select("geography").unique().sort("geography").to_series().to_list() if occ_df.height > 0 else []
     sources = occ_df.select("dataSource").unique().sort("dataSource").to_series().to_list() if occ_df.height > 0 else []
 
+    # Quadrant analytics computation using Polars (Replacement vs Openings)
+    quadrant_data = []
+    if fc_df.height > 0 and occ_df.height > 0:
+        try:
+            df = occ_df.join(fc_df, left_on="id", right_on="occupationId")
+            cols = df.select("dataSource").unique().to_series().to_list()
+            
+            if "EU_Replacement_Demand" in cols and "EU_Job_Openings" in cols:
+                pivoted = df.pivot(
+                    index=["occupationTitle", "geography", "year"],
+                    on="dataSource",
+                    values="employmentCount",
+                    aggregate_function="sum"
+                ).fill_null(0)
+                
+                # Filter to latest year with any data
+                latest_years_df = pivoted.group_by(["occupationTitle", "geography"]).agg(pl.col("year").max().alias("latestYear"))
+                joined_latest = pivoted.join(latest_years_df, on=["occupationTitle", "geography"])
+                filtered_latest = joined_latest.filter(pl.col("year") == pl.col("latestYear"))
+
+                for row in filtered_latest.to_dicts():
+                    rep = row.get("EU_Replacement_Demand", 0)
+                    open_open = row.get("EU_Job_Openings", 0)
+                    if rep > 0 or open_open > 0:
+                        quadrant_data.append({
+                            "occupation": row["occupationTitle"],
+                            "geography": row["geography"],
+                            "year": row["year"],
+                            "replacement": rep,
+                            "openings": open_open,
+                            "ratio": open_open / rep if rep > 0 else 0
+                        })
+        except Exception as e:
+            quadrant_data = []
+
     return {
         "availableYears": [int(y) for y in years],
         "availableGeographies": [str(g) for g in geographies],
         "availableSources": [str(s) for s in sources],
         "occupations": occ_df.to_dicts(),
-        "forecasts": fc_df.to_dicts()
+        "forecasts": fc_df.to_dicts(),
+        "quadrantItems": quadrant_data
     }
 
 

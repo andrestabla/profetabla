@@ -32,6 +32,7 @@ type SkillsSnapshot = {
     usedPythonSnapshot: boolean;
     compilerMessage: string;
     generatedAt: string;
+    treemapData?: Array<{ name: string; children: Array<{ name: string; value: number }> }>;
 };
 
 const SNAPSHOT_CACHE_KEY = 'skills21-skills-snapshot:v1';
@@ -86,6 +87,12 @@ function compileSnapshotFallback(skills: SnapshotSkill[]): SkillsSnapshot {
         const tags = sk.tags.join(' ');
         const searchTokens = `${sk.name} ${sk.industry || ''} ${sk.category || ''} ${sk.description} ${sk.trendSummary || ''} ${tags}`.toLowerCase();
 
+        let cluster = 'Otras Tecnologías';
+        const n = sk.name.toLowerCase();
+        if (n.includes('inteligencia artificial') || n.includes('machine learning') || n.includes(' ia ') || n.includes('ai ')) cluster = 'IA y ML';
+        else if (n.includes('datos') || n.includes('data') || n.includes('sql') || n.includes('analytics')) cluster = 'Datos y Analítica';
+        else if (n.includes('desarrollo') || n.includes('software') || n.includes('web')) cluster = 'Desarrollo de Software';
+
         rows.push({
             id: sk.id,
             name: sk.name,
@@ -94,7 +101,8 @@ function compileSnapshotFallback(skills: SnapshotSkill[]): SkillsSnapshot {
             isActive: sk.isActive,
             sourceProvider: sk.sourceProvider,
             projectCount: sk.projectCount,
-            searchTokens
+            searchTokens,
+            cluster
         });
     }
 
@@ -102,6 +110,7 @@ function compileSnapshotFallback(skills: SnapshotSkill[]): SkillsSnapshot {
         availableIndustries: Array.from(industries).sort((a, b) => a.localeCompare(b)),
         availableCategories: Array.from(categories).sort((a, b) => a.localeCompare(b)),
         skills: rows,
+        treemapData: [],
         usedPythonSnapshot: false,
         compilerMessage: 'Fallback TypeScript aplicado.',
         generatedAt: new Date().toISOString()
@@ -146,6 +155,7 @@ async function runPythonSnapshotCompiler(skills: SnapshotSkill[]): Promise<{ ok:
                         availableIndustries: Array.isArray(parsed.availableIndustries) ? parsed.availableIndustries : [],
                         availableCategories: Array.isArray(parsed.availableCategories) ? parsed.availableCategories : [],
                         skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+                        treemapData: Array.isArray(parsed.treemapData) ? parsed.treemapData : [],
                         usedPythonSnapshot: true,
                         compilerMessage: result.stdout.trim(),
                         generatedAt: new Date().toISOString()
@@ -242,8 +252,8 @@ export async function getSkills21SkillsInsights(filters: Skills21SkillsFilters =
                 .sort((a, b) => b.total - a.total)
                 .slice(0, 12),
             sourceDistribution: Array.from(bySource.entries())
-                .map(([label, total]) => ({ label, total }))
-                .sort((a, b) => b.total - a.total)
+                .map(([label, total]) => ({ label, total })),
+            treemapData: snapshot.treemapData || []
         }
     };
 }

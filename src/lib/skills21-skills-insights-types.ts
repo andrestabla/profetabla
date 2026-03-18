@@ -19,6 +19,7 @@ export type Skills21SkillRow = {
     sourceProvider: string;
     projectCount: number;
     searchTokens: string;
+    cluster: string;
 };
 
 export type Skills21SkillsInsightsResult = {
@@ -34,5 +35,9 @@ export type Skills21SkillsInsightsResult = {
         skillsList: Omit<Skills21SkillRow, 'searchTokens'>[];
         industryDistribution: Skills21SkillDistribution[];
         sourceDistribution: Skills21SkillDistribution[];
+        treemapData: Array<{
+            name: string;
+            children: Array<{ name: string; value: number }>;
+        }>;
     };
 };
