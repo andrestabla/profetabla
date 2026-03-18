@@ -3,10 +3,39 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getSkills21HomeInsights } from '@/lib/skills21-home-insights';
+import type { Skills21HomeInsightsResult } from '@/lib/skills21-home-insights-types';
 import { getSkills21WorldSignalsForDashboard } from '@/lib/skills21-world-watch';
 import Skills21Client from './Skills21Client';
 
 export const dynamic = 'force-dynamic';
+
+function buildEmptyHomeInsightsResult(): Skills21HomeInsightsResult {
+    return {
+        meta: {
+            latestOccupationYear: null,
+            occupationYears: [],
+            occupationIndustries: [],
+            occupationGeographies: [],
+            usedPythonSnapshot: false,
+            compilerMessage: 'Carga inicial diferida.',
+            generatedAt: ''
+        },
+        demand: {
+            selectedYear: null,
+            rowCount: 0,
+            topOccupations: [],
+            lowestSupply: [],
+            chartData: []
+        },
+        skills: {
+            selectedYear: null,
+            scopeOccupationCount: 0,
+            occupationOptions: [],
+            topSkills: [],
+            chartData: []
+        }
+    };
+}
 
 export default async function Skills21Page() {
     const session = await getServerSession(authOptions);
@@ -55,7 +84,10 @@ export default async function Skills21Page() {
     });
 
     const occupationTotalPromise = prisma.occupation.count();
-    const homeInsightsPromise = getSkills21HomeInsights();
+    const homeInsightsPromise = getSkills21HomeInsights().catch((error) => {
+        console.error('[Skills21Page] No se pudo precargar Inicio:', error);
+        return buildEmptyHomeInsightsResult();
+    });
     const worldWatchPromise = getSkills21WorldSignalsForDashboard({
         limit: 16,
         autoRefreshIfStale: false

@@ -401,16 +401,17 @@ export default function Skills21Client({
         homeSkillsOccupationFilter,
         homeSkillsYearFilter
     ]);
+    const hasInitialHomeInsights = Boolean(initialHomeInsights.meta.generatedAt);
 
     useEffect(() => {
         initialHomeInsightsRef.current = initialHomeInsights;
-        if (homeInsightsQuery === initialHomeInsightsQueryRef.current) {
+        if (homeInsightsQuery === initialHomeInsightsQueryRef.current && hasInitialHomeInsights) {
             setHomeInsights(initialHomeInsights);
         }
-    }, [homeInsightsQuery, initialHomeInsights]);
+    }, [hasInitialHomeInsights, homeInsightsQuery, initialHomeInsights]);
 
     useEffect(() => {
-        if (homeInsightsQuery === initialHomeInsightsQueryRef.current) {
+        if (homeInsightsQuery === initialHomeInsightsQueryRef.current && hasInitialHomeInsights) {
             setHomeInsights(initialHomeInsightsRef.current);
             setIsHomeInsightsLoading(false);
             return;
@@ -453,7 +454,7 @@ export default function Skills21Client({
         return () => {
             controller.abort();
         };
-    }, [homeInsightsQuery, showAlert]);
+    }, [hasInitialHomeInsights, homeInsightsQuery, showAlert]);
 
     const industries = useMemo(() => {
         const set = new Set(skills.map((skill) => skill.industry).filter(Boolean));
